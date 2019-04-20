@@ -65,6 +65,10 @@ class elasticsearch_plugin : public graphene::app::plugin
 
       friend class detail::elasticsearch_plugin_impl;
       std::unique_ptr<detail::elasticsearch_plugin_impl> my;
+
+   private:
+      operation_history_object fromEStoOperation(variant source);
+      graphene::utilities::ES prepareHistoryQuery(string query);
 };
 
 struct operation_visitor
