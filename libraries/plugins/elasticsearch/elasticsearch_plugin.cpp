@@ -26,7 +26,6 @@
 #include <graphene/chain/impacted.hpp>
 #include <graphene/chain/account_evaluator.hpp>
 #include <curl/curl.h>
-#include <graphene/utilities/elasticsearch.hpp>
 
 namespace graphene { namespace elasticsearch {
 
@@ -60,7 +59,6 @@ class elasticsearch_plugin_impl
       bool _elasticsearch_operation_object = false;
       uint32_t _elasticsearch_start_es_after_block = 0;
       bool _elasticsearch_operation_string = true;
-      std::string _elasticsearch_mode = "only_save";
       CURL *curl; // curl handler
       vector <string> bulk_lines; //  vector of op lines
       vector<std::string> prepare;
@@ -225,9 +223,8 @@ void elasticsearch_plugin_impl::doOperationHistory(const optional <operation_his
       adaptor_struct adaptor;
       os.op_object = adaptor.adapt(os.op_object.get_object());
    }
-   else
+   if(_elasticsearch_operation_string)
       os.op = fc::json::to_string(oho->op);
-
 }
 
 void elasticsearch_plugin_impl::doBlock(uint32_t trx_in_block, const signed_block& b)
@@ -439,7 +436,6 @@ void elasticsearch_plugin::plugin_set_program_options(
          ("elasticsearch-operation-object", boost::program_options::value<bool>(), "Save operation as object(false)")
          ("elasticsearch-start-es-after-block", boost::program_options::value<uint32_t>(), "Start doing ES job after block(0)")
          ("elasticsearch-operation-string", boost::program_options::value<bool>(), "Save operation as string. Needed to serve history api calls(true)")
-         ("elasticsearch-mode", boost::program_options::value<std::string>(), "Mode of operation: only_save, only_query, all(only_save)")
          ;
    cfg.add(cli);
 }
@@ -476,19 +472,6 @@ void elasticsearch_plugin::plugin_initialize(const boost::program_options::varia
    if (options.count("elasticsearch-operation-string")) {
       my->_elasticsearch_operation_string = options["elasticsearch-operation-string"].as<bool>();
    }
-   if (options.count("elasticsearch-mode")) {
-      my->_elasticsearch_mode = options["elasticsearch-mode"].as<std::string>();
-   }
-
-   if(my->_elasticsearch_mode != "only_query") {
-      if (my->_elasticsearch_mode == "all")
-         my->_elasticsearch_operation_string = true;
-
-      database().applied_block.connect([&](const signed_block &b) {
-         if (!my->update_account_histories(b))
-            FC_THROW_EXCEPTION(graphene::chain::plugin_exception, "Error populating ES database, we are going to keep trying.");
-      });
-   }
 }
 
 void elasticsearch_plugin::plugin_startup()
@@ -505,7 +488,7 @@ void elasticsearch_plugin::plugin_startup()
 
 operation_history_object elasticsearch_plugin::get_operation_by_id(operation_history_id_type id)
 {
-   const string operation_id_string = std::string(object_id_type(id));
+   const string operation_id_string = idToString(id);
 
    const string query = R"(
    {
@@ -544,7 +527,7 @@ vector<operation_history_object> elasticsearch_plugin::get_account_history(
       unsigned limit = 100,
       operation_history_id_type start = operation_history_id_type())
 {
-   const string account_id_string = std::string(object_id_type(account_id));
+   const string account_id_string = idToString(account_id);
 
    const auto stop_number = stop.instance.value;
    const auto start_number = start.instance.value;
@@ -621,6 +604,12 @@ operation_history_object elasticsearch_plugin::fromEStoOperation(variant source)
    result.trx_in_block = source["operation_history"]["virtual_op"].as_uint64();
 
    return result;
+}
+
+template<typename T>
+std::string elasticsearch_plugin::idToString(T id)
+{
+   return fc::to_string(id.space_id) + "." + fc::to_string(id.type_id) + "." + fc::to_string(id.instance.value);
 }
 
 graphene::utilities::ES elasticsearch_plugin::prepareHistoryQuery(string query)
