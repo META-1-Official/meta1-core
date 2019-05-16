@@ -39,7 +39,7 @@ namespace detail {
    // TODO review and remove code below and links to it after hf_1774
    void check_asset_options_hf_1774(const fc::time_point_sec& block_time, const asset_options& options)
    {
-      if(  block_time >= HARDFORK_1268_TIME && block_time < HARDFORK_1774_TIME )
+      if( block_time < HARDFORK_1774_TIME )
       {
          FC_ASSERT( !options.extensions.value.reward_percent.valid() ||
                     *options.extensions.value.reward_percent < GRAPHENE_100_PERCENT,

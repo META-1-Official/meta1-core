@@ -1622,7 +1622,6 @@ BOOST_AUTO_TEST_CASE( global_settle_ticker_test )
 BOOST_AUTO_TEST_CASE( create_bitassets )
 {
    try {
-      generate_blocks( HARDFORK_1268_TIME );
       generate_blocks( db.get_dynamic_global_properties().next_maintenance_time );
       set_expiration( db, trx );
 
