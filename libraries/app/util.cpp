@@ -53,8 +53,8 @@ fc::uint128 to_capped128( const u256& t )
 
 string uint128_amount_to_string( const fc::uint128& amount, const uint8_t precision )
 { try {
-   string s = string( amount );
-   if( precision == 0 || amount == fc::uint128() )
+   std::string s = boost::lexical_cast<std::string>(amount);
+   if( precision == 0 || amount == fc::uint128_t() )
       return s;
 
    std::stringstream ss;
