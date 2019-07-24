@@ -941,6 +941,15 @@ class database_api
       vector<htlc_object> list_htlcs(const htlc_id_type start, uint32_t limit) const;
 
 
+      /**
+       * @brief Get all HTLCs
+       * @param start Lower bound of htlc id to start getting results
+       * @param limit Maximum number of htlc objects to fetch
+       * @return The htlc object list
+      */
+      vector<htlc_object> list_htlcs(const htlc_id_type start, uint32_t limit) const;
+
+
 private:
       std::shared_ptr< database_api_impl > my;
 };
