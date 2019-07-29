@@ -61,18 +61,33 @@ void_result limit_order_create_evaluator::do_evaluate(const limit_order_create_o
       _sell_asset = &op.amount_to_sell.asset_id(d);
       _receive_asset = &op.min_to_receive.asset_id(d);
 
-      if (_sell_asset->options.whitelist_markets.size())
-         FC_ASSERT(_sell_asset->options.whitelist_markets.find(_receive_asset->id) != _sell_asset->options.whitelist_markets.end(),
-                   "This market has not been whitelisted.");
-      if (_sell_asset->options.blacklist_markets.size())
-         FC_ASSERT(_sell_asset->options.blacklist_markets.find(_receive_asset->id) == _sell_asset->options.blacklist_markets.end(),
-                   "This market has been blacklisted.");
+   if( _sell_asset->options.whitelist_markets.size() )
+   {
+      GRAPHENE_ASSERT( _sell_asset->options.whitelist_markets.find(_receive_asset->id)
+                          != _sell_asset->options.whitelist_markets.end(),
+                       limit_order_create_market_not_whitelisted,
+                       "This market has not been whitelisted by the selling asset", );
+   }
+   if( _sell_asset->options.blacklist_markets.size() )
+   {
+      GRAPHENE_ASSERT( _sell_asset->options.blacklist_markets.find(_receive_asset->id)
+                          == _sell_asset->options.blacklist_markets.end(),
+                       limit_order_create_market_blacklisted,
+                       "This market has been blacklisted by the selling asset", );
+   }
 
-      FC_ASSERT(is_authorized_asset(d, *_seller, *_sell_asset));
-      FC_ASSERT(is_authorized_asset(d, *_seller, *_receive_asset));
+   GRAPHENE_ASSERT( is_authorized_asset( d, *_seller, *_sell_asset ),
+                    limit_order_create_selling_asset_unauthorized,
+                    "The account is not allowed to transact the selling asset", );
 
-      FC_ASSERT(d.get_balance(*_seller, *_sell_asset) >= op.amount_to_sell, "insufficient balance",
-                ("balance", d.get_balance(*_seller, *_sell_asset))("amount_to_sell", op.amount_to_sell));
+   GRAPHENE_ASSERT( is_authorized_asset( d, *_seller, *_receive_asset ),
+                    limit_order_create_receiving_asset_unauthorized,
+                    "The account is not allowed to transact the receiving asset", );
+
+   GRAPHENE_ASSERT( d.get_balance( *_seller, *_sell_asset ) >= op.amount_to_sell,
+                    limit_order_create_insufficient_balance,
+                    "insufficient balance",
+                    ("balance",d.get_balance(*_seller,*_sell_asset))("amount_to_sell",op.amount_to_sell) );
 
       //Sell Limitation on asset limit objects
       const auto &asset_limit_by_symbol = d.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
