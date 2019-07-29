@@ -166,7 +166,7 @@ class database_api
        *        By default, API servers don't allow subscribing to universal events, which can be changed
        *        on server startup.
        *
-       * Note: auto-subscription is enabled by default and can be disabled with "set_auto_subscription" API.
+       * Note: auto-subscription is enabled by default and can be disabled with @ref set_auto_subscription API.
        */
       void set_subscribe_callback( std::function<void(const variant&)> cb, bool notify_remove_create );
       /**
@@ -322,7 +322,7 @@ class database_api
        * @brief Fetch all objects relevant to the specified accounts and optionally subscribe to updates
        * @param names_or_ids Each item must be the name or ID of an account to retrieve
        * @param subscribe whether subscribe to updates
-       * @return Map of string from @ref names_or_ids to the corresponding account
+       * @return Map of string from @p names_or_ids to the corresponding account
        *
        * This function fetches all relevant objects for the given accounts, and subscribes to updates to the given
        * accounts. If any of the strings in @p names_or_ids cannot be tied to an account, that input will be
@@ -340,7 +340,7 @@ class database_api
 
       /**
        * @brief Get all accounts that refer to the specified account in their owner or active authorities
-       * @param account_id_or_name Account ID or name to query
+       * @param account_name_or_id Account name or ID to query
        * @return all accounts that refer to the specified account in their owner or active authorities
        */
       vector<account_id_type> get_account_references( const std::string account_name_or_id )const;
