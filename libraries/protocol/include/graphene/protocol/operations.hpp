@@ -39,6 +39,7 @@
 #include <graphene/protocol/witness.hpp>
 #include <graphene/protocol/worker.hpp>
 #include <graphene/protocol/htlc.hpp>
+#include <graphene/protocol/property_ops.hpp>
 
 namespace graphene { namespace protocol {
 
@@ -101,7 +102,9 @@ namespace graphene { namespace protocol {
             htlc_redeem_operation,
             htlc_redeemed_operation,         // VIRTUAL
             htlc_extend_operation,
-            htlc_refund_operation            // VIRTUAL
+            htlc_refund_operation,            // VIRTUAL
+            property_create_operation,
+            property_update_operation
          > operation;
 
    /// @} // operations group

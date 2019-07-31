@@ -26,7 +26,8 @@ list(APPEND SOURCES account.cpp
                     types.cpp
                     withdraw_permission.cpp
                     worker.cpp
-                    htlc.cpp)
+                    htlc.cpp
+                    property_ops.cpp)
 
 
 add_library( graphene_protocol ${SOURCES} ${HEADERS} )
