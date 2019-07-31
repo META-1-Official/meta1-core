@@ -41,6 +41,7 @@
 #include <graphene/chain/worker_object.hpp>
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/htlc_object.hpp>
+#include <graphene/chain/property_object.hpp>
 
 #include <graphene/market_history/market_history_plugin.hpp>
 
