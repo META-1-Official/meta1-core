@@ -64,6 +64,7 @@
 #include <graphene/app/api.hpp>
 #include <graphene/app/util.hpp>
 #include <graphene/chain/asset_object.hpp>
+#include <graphene/chain/property_object.hpp>
 #include <graphene/protocol/fee_schedule.hpp>
 #include <graphene/protocol/pts_address.hpp>
 #include <graphene/chain/hardfork.hpp>

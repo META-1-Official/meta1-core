@@ -35,6 +35,7 @@ namespace graphene { namespace chain {
    class account_statistics_object;
    class asset_object;
    class asset_dynamic_data_object;
+   class property_object;
 
    class generic_evaluator
    {
