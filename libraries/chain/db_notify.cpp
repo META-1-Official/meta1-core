@@ -16,6 +16,7 @@
 #include <graphene/chain/operation_history_object.hpp>
 #include <graphene/chain/vesting_balance_object.hpp>
 #include <graphene/chain/transaction_history_object.hpp>
+#include <graphene/chain/property_object.hpp>
 #include <graphene/chain/impacted.hpp>
 
 using namespace fc;
@@ -294,7 +295,7 @@ struct get_impacted_account_visitor
        if (op.new_issuer)
          _impacted.insert(*(op.new_issuer));
    }
-   
+
 };
 
 void graphene::chain::operation_get_impacted_accounts( const operation& op, flat_set<account_id_type>& result )
@@ -325,6 +326,11 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
            const auto& aobj = dynamic_cast<const asset_object*>(obj);
            FC_ASSERT( aobj != nullptr );
            accounts.insert( aobj->issuer );
+           break;
+        } case property_object_type:{
+           const auto &aobj = dynamic_cast<const property_object *>(obj);
+           FC_ASSERT(aobj != nullptr);
+           accounts.insert(aobj->issuer);
            break;
         } case force_settlement_object_type:{
            const auto& aobj = dynamic_cast<const force_settlement_object*>(obj);

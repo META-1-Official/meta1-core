@@ -64,6 +64,7 @@ add_library( graphene_chain
              proposal_object.cpp
              vesting_balance_object.cpp
              small_objects.cpp
+             property_object.cpp
 
              block_database.cpp
 
