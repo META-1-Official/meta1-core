@@ -46,6 +46,7 @@
 #include <graphene/chain/vote_count.hpp>
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/worker_object.hpp>
+#include <graphene/chain/property_object.hpp>
 
 namespace graphene { namespace chain {
 

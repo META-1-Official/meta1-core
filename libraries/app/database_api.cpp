@@ -111,6 +111,13 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
       vector<asset_object>           get_assets_by_issuer(const std::string& issuer_name_or_id,
                                                           asset_id_type start, uint32_t limit)const;
 
+      // Backed assets
+      vector<optional<property_object>> get_properties(const vector<uint32_t> &properties_ids) const;
+      bool is_property_exists(uint32_t property_id)const;
+      vector<property_object> get_all_properties() const;
+      vector<property_object> get_properties_by_backed_asset_symbol(string symbol) const;
+      optional<property_object> get_property_by_id(uint32_t id) const;
+
       // Markets / feeds
       vector<limit_order_object>         get_limit_orders(const std::string& a, const std::string& b, uint32_t limit)const;
       vector<limit_order_object>         get_account_limit_orders( const string& account_name_or_id,
@@ -260,6 +267,18 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
          if(throw_if_not_found)
             FC_ASSERT( account, "no such account" );
          return account;
+      }
+
+      const property_object *get_property_from_id(const uint32_t &id) const
+      {
+          const property_object *property = nullptr;
+          const auto &idx = _db.get_index_type<property_index>().indices().get<by_property_id>();
+          auto itr = idx.find(id);
+          if (itr != idx.end())
+             property = &*itr;
+    
+          FC_ASSERT(property, "no such property");
+          return property;
       }
 
       const asset_object* get_asset_from_string( const std::string& symbol_or_id, bool throw_if_not_found = true ) const
@@ -797,6 +816,88 @@ bool database_api_impl::is_public_key_registered(string public_key) const
     return is_known;
 }
 
+
+/////////////////////////////////////////////////////////////////////
+//                                                                 //
+// Backed assets                                                   //
+//                                                                 //
+/////////////////////////////////////////////////////////////////////
+
+bool database_api::is_property_exists(uint32_t property_id)const
+{
+    return my->is_property_exists(property_id);
+}
+bool database_api_impl::is_property_exists(uint32_t property_id)const
+{
+   const property_object *property = nullptr;
+      const auto &idx = _db.get_index_type<property_index>().indices().get<by_property_id>();
+      auto itr = idx.find(property_id);
+      if (itr != idx.end())
+         property = &*itr;
+
+      if(property)
+      return true;
+      else
+      return false;
+}
+
+vector<optional<property_object>> database_api::get_properties(const vector<uint32_t> &properties_ids) const
+{
+   return my->get_properties(properties_ids);
+}
+
+vector<optional<property_object>> database_api_impl::get_properties(const vector<uint32_t> &properties_ids) const
+{
+   vector<optional<property_object>> result;
+   result.reserve(properties_ids.size());
+   std::transform(properties_ids.begin(), properties_ids.end(), std::back_inserter(result),
+                  [this](uint32_t id) -> optional<property_object> {
+                     const property_object *property = get_property_from_id(id);
+                     property_id_type property_id = property->id;
+                     if (auto o = _db.find(property_id))
+                     {
+                        subscribe_to_item(property_id);
+                        return *o;
+                     }
+                     return {};
+                  });
+   return result;
+}
+
+
+vector<property_object> database_api::get_all_properties() const
+{
+   return my->get_all_properties();
+}
+
+vector<property_object> database_api_impl::get_all_properties() const
+{
+   vector<property_object> result;
+   const auto &properties_idx = _db.get_index_type<property_index>().indices().get<by_id>();
+   for (const auto &p : properties_idx)
+   {
+      result.push_back(p);
+   }
+   return result;
+}
+   vector<property_object>  database_api::get_properties_by_backed_asset_symbol(string symbol) const
+   {
+       return my->get_properties_by_backed_asset_symbol(symbol);
+   }
+
+   vector<property_object>  database_api_impl::get_properties_by_backed_asset_symbol(string symbol) const
+   {
+         vector<property_object> result;
+         const auto &properties_idx = _db.get_index_type<property_index>().indices().get<by_id>();
+            for (const auto &p : properties_idx)
+               {
+                  if(p.options.backed_by_asset_symbol == symbol)
+                  result.push_back(p);
+               }
+         return result;
+
+   }
+
 //////////////////////////////////////////////////////////////////////
 //                                                                  //
 // Accounts                                                         //
@@ -1094,6 +1195,19 @@ optional<account_object> database_api_impl::get_account_by_name( string name )co
    if (itr != idx.end())
       return *itr;
    return optional<account_object>();
+}
+
+optional<property_object> database_api::get_property_by_id(uint32_t id) const
+{
+   return my->get_property_by_id(id);
+}
+optional<property_object> database_api_impl::get_property_by_id(uint32_t id) const
+{
+   const auto &idx = _db.get_index_type<property_index>().indices().get<by_property_id>();
+   auto itr = idx.find(id);
+   if (itr != idx.end())
+      return *itr;
+   return optional<property_object>();
 }
 
 vector<account_id_type> database_api::get_account_references( const std::string account_id_or_name )const

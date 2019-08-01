@@ -399,6 +399,17 @@ class database_api
        */
       uint64_t get_account_count()const;
 
+      ////////////////////
+      //  Backed Assets //
+      ////////////////////
+
+      vector<optional<property_object>> get_properties(const vector<uint32_t>& properties_ids)const;
+      bool is_property_exists(uint32_t property_id)const;
+
+      vector<property_object> get_all_properties() const;
+      vector<property_object>  get_properties_by_backed_asset_symbol(string symbol) const;
+      optional<property_object> get_property_by_id( uint32_t id )const;
+
       ////////////
       // Assets //
       ////////////
@@ -890,6 +901,13 @@ FC_API(graphene::app::database_api,
    (get_asset_count)
    (get_assets_by_issuer)
    (get_asset_id_from_string)
+
+    //backed asset
+   (get_properties)
+   (is_property_exists)
+   (get_all_properties)
+   (get_properties_by_backed_asset_symbol)
+   (get_property_by_id)
 
    // Markets / feeds
    (get_order_book)

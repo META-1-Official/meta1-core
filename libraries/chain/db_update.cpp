@@ -34,6 +34,7 @@
 #include <graphene/chain/transaction_history_object.hpp>
 #include <graphene/chain/withdraw_permission_object.hpp>
 #include <graphene/chain/witness_object.hpp>
+#include <graphene/chain/property_object.hpp>
 
 #include <graphene/protocol/fee_schedule.hpp>
 
