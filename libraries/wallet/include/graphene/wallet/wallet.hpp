@@ -479,6 +479,11 @@ class wallet_api
        */
       account_object                    get_account(string account_name_or_id) const;
 
+
+      property_object                   get_property(uint32_t id) const;
+      vector<property_object>           get_all_properties()const;
+      vector<property_object>           get_properties_by_backed_asset_symbol(string symbol) const;
+
       /** Returns information about the given asset.
        * @param asset_name_or_id the symbol or id of the asset in question
        * @returns the information about the asset stored in the block chain
@@ -1066,6 +1071,18 @@ class wallet_api
        * @returns the signed transaction canceling the order
        */
       signed_transaction cancel_order(object_id_type order_id, bool broadcast = false);
+
+
+
+      signed_transaction create_property(string issuer,property_options common,bool broadcast = false);
+
+      signed_transaction smooth_allocate_meta1_limit_sell_price(double allocate_value,
+                                                                bool broadcast = false);
+
+      signed_transaction update_property(uint32_t id,
+                                         optional<string> new_issuer,
+                                         property_options new_options,
+                                         bool broadcast = false);
 
       /** Creates a new user-issued or market-issued asset.
        *
@@ -1854,6 +1871,9 @@ FC_API( graphene::wallet::wallet_api,
         (transfer)
         (transfer2)
         (get_transaction_id)
+        (create_property)
+        (smooth_allocate_meta1_limit_sell_price)
+        (update_property)
         (create_asset)
         (update_asset)
         (update_asset_issuer)
@@ -1889,6 +1909,9 @@ FC_API( graphene::wallet::wallet_api,
         (vote_for_witness)
         (set_voting_proxy)
         (set_desired_witness_and_committee_member_count)
+        (get_property)
+        (get_all_properties)
+        (get_properties_by_backed_asset_symbol)
         (get_account)
         (get_account_id)
         (get_block)

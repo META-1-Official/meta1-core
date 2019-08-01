@@ -29,6 +29,9 @@
 #include <sstream>
 #include <string>
 #include <list>
+#include <time.h>
+#include <stdlib.h>
+#include <random>
 
 #include <boost/version.hpp>
 #include <boost/lexical_cast.hpp>
@@ -645,6 +648,38 @@ public:
    {
       return _remote_db->get_dynamic_global_properties();
    }
+
+   optional<property_object> find_property(uint32_t id) const
+   {
+      auto rec = _remote_db->get_properties({id}).front();
+      return rec;
+   }
+
+   bool is_property_exists(uint32_t id) const
+   {
+      bool flag = _remote_db->is_property_exists(id);
+      return flag;
+   }
+
+
+   property_object get_property(uint32_t id) const
+   {
+      auto rec = _remote_db->get_properties({id});
+      FC_ASSERT(rec.front(), "no property with such id");
+      return *rec.front();
+   }
+   vector<property_object> get_all_properties() const
+   {
+      auto result = _remote_db->get_all_properties();
+      return result;
+   }
+   vector<property_object>  get_properties_by_backed_asset_symbol(string symbol) const
+   {
+      auto result = _remote_db->get_properties_by_backed_asset_symbol(symbol);
+      return result;
+   }
+
+
    std::string account_id_to_string(account_id_type id) const
    {
       std::string account_id = fc::to_string(id.space_id)
@@ -1334,6 +1369,80 @@ public:
                                              referrer_account, broadcast, save_wallet);
    } FC_CAPTURE_AND_RETHROW( (account_name)(registrar_account)(referrer_account) ) }
 
+    signed_transaction create_property(string issuer,
+                                      property_options common,
+                                      bool broadcast = false)
+   {
+      try
+      {
+         FC_ASSERT(find_asset(common.backed_by_asset_symbol).valid(), "Asset with that symbol not exists!");
+         std::random_device rd;
+         std::mt19937 mersenne(rd());
+         uint32_t rand_id;
+         bool flag;
+         account_object issuer_account = get_account(issuer);
+         property_create_operation create_op;
+
+         //generating new property id and regenerate if such id is exists
+         do 
+         {
+            rand_id = mersenne();
+            ilog(" backed asset id : ${i}",("i",rand_id));
+            flag = is_property_exists(rand_id);
+         }
+         while(flag);
+
+         create_op.property_id = rand_id;
+         create_op.issuer = issuer_account.id;
+         create_op.common_options = common;
+         signed_transaction tx;
+         tx.operations.push_back(create_op);
+
+         set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
+
+         tx.validate();
+         auto transaction_result = sign_transaction(tx, broadcast);
+         return transaction_result;
+      }
+      FC_CAPTURE_AND_RETHROW((issuer)(common)(broadcast))
+   }
+
+
+   signed_transaction update_property(uint32_t id,
+                                      optional<string> new_issuer,
+                                      property_options new_options,
+                                      bool broadcast = false)
+   {
+      try
+      {
+         optional<property_object> property_to_update = find_property(id);
+         if (!property_to_update)
+            FC_THROW("No property with that id exists!");
+         optional<account_id_type> new_issuer_account_id;
+         if (new_issuer)
+         {
+            FC_ASSERT(_remote_db->get_dynamic_global_properties().time < HARDFORK_CORE_199_TIME,
+                      "The use of 'new_issuer' is no longer supported. Please use `update_asset_issuer' instead!");
+            account_object new_issuer_account = get_account(*new_issuer);
+            new_issuer_account_id = new_issuer_account.id;
+         }
+         property_update_operation update_op;
+
+         update_op.issuer = property_to_update->issuer;
+
+         update_op.property_to_update = property_to_update->id;
+         update_op.new_issuer = new_issuer_account_id;
+         update_op.new_options = new_options;
+
+         signed_transaction tx;
+         tx.operations.push_back(update_op);
+         set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
+         tx.validate();
+
+         return sign_transaction(tx, broadcast);
+      }
+      FC_CAPTURE_AND_RETHROW((id)(new_issuer)(new_options)(broadcast))
+   }
 
    signed_transaction create_asset(string issuer,
                                    string symbol,
@@ -1387,6 +1496,32 @@ public:
 
       return sign_transaction( tx, broadcast );
    } FC_CAPTURE_AND_RETHROW( (symbol)(new_issuer)(new_options)(broadcast) ) }
+
+   signed_transaction smooth_allocate_meta1_limit_sell_price(double allocate_value,
+                                                             bool broadcast /* = false*/)
+   {
+      try
+      {
+         optional<asset_object> asset_to_update = find_asset("META1LIMIT");
+         if (!asset_to_update)
+            FC_THROW("No asset with that symbol exists!");
+         asset_update_operation update_op;
+         update_op.issuer = asset_to_update->issuer;
+         update_op.asset_to_update = asset_to_update->id;
+         asset_options asset_ops = asset_to_update->options;
+
+         //asset_ops.meta1_sell_price_limitation += allocate_value;
+         update_op.new_options = asset_ops;
+
+         signed_transaction tx;
+         tx.operations.push_back(update_op);
+         set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
+
+         tx.validate();
+         return sign_transaction(tx, broadcast);
+      }
+      FC_CAPTURE_AND_RETHROW((allocate_value)(broadcast))
+   }
 
    signed_transaction update_asset_issuer(string symbol,
                                    string new_issuer,
@@ -3641,6 +3776,20 @@ void wallet_api::remove_builder_transaction(transaction_handle_type handle)
    return my->remove_builder_transaction(handle);
 }
 
+property_object wallet_api::get_property(uint32_t id) const
+{
+   return my->get_property(id);
+}
+
+vector<property_object> wallet_api::get_all_properties() const
+{
+   return my->get_all_properties();
+}
+vector<property_object>           wallet_api::get_properties_by_backed_asset_symbol(string symbol) const
+{
+   return my->get_properties_by_backed_asset_symbol(symbol);
+}
+
 account_object wallet_api::get_account(string account_name_or_id) const
 {
    return my->get_account(account_name_or_id);
@@ -3863,6 +4012,24 @@ signed_transaction wallet_api::transfer(string from, string to, string amount,
 {
    return my->transfer(from, to, amount, asset_symbol, memo, broadcast);
 }
+signed_transaction wallet_api::create_property(string issuer, property_options common, bool broadcast)
+{
+   return my->create_property(issuer, common, broadcast);
+}
+
+signed_transaction wallet_api::smooth_allocate_meta1_limit_sell_price(double allocate_value,
+                                                                      bool broadcast /*= false*/)
+{
+   return my->smooth_allocate_meta1_limit_sell_price(allocate_value, broadcast);
+}
+signed_transaction wallet_api::update_property(uint32_t id,
+                                               optional<string> new_issuer,
+                                               property_options new_options,
+                                               bool broadcast /*  = false*/)
+{
+   return my->update_property(id, new_issuer, new_options, broadcast);
+}
+
 signed_transaction wallet_api::create_asset(string issuer,
                                             string symbol,
                                             uint8_t precision,
