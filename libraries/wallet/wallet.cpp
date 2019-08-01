@@ -1510,7 +1510,9 @@ public:
          update_op.asset_to_update = asset_to_update->id;
          asset_options asset_ops = asset_to_update->options;
 
-         //asset_ops.meta1_sell_price_limitation += allocate_value;
+         double price_limitation = std::stod(asset_ops.meta1_sell_price_limitation);
+         price_limitation+=+allocate_value;
+         asset_ops.meta1_sell_price_limitation = std::to_string(price_limitation);
          update_op.new_options = asset_ops;
 
          signed_transaction tx;

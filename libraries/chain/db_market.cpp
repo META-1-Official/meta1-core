@@ -24,6 +24,14 @@
 
 #include <graphene/chain/database.hpp>
 
+#include <iostream>
+#include <string> 
+#include <boost/asio.hpp>
+#include <cstdint>
+#include <memory>
+#include <curl/curl.h>
+#include <json/json.h>
+
 #include <graphene/chain/account_object.hpp>
 #include <graphene/chain/asset_object.hpp>
 #include <graphene/chain/property_object.hpp>
@@ -392,6 +400,13 @@ bool database::apply_order_before_hardfork_625(const limit_order_object& new_ord
    return maybe_cull_small_order( *this, *updated_order_object );
 }
 
+std::size_t callback(const char *in, std::size_t size, std::size_t num, std::string *out)
+{
+   const std::size_t totalBytes = size * num;
+   out->append(in, totalBytes);
+   return totalBytes;
+}
+
 bool database::apply_order(const limit_order_object& new_order_object, bool allow_black_swan)
 {
    auto order_id = new_order_object.id;
@@ -449,6 +464,74 @@ bool database::apply_order(const limit_order_object& new_order_object, bool allo
 
    bool to_check_call_orders = false;
    const asset_object& sell_asset = sell_asset_id( *this );
+   const asset_object &receive_asset = recv_asset_id(*this);
+
+
+    if (sell_asset.symbol == "META1")
+    {
+      //get Meta1 Limit Price
+      const auto& assets_by_symbol = this->get_index_type<asset_index>().indices().get<by_symbol>();
+      auto itr = assets_by_symbol.find("META1LIMIT");
+      FC_ASSERT(itr != assets_by_symbol.end(),
+                "Unable to find asset '${sym}'. Did you forget to add a record for it to initial_assets?");
+      double metaPriceUSD = std::stod(itr->options.meta1_sell_price_limitation);
+      double sellAmount = 0, receiveAmount = 0;
+      sellAmount = std::stod(sell_asset.amount_to_string(new_order_object.amount_for_sale().amount));
+      receiveAmount = std::stod(receive_asset.amount_to_string(new_order_object.amount_to_receive().amount));
+
+      //COIN to usd  data from rest api
+      if (receive_asset.symbol != "USD" && receive_asset.symbol != "USDT"&& receive_asset.symbol != "USDC" )
+      {
+         const std::string url = "https://api.binance.com/api/v3/avgPrice?symbol=" + receive_asset.symbol + "USDT";
+         CURL *curl = curl_easy_init();
+         // Set remote URL.
+         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+         // Don't bother trying IPv6, which would increase DNS resolution time.
+         curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+         // Don't wait forever, time out after 10 seconds.
+         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
+         // Follow HTTP redirects if necessary.
+         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+         // Response information.
+         std::unique_ptr<std::string> httpData(new std::string());
+         // Hook up data handling function.
+         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, callback);
+
+         // Hook up data container (will be passed as the last parameter to the
+         // callback handling function).  Can be any pointer type, since it will
+         // internally be passed as a void pointer.
+         curl_easy_setopt(curl, CURLOPT_WRITEDATA, httpData.get());
+         // Run our HTTP GET command, capture the HTTP response code, and clean up.
+         curl_easy_perform(curl);
+         //curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
+         curl_easy_cleanup(curl);
+         Json::Value jsonData;
+         Json::Reader jsonReader;
+
+         if (jsonReader.parse(*httpData.get(), jsonData))
+         {
+            //Json parsing
+            std::string receiveCoinPriceString = jsonData.get("price",jsonData).toStyledString();
+            double receiveCoinPrice = std::stod(receiveCoinPriceString.substr(1,receiveCoinPriceString.find_last_of('"')-1));
+            wlog(receive_asset.symbol+" Price: ${p}",("p",receiveCoinPrice));
+
+                     // if user want to sell with less price than meta cost
+            FC_ASSERT(receiveAmount*receiveCoinPrice > sellAmount*metaPriceUSD,"minimum selling price of META1 ${symbol} equivalent :${p}",("p",metaPriceUSD/receiveCoinPrice) ("symbol",receive_asset.symbol));
+         }
+         else
+         {
+
+            std::cout << "Could not parse HTTP data as JSON" << std::endl;
+            std::cout << "HTTP data was:\n"
+                      << *httpData.get() << std::endl;
+         }
+      }
+      else if (receive_asset.symbol == "USD"|| receive_asset.symbol == "USDT") 
+      {       
+         // if user want to sell with less price than meta cost
+           FC_ASSERT(receiveAmount > sellAmount*metaPriceUSD,"minimum selling price of META1 dollar equivalent :${p}",("p",metaPriceUSD));
+      }
+   }
    const asset_bitasset_data_object* sell_abd = nullptr;
    price call_match_price;
    if( sell_asset.is_market_issued() )
