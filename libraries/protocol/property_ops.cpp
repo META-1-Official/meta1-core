@@ -1,14 +1,9 @@
 #include <graphene/protocol/property_ops.hpp>
 
-#include <fc/io/raw.hpp>
-
-#include <locale>
-
 namespace graphene { namespace protocol {
 
 void property_options::validate() const
 {
-
    FC_ASSERT(!owner_contact_email.empty());
    FC_ASSERT(!description.empty());
    FC_ASSERT(!custodian.empty());
@@ -20,8 +15,6 @@ void property_options::validate() const
    FC_ASSERT(property_surety_bond_value  >= 0);
    FC_ASSERT(property_surety_bond_number >= 0);
    FC_ASSERT(!smooth_allocation_time.empty());
-
-
 }
 
 void property_create_operation::validate() const
@@ -39,7 +32,6 @@ void property_update_operation::validate() const
       FC_ASSERT(issuer != *new_issuer);
    new_options.validate();
 }
-
 } }
 
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::protocol::property_options )
