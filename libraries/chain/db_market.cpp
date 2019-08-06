@@ -30,7 +30,7 @@
 #include <cstdint>
 #include <memory>
 #include <curl/curl.h>
-#include <json/json.h>
+#include <fc/io/json.hpp>
 
 #include <graphene/chain/account_object.hpp>
 #include <graphene/chain/asset_object.hpp>
@@ -465,8 +465,6 @@ bool database::apply_order(const limit_order_object& new_order_object, bool allo
    bool to_check_call_orders = false;
    const asset_object& sell_asset = sell_asset_id( *this );
    const asset_object &receive_asset = recv_asset_id(*this);
-
-
     if (sell_asset.symbol == "META1")
     {
       //get Meta1 Limit Price
@@ -496,7 +494,6 @@ bool database::apply_order(const limit_order_object& new_order_object, bool allo
          std::unique_ptr<std::string> httpData(new std::string());
          // Hook up data handling function.
          curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, callback);
-
          // Hook up data container (will be passed as the last parameter to the
          // callback handling function).  Can be any pointer type, since it will
          // internally be passed as a void pointer.
@@ -505,31 +502,20 @@ bool database::apply_order(const limit_order_object& new_order_object, bool allo
          curl_easy_perform(curl);
          //curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
          curl_easy_cleanup(curl);
-         Json::Value jsonData;
-         Json::Reader jsonReader;
-
-         if (jsonReader.parse(*httpData.get(), jsonData))
+         auto resp_body =  fc::json::from_string(*httpData.get());
+         const auto& resp_obj = resp_body.get_object();
+         if (resp_obj.contains( "price" ))
          {
             //Json parsing
-            std::string receiveCoinPriceString = jsonData.get("price",jsonData).toStyledString();
-            double receiveCoinPrice = std::stod(receiveCoinPriceString.substr(1,receiveCoinPriceString.find_last_of('"')-1));
-            wlog(receive_asset.symbol+" Price: ${p}",("p",receiveCoinPrice));
-
-                     // if user want to sell with less price than meta cost
-            FC_ASSERT(receiveAmount*receiveCoinPrice > sellAmount*metaPriceUSD,"minimum selling price of META1 ${symbol} equivalent :${p}",("p",metaPriceUSD/receiveCoinPrice) ("symbol",receive_asset.symbol));
-         }
-         else
-         {
-
-            std::cout << "Could not parse HTTP data as JSON" << std::endl;
-            std::cout << "HTTP data was:\n"
-                      << *httpData.get() << std::endl;
+            double receiveCoinPrice = std::stod(resp_obj["price"].as_string());
+            // if user want to sell with less price than meta cost
+            FC_ASSERT(receiveAmount*receiveCoinPrice >= sellAmount*metaPriceUSD);
          }
       }
       else if (receive_asset.symbol == "USD"|| receive_asset.symbol == "USDT") 
       {       
-         // if user want to sell with less price than meta cost
-           FC_ASSERT(receiveAmount > sellAmount*metaPriceUSD,"minimum selling price of META1 dollar equivalent :${p}",("p",metaPriceUSD));
+         //if user want to sell with less price than meta cost
+         FC_ASSERT(receiveAmount >= sellAmount*metaPriceUSD,"minimum selling price of META1 dollar equivalent :${p}",("p",metaPriceUSD));
       }
    }
    const asset_bitasset_data_object* sell_abd = nullptr;

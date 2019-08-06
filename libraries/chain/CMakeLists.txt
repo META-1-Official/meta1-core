@@ -82,7 +82,7 @@ if(CURL_STATICLIB)
 endif(CURL_STATICLIB)
 
 add_dependencies( graphene_chain build_hardfork_hpp )
-target_link_libraries( graphene_chain fc graphene_db graphene_protocol ${CURL_LIBRARIES} jsoncpp)
+target_link_libraries( graphene_chain fc graphene_db graphene_protocol ${CURL_LIBRARIES})
 target_include_directories( graphene_chain
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_BINARY_DIR}/include" )
 
