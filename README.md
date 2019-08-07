@@ -1,12 +1,11 @@
-BitShares Core
+META1 Core
 ==============
 
-[Build Status](https://travis-ci.org/bitshares/bitshares-core/branches):
+[Build Status](https://travis-ci.com/meta1-blockchain/meta1-core/branches):
 
 `master` | `develop` | `hardfork` | `testnet` | `bitshares-fc` 
  --- | --- | --- | --- | ---
- [![](https://travis-ci.org/bitshares/bitshares-core.svg?branch=master)](https://travis-ci.org/bitshares/bitshares-core) | [![](https://travis-ci.org/bitshares/bitshares-core.svg?branch=develop)](https://travis-ci.org/bitshares/bitshares-core) | [![](https://travis-ci.org/bitshares/bitshares-core.svg?branch=hardfork)](https://travis-ci.org/bitshares/bitshares-core) | [![](https://travis-ci.org/bitshares/bitshares-core.svg?branch=testnet)](https://travis-ci.org/bitshares/bitshares-core) | [![](https://travis-ci.org/bitshares/bitshares-fc.svg?branch=master)](https://travis-ci.org/bitshares/bitshares-fc) 
-
+ [![](https://travis-ci.com/meta1-blockchain/meta1-core.svg?branch=master)](https://travis-ci.com/meta1-blockchain/meta1-core) | [![](https://travis-ci.com/meta1-blockchain/meta1-core.svg?branch=develop)](https://travis-ci.com/meta1-blockchain/meta1-core) | [![](https://travis-ci.com/meta1-blockchain/meta1-core.svg?branch=hardfork)](https://travis-ci.com/meta1-blockchain/meta1-core) | [![](https://travis-ci.com/meta1-blockchain/meta1-core.svg?branch=testnet)](https://travis-ci.com/meta1-blockchain/meta1-core) | [![](https://travis-ci.org/bitshares/bitshares-fc.svg?branch=master)](https://travis-ci.org/bitshares/bitshares-fc) 
 
 * [Getting Started](#getting-started)
 * [Support](#support)
@@ -15,19 +14,19 @@ BitShares Core
 * [FAQ](#faq)
 * [License](#license)
 
-BitShares Core is the BitShares blockchain implementation and command-line interface.
-The web wallet is [BitShares UI](https://github.com/bitshares/bitshares-ui).
+META1 Core is the META1 blockchain implementation and command-line interface.
+The web wallet is [META1 UI](https://github.com/meta1-blockchain/meta1-ui).
 
-Visit [BitShares.org](https://bitshares.org/) to learn about BitShares and join the community at [BitSharesTalk.org](https://bitsharestalk.org/).
+Visit [meta1.io](https://meta1.io/) to learn about META1 and join the community.
 
-Information for developers can be found in the [Bitshares Developer Portal](https://dev.bitshares.works/). Users interested in how bitshares works can go to the [BitShares Documentation](https://how.bitshares.works/) site.
+Information for developers can be found in the [META1 Developer Portal](https://dev.bitshares.works/). Users interested in how META1 works can go to the [META1 Documentation](https://how.bitshares.works/) site.
 
 For security issues and bug bounty program please visit [Hack the DEX](https://hackthedex.io).
 
 Getting Started
 ---------------
 Build instructions and additional documentation are available in the
-[wiki](https://github.com/bitshares/bitshares-core/wiki).
+[wiki](https://github.com/meta1-blockchain/meta1-core/wiki).
 
 We recommend building on Ubuntu 16.04 LTS (64-bit) 
 
@@ -38,8 +37,8 @@ We recommend building on Ubuntu 16.04 LTS (64-bit)
 
 **Build Script:**
 
-    git clone https://github.com/bitshares/bitshares-core.git
-    cd bitshares-core
+    git clone https://github.com/meta1-blockchain/meta1-core.git
+    cd meta1-core
     git checkout master # may substitute "master" with current release tag
     git submodule update --init --recursive
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .
@@ -47,7 +46,7 @@ We recommend building on Ubuntu 16.04 LTS (64-bit)
 
 **Upgrade Script** (prepend to the Build Script above if you built a prior release):
 
-    git remote set-url origin https://github.com/bitshares/bitshares-core.git
+    git remote set-url origin https://github.com/meta1-blockchain/meta1-core.git
     git checkout master
     git remote set-head origin --auto
     git pull
@@ -57,15 +56,15 @@ We recommend building on Ubuntu 16.04 LTS (64-bit)
 
 **NOTE:** Versions of [Boost](http://www.boost.org/) 1.58 through 1.69 are supported. Newer versions may work, but
 have not been tested. If your system came pre-installed with a version of Boost that you do not wish to use, you may
-manually build your preferred version and use it with BitShares by specifying it on the CMake command line.
+manually build your preferred version and use it with META1 by specifying it on the CMake command line.
 
 Example: ``cmake -DBOOST_ROOT=/path/to/boost .``
 
-**NOTE:** BitShares requires a 64-bit operating system to build, and will not build on a 32-bit OS.
+**NOTE:** META1 requires a 64-bit operating system to build, and will not build on a 32-bit OS.
 
-**NOTE:** BitShares now supports Ubuntu 18.04 LTS
+**NOTE:** META1 now supports Ubuntu 18.04 LTS
 
-**NOTE:** BitShares now supports OpenSSL 1.1.0
+**NOTE:** META1 now supports OpenSSL 1.1.0
 
 **After Building**, the `witness_node` can be launched with:
 
@@ -102,15 +101,15 @@ To import your initial balance:
 If you send private keys over this connection, `rpc-endpoint` should be bound to localhost for security.
 
 Use `help` to see all available wallet commands. Source definition and listing of all commands is available
-[here](https://github.com/bitshares/bitshares-core/blob/master/libraries/wallet/include/graphene/wallet/wallet.hpp).
+[here](https://github.com/meta1-blockchain/meta1-core/blob/master/libraries/wallet/include/graphene/wallet/wallet.hpp).
 
 Support
 -------
 Technical support is available in the [BitSharesTalk technical support subforum](https://bitsharestalk.org/index.php?board=45.0).
 
-BitShares Core bugs can be reported directly to the [issue tracker](https://github.com/bitshares/bitshares-core/issues).
+META1 Core bugs can be reported directly to the [issue tracker](https://github.com/meta1-blockchain/meta1-core/issues).
 
-BitShares UI bugs should be reported to the [UI issue tracker](https://github.com/bitshares/bitshares-ui/issues)
+META1 UI bugs should be reported to the [UI issue tracker](https://github.com/meta1-blockchain/meta1-ui/issues)
 
 Up to date online Doxygen documentation can be found at [Doxygen](https://bitshares.org/doxygen/hierarchy.html)
 
@@ -258,5 +257,5 @@ FAQ
  
 License
 -------
-BitShares Core is under the MIT license. See [LICENSE](https://github.com/bitshares/bitshares-core/blob/master/LICENSE.txt)
+META1 Core is under the MIT license. See [LICENSE](https://github.com/meta1-blockchain/meta1-core/blob/master/LICENSE.txt)
 for more information.
