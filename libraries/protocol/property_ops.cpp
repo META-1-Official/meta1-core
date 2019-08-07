@@ -20,16 +20,12 @@ void property_options::validate() const
 void property_create_operation::validate() const
 {
    FC_ASSERT(fee.amount >= 0);
-
    common_options.validate();
 }
 
 void property_update_operation::validate() const
 {
    FC_ASSERT(fee.amount >= 0);
-
-   if (new_issuer)
-      FC_ASSERT(issuer != *new_issuer);
    new_options.validate();
 }
 } }

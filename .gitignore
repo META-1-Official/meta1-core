@@ -14,6 +14,12 @@ hardfork.hpp
 
 libraries/utilities/git_revision.cpp
 
+libraries/egenesis/egenesis_brief.cpp
+libraries/egenesis/egenesis_full.cpp
+
+programs/build_helpers/cat-parts
+programs/genesis_util/convert_address
+
 libraries/wallet/Doxyfile
 libraries/wallet/api_documentation.cpp
 libraries/wallet/doxygen
@@ -51,3 +57,4 @@ object_database/*
 
 *.pyc
 *.pyo
+.vscode/*

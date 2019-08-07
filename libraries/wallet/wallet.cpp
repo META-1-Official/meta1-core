@@ -1409,7 +1409,6 @@ public:
 
 
    signed_transaction update_property(uint32_t id,
-                                      optional<string> new_issuer,
                                       property_options new_options,
                                       bool broadcast = false)
    {
@@ -1418,20 +1417,10 @@ public:
          optional<property_object> property_to_update = find_property(id);
          if (!property_to_update)
             FC_THROW("No property with that id exists!");
-         optional<account_id_type> new_issuer_account_id;
-         if (new_issuer)
-         {
-            FC_ASSERT(_remote_db->get_dynamic_global_properties().time < HARDFORK_CORE_199_TIME,
-                      "The use of 'new_issuer' is no longer supported. Please use `update_asset_issuer' instead!");
-            account_object new_issuer_account = get_account(*new_issuer);
-            new_issuer_account_id = new_issuer_account.id;
-         }
+
          property_update_operation update_op;
-
          update_op.issuer = property_to_update->issuer;
-
          update_op.property_to_update = property_to_update->id;
-         update_op.new_issuer = new_issuer_account_id;
          update_op.new_options = new_options;
 
          signed_transaction tx;
@@ -1441,7 +1430,7 @@ public:
 
          return sign_transaction(tx, broadcast);
       }
-      FC_CAPTURE_AND_RETHROW((id)(new_issuer)(new_options)(broadcast))
+      FC_CAPTURE_AND_RETHROW((id)(new_options)(broadcast))
    }
 
    signed_transaction create_asset(string issuer,
@@ -4025,11 +4014,10 @@ signed_transaction wallet_api::smooth_allocate_meta1_limit_sell_price(double all
    return my->smooth_allocate_meta1_limit_sell_price(allocate_value, broadcast);
 }
 signed_transaction wallet_api::update_property(uint32_t id,
-                                               optional<string> new_issuer,
                                                property_options new_options,
                                                bool broadcast /*  = false*/)
 {
-   return my->update_property(id, new_issuer, new_options, broadcast);
+   return my->update_property(id, new_options, broadcast);
 }
 
 signed_transaction wallet_api::create_asset(string issuer,

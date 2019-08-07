@@ -60,9 +60,6 @@ struct property_update_operation : public base_operation
     asset fee;
     account_id_type issuer;
     property_id_type property_to_update;
-
-    /// If the backed asset is to be given a new issuer, specify his ID here.
-    optional<account_id_type> new_issuer;
     property_options new_options;
 
     property_options common_options;
@@ -103,11 +100,10 @@ FC_REFLECT(graphene::protocol::property_create_operation,
 
 FC_REFLECT(graphene::protocol::property_update_operation,
            (fee)
-            ( new_issuer)
-            (issuer)
-            (property_to_update)
-            (new_options)
-            )
+           (issuer)
+           (property_to_update)
+           (new_options)
+           )
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_options )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_update_operation::fee_parameters_type )

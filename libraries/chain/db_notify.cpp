@@ -291,9 +291,6 @@ struct get_impacted_account_visitor
    {
       _impacted.insert(op.fee_payer());
       _impacted.insert(op.issuer); // issuer
-
-       if (op.new_issuer)
-         _impacted.insert(*(op.new_issuer));
    }
 
 };

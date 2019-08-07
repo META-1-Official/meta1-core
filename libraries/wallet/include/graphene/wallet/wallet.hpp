@@ -1080,7 +1080,6 @@ class wallet_api
                                                                 bool broadcast = false);
 
       signed_transaction update_property(uint32_t id,
-                                         optional<string> new_issuer,
                                          property_options new_options,
                                          bool broadcast = false);
 
