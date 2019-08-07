@@ -95,7 +95,7 @@ To import your initial balance:
 If you send private keys over this connection, `rpc-endpoint` should be bound to localhost for security.
 
 Use `help` to see all available wallet commands. Source definition and listing of all commands is available
-[here](https://github.com/bitshares/bitshares-core/blob/master/libraries/wallet/include/graphene/wallet/wallet.hpp).
+[here](https://github.com/meta1-blockchain/meta1-core/blob/master/libraries/wallet/include/graphene/wallet/wallet.hpp).
 
 Support
 -------
@@ -251,5 +251,5 @@ FAQ
  
 License
 -------
-META1 Core is under the MIT license. See [LICENSE](https://github.com/bitshares/bitshares-core/blob/master/LICENSE.txt)
+META1 Core is under the MIT license. See [LICENSE](https://github.com/meta1-blockchain/meta1-core/blob/master/LICENSE.txt)
 for more information.
