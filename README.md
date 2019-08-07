@@ -1,6 +1,12 @@
 META1 Core
 ==============
 
+[Build Status](https://travis-ci.com/meta1-blockchain/meta1-core/branches):
+
+`master` | `develop` | `hardfork` | `testnet` | `bitshares-fc` 
+ --- | --- | --- | --- | ---
+ [![](https://travis-ci.com/meta1-blockchain/meta1-core.svg?branch=master)](https://travis-ci.com/meta1-blockchain/meta1-core) | [![](https://travis-ci.com/meta1-blockchain/meta1-core.svg?branch=develop)](https://travis-ci.com/meta1-blockchain/meta1-core) | [![](https://travis-ci.com/meta1-blockchain/meta1-core.svg?branch=hardfork)](https://travis-ci.com/meta1-blockchain/meta1-core) | [![](https://travis-ci.com/meta1-blockchain/meta1-core.svg?branch=testnet)](https://travis-ci.com/meta1-blockchain/meta1-core) | [![](https://travis-ci.org/bitshares/bitshares-fc.svg?branch=master)](https://travis-ci.org/bitshares/bitshares-fc) 
+
 * [Getting Started](#getting-started)
 * [Support](#support)
 * [Using the API](#using-the-api)
