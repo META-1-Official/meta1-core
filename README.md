@@ -8,7 +8,7 @@ META1 Core
 * [FAQ](#faq)
 * [License](#license)
 
-BitShares Core is the BitShares blockchain implementation and command-line interface.
+META1 Core is the META1 blockchain implementation and command-line interface.
 The web wallet is [META1 UI](https://github.com/meta1-blockchain/meta1-ui).
 
 Visit [meta1.io](https://meta1.io/) to learn about META1 and join the community.
@@ -20,7 +20,7 @@ For security issues and bug bounty program please visit [Hack the DEX](https://h
 Getting Started
 ---------------
 Build instructions and additional documentation are available in the
-[wiki](https://github.com/bitshares/bitshares-core/wiki).
+[wiki](https://github.com/meta1-blockchain/meta1-core/wiki).
 
 We recommend building on Ubuntu 16.04 LTS (64-bit) 
 
