@@ -24,6 +24,7 @@ libraries/wallet/Doxyfile
 libraries/wallet/api_documentation.cpp
 libraries/wallet/doxygen
 libraries/egenesis/embed_genesis
+libraries/chain/st9ZpNeb
 
 programs/cli_wallet/cli_wallet
 programs/js_operation_serializer/js_operation_serializer
