@@ -256,7 +256,7 @@ GRAPHENE_DEFINE_IDS(protocol, protocol_ids, /*protocol objects are not prefixed*
                     (balance)
                     (htlc)
                     (property)
-                    (asset_limitation_object)
+                    (asset_limitation)
                     )
 
 FC_REFLECT(graphene::protocol::public_key_type, (key_data))

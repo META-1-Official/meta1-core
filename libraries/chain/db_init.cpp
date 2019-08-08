@@ -48,6 +48,7 @@
 #include <graphene/chain/worker_object.hpp>
 #include <graphene/chain/htlc_object.hpp>
 #include <graphene/chain/property_object.hpp>
+#include <graphene/chain/asset_limitation_object.hpp>
 
 #include <graphene/chain/account_evaluator.hpp>
 #include <graphene/chain/asset_evaluator.hpp>
@@ -133,6 +134,9 @@ const uint8_t htlc_object::type_id;
 const uint8_t property_object::space_id;
 const uint8_t property_object::type_id;
 
+const uint8_t asset_limitation_object::space_id;
+const uint8_t asset_limitation_object::type_id;
+
 
 void database::initialize_evaluators()
 {
@@ -216,6 +220,7 @@ void database::initialize_indexes()
    add_index< primary_index<blinded_balance_index> >();
    add_index< primary_index< htlc_index> >();
    add_index< primary_index<property_index> >();
+   add_index< primary_index<asset_limitation_index> >();
 
    //Implementation object indexes
    add_index< primary_index<transaction_index                             > >();

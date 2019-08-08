@@ -833,9 +833,6 @@ bool database_api_impl::is_property_exists(uint32_t property_id)const
       const auto &idx = _db.get_index_type<property_index>().indices().get<by_property_id>();
       auto itr = idx.find(property_id);
       if (itr != idx.end())
-         property = &*itr;
-
-      if(property)
       return true;
       else
       return false;

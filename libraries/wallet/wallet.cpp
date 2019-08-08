@@ -3776,7 +3776,7 @@ vector<property_object> wallet_api::get_all_properties() const
 {
    return my->get_all_properties();
 }
-vector<property_object>           wallet_api::get_properties_by_backed_asset_symbol(string symbol) const
+vector<property_object> wallet_api::get_properties_by_backed_asset_symbol(string symbol) const
 {
    return my->get_properties_by_backed_asset_symbol(symbol);
 }

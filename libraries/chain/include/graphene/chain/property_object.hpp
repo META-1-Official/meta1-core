@@ -10,7 +10,6 @@ namespace graphene
 {
 namespace chain
 {
-class database;
 using namespace graphene::db;
 
 class property_object : public graphene::db::abstract_object<property_object>

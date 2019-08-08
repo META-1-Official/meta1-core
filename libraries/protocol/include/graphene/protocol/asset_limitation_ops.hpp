@@ -45,7 +45,7 @@ struct asset_limitation_object_update_operation : public base_operation
 
     asset fee;
     account_id_type issuer;
-    asset_limitation_object_id_type asset_limitation_object_to_update;
+    asset_limitation_id_type asset_limitation_object_to_update;
     asset_limitation_options new_options;
 
     asset_limitation_options common_options;

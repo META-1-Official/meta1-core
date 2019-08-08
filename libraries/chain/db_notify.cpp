@@ -17,6 +17,7 @@
 #include <graphene/chain/vesting_balance_object.hpp>
 #include <graphene/chain/transaction_history_object.hpp>
 #include <graphene/chain/property_object.hpp>
+#include <graphene/chain/asset_limitation_object.hpp>
 #include <graphene/chain/impacted.hpp>
 
 using namespace fc;
@@ -292,6 +293,16 @@ struct get_impacted_account_visitor
       _impacted.insert(op.fee_payer());
       _impacted.insert(op.issuer); // issuer
    }
+       void operator()(const asset_limitation_object_create_operation &op)
+   {
+      _impacted.insert(op.fee_payer());
+      _impacted.insert(op.issuer); // issuer
+   }
+   void operator()(const asset_limitation_object_update_operation &op)
+   {
+      _impacted.insert(op.fee_payer());
+      _impacted.insert(op.issuer); // issuer
+   }
 
 };
 
@@ -391,6 +402,11 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
               accounts.insert( htlc_obj->transfer.from );
               accounts.insert( htlc_obj->transfer.to );
               break;
+        } case asset_limitation_object_type:{
+           const auto &aobj = dynamic_cast<const asset_limitation_object *>(obj);
+           FC_ASSERT(aobj != nullptr);
+           accounts.insert(aobj->issuer);
+           break;
         }
       }
    }

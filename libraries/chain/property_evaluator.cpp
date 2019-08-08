@@ -9,8 +9,6 @@
 
 #include <functional>
 
-#include <locale>
-
 namespace graphene
 {
 namespace chain
