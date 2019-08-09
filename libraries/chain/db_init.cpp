@@ -66,6 +66,7 @@
 #include <graphene/chain/worker_evaluator.hpp>
 #include <graphene/chain/htlc_evaluator.hpp>
 #include <graphene/chain/property_evaluator.hpp>
+#include <graphene/chain/asset_limitation_evaluator.hpp>
 
 #include <fc/uint128.hpp>
 #include <fc/crypto/digest.hpp>
@@ -190,6 +191,8 @@ void database::initialize_evaluators()
    register_evaluator<htlc_extend_evaluator>();
    register_evaluator<property_create_evaluator>();
    register_evaluator<property_update_evaluator>();
+   register_evaluator<asset_limitation_create_evaluator>();
+   register_evaluator<asset_limitation_update_evaluator>();
 }
 
 void database::initialize_indexes()
