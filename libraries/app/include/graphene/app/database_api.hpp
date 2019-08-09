@@ -42,6 +42,7 @@
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/htlc_object.hpp>
 #include <graphene/chain/property_object.hpp>
+#include <graphene/chain/asset_limitation_object.hpp>
 
 #include <graphene/market_history/market_history_plugin.hpp>
 
@@ -405,10 +406,16 @@ class database_api
 
       vector<optional<property_object>> get_properties(const vector<uint32_t>& properties_ids)const;
       bool is_property_exists(uint32_t property_id)const;
-
       vector<property_object> get_all_properties() const;
       vector<property_object>  get_properties_by_backed_asset_symbol(string symbol) const;
       optional<property_object> get_property_by_id( uint32_t id )const;
+
+      /////////////////////
+      //Assets Limitation//
+      /////////////////////
+
+      bool is_asset_limitation_exists(string limit_symbol)const;
+      optional<asset_limitation_object> get_asset_limitaion_by_symbol( string limit_symbol )const;
 
       ////////////
       // Assets //
@@ -908,6 +915,10 @@ FC_API(graphene::app::database_api,
    (get_all_properties)
    (get_properties_by_backed_asset_symbol)
    (get_property_by_id)
+   
+   //asset limitation
+   (is_asset_limitation_exists)
+   (get_asset_limitaion_by_symbol)
 
    // Markets / feeds
    (get_order_book)

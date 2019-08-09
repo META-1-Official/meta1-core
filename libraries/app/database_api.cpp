@@ -118,6 +118,11 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
       vector<property_object> get_properties_by_backed_asset_symbol(string symbol) const;
       optional<property_object> get_property_by_id(uint32_t id) const;
 
+      //asset_limitation
+      bool is_asset_limitation_exists(string limit_symbol)const;
+      optional<asset_limitation_object> get_asset_limitaion_by_symbol( string limit_symbol )const;
+
+
       // Markets / feeds
       vector<limit_order_object>         get_limit_orders(const std::string& a, const std::string& b, uint32_t limit)const;
       vector<limit_order_object>         get_account_limit_orders( const string& account_name_or_id,
@@ -877,23 +882,59 @@ vector<property_object> database_api_impl::get_all_properties() const
    }
    return result;
 }
-   vector<property_object>  database_api::get_properties_by_backed_asset_symbol(string symbol) const
-   {
-       return my->get_properties_by_backed_asset_symbol(symbol);
-   }
 
-   vector<property_object>  database_api_impl::get_properties_by_backed_asset_symbol(string symbol) const
-   {
-         vector<property_object> result;
-         const auto &properties_idx = _db.get_index_type<property_index>().indices().get<by_id>();
-            for (const auto &p : properties_idx)
-               {
-                  if(p.options.backed_by_asset_symbol == symbol)
-                  result.push_back(p);
-               }
-         return result;
+vector<property_object>  database_api::get_properties_by_backed_asset_symbol(string symbol) const
+{
+    return my->get_properties_by_backed_asset_symbol(symbol);
+}
 
-   }
+vector<property_object>  database_api_impl::get_properties_by_backed_asset_symbol(string symbol) const
+{
+      vector<property_object> result;
+      const auto &properties_idx = _db.get_index_type<property_index>().indices().get<by_id>();
+         for (const auto &p : properties_idx)
+            {
+               if(p.options.backed_by_asset_symbol == symbol)
+               result.push_back(p);
+            }
+      return result;
+}
+
+//////////////////////////////////////////////////////////////////////
+//                                                                  //
+// Asset limitation                                                 //
+//                                                                  //
+//////////////////////////////////////////////////////////////////////
+bool database_api::is_asset_limitation_exists(string limit_symbol)const
+{
+     return my->is_asset_limitation_exists(limit_symbol);
+}
+bool database_api_impl::is_asset_limitation_exists(string limit_symbol)const
+{
+   const asset_limitation_object *asset_limitaion = nullptr;
+   const auto &idx = _db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
+   auto itr = idx.find(limit_symbol);
+   if (itr != idx.end())
+   return true;
+   else
+   return false;
+}
+
+optional<asset_limitation_object> database_api::get_asset_limitaion_by_symbol( string limit_symbol )const
+{
+   return my->get_asset_limitaion_by_symbol(limit_symbol);
+}
+optional<asset_limitation_object> database_api_impl::get_asset_limitaion_by_symbol( string limit_symbol )const
+{
+   const asset_limitation_object *asset_limitaion = nullptr;
+   const auto &idx = _db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
+   auto itr = idx.find(limit_symbol);
+   if (itr != idx.end())
+      asset_limitaion = &*itr;
+
+   FC_ASSERT(asset_limitaion, "no such property");
+   return *asset_limitaion;
+}
 
 //////////////////////////////////////////////////////////////////////
 //                                                                  //
