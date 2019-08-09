@@ -921,7 +921,7 @@ bool database_api_impl::is_asset_limitation_exists(string limit_symbol)const
 }
 
 optional<asset_limitation_object> database_api::get_asset_limitaion_by_symbol( string limit_symbol )const
-{
+{  
    return my->get_asset_limitaion_by_symbol(limit_symbol);
 }
 optional<asset_limitation_object> database_api_impl::get_asset_limitaion_by_symbol( string limit_symbol )const
@@ -932,7 +932,10 @@ optional<asset_limitation_object> database_api_impl::get_asset_limitaion_by_symb
    if (itr != idx.end())
       asset_limitaion = &*itr;
 
-   FC_ASSERT(asset_limitaion, "no such property");
+   FC_ASSERT(asset_limitaion, "no such asset limitation");
+
+   asset_limitation_id_type asset_limitation_id = asset_limitaion->id;
+   subscribe_to_item(asset_limitation_id); 
    return *asset_limitaion;
 }
 

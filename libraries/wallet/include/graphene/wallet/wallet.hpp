@@ -479,10 +479,14 @@ class wallet_api
        */
       account_object                    get_account(string account_name_or_id) const;
 
-
+      //Returns information about the given  backed assets.
       property_object                   get_property(uint32_t id) const;
       vector<property_object>           get_all_properties()const;
       vector<property_object>           get_properties_by_backed_asset_symbol(string symbol) const;
+
+      // //Returns information about the given  limitation for assets.
+      bool is_asset_limitation_exists(string limit_symbol)const;
+      optional<asset_limitation_object> get_asset_limitaion_by_symbol( string limit_symbol )const;
 
       /** Returns information about the given asset.
        * @param asset_name_or_id the symbol or id of the asset in question
@@ -1072,16 +1076,22 @@ class wallet_api
        */
       signed_transaction cancel_order(object_id_type order_id, bool broadcast = false);
 
-
-
+      //backed asset smart contracts
       signed_transaction create_property(string issuer,property_options common,bool broadcast = false);
-
-      signed_transaction smooth_allocate_meta1_limit_sell_price(double allocate_value,
-                                                                bool broadcast = false);
 
       signed_transaction update_property(uint32_t id,
                                          property_options new_options,
                                          bool broadcast = false);
+
+      //smart contracts for limitation assets buy/sell prices
+      signed_transaction create_asset_limitation(string issuer,
+                                                 string limit_symbol,
+                                                 asset_limitation_options common,
+                                                 bool broadcast = false);
+
+      signed_transaction update_asset_limitation(string limit_symbol,
+                                                 asset_limitation_options new_options,
+                                                 bool broadcast = false);
 
       /** Creates a new user-issued or market-issued asset.
        *
@@ -1871,8 +1881,9 @@ FC_API( graphene::wallet::wallet_api,
         (transfer2)
         (get_transaction_id)
         (create_property)
-        (smooth_allocate_meta1_limit_sell_price)
         (update_property)
+        (create_asset_limitation)
+        (update_asset_limitation)
         (create_asset)
         (update_asset)
         (update_asset_issuer)
@@ -1911,6 +1922,8 @@ FC_API( graphene::wallet::wallet_api,
         (get_property)
         (get_all_properties)
         (get_properties_by_backed_asset_symbol)
+        (is_asset_limitation_exists)
+        (get_asset_limitaion_by_symbol)
         (get_account)
         (get_account_id)
         (get_block)
