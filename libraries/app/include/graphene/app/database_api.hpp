@@ -329,22 +329,16 @@ class database_api
       /**
        * @brief Get a list of accounts by names or IDs
        * @param account_names_or_ids names or IDs of the accounts to retrieve
-       * @param subscribe @a true to subscribe to the queried account objects; @a false to not subscribe;
-       *                  @a null to subscribe or not subscribe according to current auto-subscription setting
-       *                  (see @ref set_auto_subscription)
        * @return The accounts corresponding to the provided names or IDs
        *
        * This function has semantics identical to @ref get_objects
        */
-      vector<optional<account_object>> get_accounts( const vector<std::string>& account_names_or_ids,
-                                                     optional<bool> subscribe = optional<bool>() )const;
+      vector<optional<account_object>> get_accounts(const vector<std::string>& account_names_or_ids)const;
 
       /**
        * @brief Fetch all objects relevant to the specified accounts and optionally subscribe to updates
        * @param names_or_ids Each item must be the name or ID of an account to retrieve
-       * @param subscribe @a true to subscribe to the queried full account objects; @a false to not subscribe;
-       *                  @a null to subscribe or not subscribe according to current auto-subscription setting
-       *                  (see @ref set_auto_subscription)
+       * @param subscribe whether subscribe to updates
        * @return Map of string from @p names_or_ids to the corresponding account
        *
        * This function fetches all relevant objects for the given accounts, and subscribes to updates to the given
@@ -467,15 +461,11 @@ class database_api
       /**
        * @brief Get a list of assets by symbol names or IDs
        * @param asset_symbols_or_ids symbol names or IDs of the assets to retrieve
-       * @param subscribe @a true to subscribe to the queried asset objects; @a false to not subscribe;
-       *                  @a null to subscribe or not subscribe according to current auto-subscription setting
-       *                  (see @ref set_auto_subscription)
        * @return The assets corresponding to the provided symbol names or IDs
        *
        * This function has semantics identical to @ref get_objects
        */
-      vector<optional<extended_asset_object>> get_assets( const vector<std::string>& asset_symbols_or_ids,
-                                                          optional<bool> subscribe = optional<bool>() )const;
+      vector<optional<extended_asset_object>> get_assets(const vector<std::string>& asset_symbols_or_ids)const;
 
       /**
        * @brief Get assets alphabetically by symbol name

@@ -108,8 +108,7 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
       // Assets
       uint64_t get_asset_count()const;
       asset_id_type get_asset_id_from_string(const std::string& symbol_or_id)const;
-      vector<optional<extended_asset_object>> get_assets( const vector<std::string>& asset_symbols_or_ids,
-                                                          optional<bool> subscribe )const;
+      vector<optional<extended_asset_object>> get_assets(const vector<std::string>& asset_symbols_or_ids)const;
       vector<extended_asset_object>           list_assets(const string& lower_bound_symbol, uint32_t limit)const;
       vector<optional<extended_asset_object>> lookup_asset_symbols(const vector<string>& symbols_or_ids)const;
       vector<extended_asset_object>           get_assets_by_issuer(const std::string& issuer_name_or_id,
@@ -333,13 +332,11 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
             FC_ASSERT( asset, "no such asset" );
          return asset;
       }
-      vector<optional<extended_asset_object>> get_assets( const vector<asset_id_type>& asset_ids,
-                                                          optional<bool> subscribe = optional<bool>() )const
+      vector<optional<extended_asset_object>> get_assets(const vector<asset_id_type>& asset_ids)const
       {
-         bool to_subscribe = get_whether_to_subscribe( subscribe );
          vector<optional<extended_asset_object>> result; result.reserve(asset_ids.size());
          std::transform(asset_ids.begin(), asset_ids.end(), std::back_inserter(result),
-                 [this,to_subscribe](asset_id_type id) -> optional<extended_asset_object> {
+                 [this](asset_id_type id) -> optional<extended_asset_object> {
             if(auto o = _db.find(id))
             {
                if( to_subscribe )
@@ -1495,19 +1492,16 @@ asset_id_type database_api::get_asset_id_from_string(const std::string& symbol_o
    return my->get_asset_from_string( symbol_or_id )->id;
 }
 
-vector<optional<extended_asset_object>> database_api::get_assets( const vector<std::string>& asset_symbols_or_ids,
-                                                                  optional<bool> subscribe )const
+vector<optional<extended_asset_object>> database_api::get_assets(const vector<std::string>& asset_symbols_or_ids)const
 {
    return my->get_assets( asset_symbols_or_ids, subscribe );
 }
 
-vector<optional<extended_asset_object>> database_api_impl::get_assets(const vector<std::string>& asset_symbols_or_ids,
-                                                                      optional<bool> subscribe )const
+vector<optional<extended_asset_object>> database_api_impl::get_assets(const vector<std::string>& asset_symbols_or_ids)const
 {
-   bool to_subscribe = get_whether_to_subscribe( subscribe );
    vector<optional<extended_asset_object>> result; result.reserve(asset_symbols_or_ids.size());
    std::transform(asset_symbols_or_ids.begin(), asset_symbols_or_ids.end(), std::back_inserter(result),
-                  [this,to_subscribe](std::string id_or_name) -> optional<extended_asset_object> {
+                  [this](std::string id_or_name) -> optional<extended_asset_object> {
 
       const asset_object* asset_obj = get_asset_from_string( id_or_name, false );
       if( asset_obj == nullptr )
