@@ -56,6 +56,7 @@ add_library( graphene_chain
              confidential_evaluator.cpp
              special_authority_evaluation.cpp
              property_evaluator.cpp
+             asset_limitation_evaluator.cpp
              buyback.cpp
 
              account_object.cpp
@@ -66,6 +67,7 @@ add_library( graphene_chain
              vesting_balance_object.cpp
              small_objects.cpp
              property_object.cpp
+             asset_limitation_object.cpp
 
              block_database.cpp
 

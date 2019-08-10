@@ -679,6 +679,18 @@ public:
       return result;
    }
 
+   bool is_asset_limitation_exists(string limit_symbol)const
+   {
+      bool flag = _remote_db->is_asset_limitation_exists(limit_symbol);
+      return flag;
+   }
+
+   optional<asset_limitation_object> get_asset_limitaion_by_symbol( string limit_symbol )const
+   {
+      auto result = _remote_db->get_asset_limitaion_by_symbol(limit_symbol);
+
+      return result;
+   }
 
    std::string account_id_to_string(account_id_type id) const
    {
@@ -1433,6 +1445,69 @@ public:
       FC_CAPTURE_AND_RETHROW((id)(new_options)(broadcast))
    }
 
+   signed_transaction create_asset_limitation(string issuer,
+                                              string limit_symbol,
+                                              asset_limitation_options common,
+                                              bool broadcast = false)
+   {
+      try
+      {
+         FC_ASSERT(!is_asset_limitation_exists(limit_symbol),"Limitation for Asset with that symbol is already exists!");
+         account_object issuer_account = get_account(issuer);
+         asset_limitation_object_create_operation create_op;
+
+         create_op.limit_symbol = limit_symbol;
+         create_op.issuer = issuer_account.id;
+         create_op.common_options = common;
+         signed_transaction tx;
+         tx.operations.push_back(create_op);
+
+         set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
+
+         tx.validate();
+         auto transaction_result = sign_transaction(tx, broadcast);
+         return transaction_result;
+      }
+      FC_CAPTURE_AND_RETHROW((issuer)(limit_symbol)(common)(broadcast))
+   }
+   //smooth allocation assets price limitation 
+   signed_transaction update_asset_limitation(string limit_symbol,
+                                              asset_limitation_options new_options,
+                                              bool broadcast = false)
+   {
+      try
+      {
+         double price_buf = 0.0;
+         optional<asset_limitation_object> asset_limitation_to_update = get_asset_limitaion_by_symbol(limit_symbol);
+         if (!asset_limitation_to_update)
+            FC_THROW("No asset limitation for asset with symbol not exis");
+
+         asset_limitation_object_update_operation update_op;
+         update_op.issuer = asset_limitation_to_update->issuer;
+         update_op.asset_limitation_object_to_update = asset_limitation_to_update->id;
+
+         asset_limitation_options asset_limitation_ops = asset_limitation_to_update->options;
+         //buy limit
+         price_buf = std::stod (asset_limitation_ops.buy_limit);
+         price_buf += std::stod (new_options.buy_limit);
+         asset_limitation_ops.buy_limit = std::to_string(price_buf);
+         //sell limit
+         price_buf = std::stod (asset_limitation_ops.sell_limit);
+         price_buf += std::stod (new_options.sell_limit);
+         asset_limitation_ops.sell_limit = std::to_string(price_buf);
+
+         update_op.new_options = asset_limitation_ops ;
+
+         signed_transaction tx;
+         tx.operations.push_back(update_op);
+         set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
+         tx.validate();
+
+         return sign_transaction(tx, broadcast);
+      }
+      FC_CAPTURE_AND_RETHROW((limit_symbol)(new_options)(broadcast))
+   }
+
    signed_transaction create_asset(string issuer,
                                    string symbol,
                                    uint8_t precision,
@@ -1485,34 +1560,6 @@ public:
 
       return sign_transaction( tx, broadcast );
    } FC_CAPTURE_AND_RETHROW( (symbol)(new_issuer)(new_options)(broadcast) ) }
-
-   signed_transaction smooth_allocate_meta1_limit_sell_price(double allocate_value,
-                                                             bool broadcast /* = false*/)
-   {
-      try
-      {
-         optional<asset_object> asset_to_update = find_asset("META1LIMIT");
-         if (!asset_to_update)
-            FC_THROW("No asset with that symbol exists!");
-         asset_update_operation update_op;
-         update_op.issuer = asset_to_update->issuer;
-         update_op.asset_to_update = asset_to_update->id;
-         asset_options asset_ops = asset_to_update->options;
-
-         double price_limitation = std::stod(asset_ops.meta1_sell_price_limitation);
-         price_limitation+=+allocate_value;
-         asset_ops.meta1_sell_price_limitation = std::to_string(price_limitation);
-         update_op.new_options = asset_ops;
-
-         signed_transaction tx;
-         tx.operations.push_back(update_op);
-         set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
-
-         tx.validate();
-         return sign_transaction(tx, broadcast);
-      }
-      FC_CAPTURE_AND_RETHROW((allocate_value)(broadcast))
-   }
 
    signed_transaction update_asset_issuer(string symbol,
                                    string new_issuer,
@@ -3776,9 +3823,20 @@ vector<property_object> wallet_api::get_all_properties() const
 {
    return my->get_all_properties();
 }
-vector<property_object>           wallet_api::get_properties_by_backed_asset_symbol(string symbol) const
+
+vector<property_object> wallet_api::get_properties_by_backed_asset_symbol(string symbol) const
 {
    return my->get_properties_by_backed_asset_symbol(symbol);
+}
+
+bool wallet_api::is_asset_limitation_exists(string limit_symbol)const
+{
+   return my->is_asset_limitation_exists(limit_symbol);
+}
+
+optional<asset_limitation_object> wallet_api::get_asset_limitaion_by_symbol( string limit_symbol )const
+{
+   return my->get_asset_limitaion_by_symbol(limit_symbol);
 }
 
 account_object wallet_api::get_account(string account_name_or_id) const
@@ -4007,17 +4065,26 @@ signed_transaction wallet_api::create_property(string issuer, property_options c
 {
    return my->create_property(issuer, common, broadcast);
 }
-
-signed_transaction wallet_api::smooth_allocate_meta1_limit_sell_price(double allocate_value,
-                                                                      bool broadcast /*= false*/)
-{
-   return my->smooth_allocate_meta1_limit_sell_price(allocate_value, broadcast);
-}
 signed_transaction wallet_api::update_property(uint32_t id,
                                                property_options new_options,
                                                bool broadcast /*  = false*/)
 {
    return my->update_property(id, new_options, broadcast);
+}
+signed_transaction wallet_api::create_asset_limitation(string issuer,
+                                                       string limit_symbol,
+                                                       asset_limitation_options common,
+                                                       bool broadcast )
+{
+   return my->create_asset_limitation(issuer, limit_symbol,common, broadcast);
+}
+
+//smooth allocation assets buy sell prices
+signed_transaction wallet_api::update_asset_limitation(string limit_symbol,
+                                                       asset_limitation_options new_options,
+                                                       bool broadcast )
+{
+   return my->update_asset_limitation(limit_symbol,new_options, broadcast);
 }
 
 signed_transaction wallet_api::create_asset(string issuer,

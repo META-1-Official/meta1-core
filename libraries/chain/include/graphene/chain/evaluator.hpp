@@ -36,7 +36,7 @@ namespace graphene { namespace chain {
    class asset_object;
    class asset_dynamic_data_object;
    class property_object;
-
+   class asset_limitation_object;
    class generic_evaluator
    {
    public:

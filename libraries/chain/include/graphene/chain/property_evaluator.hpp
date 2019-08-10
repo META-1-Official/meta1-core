@@ -3,9 +3,6 @@
 #include <graphene/chain/evaluator.hpp>
 #include <graphene/chain/database.hpp>
 
-#include <graphene/chain/hardfork.hpp>
-#include <locale>
-
 namespace graphene
 {
 namespace chain

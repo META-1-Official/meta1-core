@@ -40,6 +40,7 @@
 #include <graphene/protocol/worker.hpp>
 #include <graphene/protocol/htlc.hpp>
 #include <graphene/protocol/property_ops.hpp>
+#include <graphene/protocol/asset_limitation_ops.hpp>
 
 namespace graphene { namespace protocol {
 
@@ -104,7 +105,10 @@ namespace graphene { namespace protocol {
             htlc_extend_operation,
             htlc_refund_operation,            // VIRTUAL
             property_create_operation,
-            property_update_operation
+            property_update_operation,
+            asset_limitation_object_create_operation,
+            asset_limitation_object_update_operation
+
          > operation;
 
    /// @} // operations group
