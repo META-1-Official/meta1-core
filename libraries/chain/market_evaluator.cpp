@@ -38,8 +38,6 @@
 #include <fc/uint128.hpp>
 #include <iostream>
 #include <string> 
-#include <cstdint>
-#include <memory>
 #include <curl/curl.h>
 #include <fc/io/json.hpp>
 
@@ -108,16 +106,20 @@ void_result limit_order_create_evaluator::do_evaluate(const limit_order_create_o
                double receiveCoinPrice = std::stod(resp_obj["price"].as_string());
                // if user want to sell with less price than meta cost
                FC_ASSERT(receiveAmount * receiveCoinPrice >= sellAmount * sell_limit_price,
-               "minimum selling price  ${s} equivalent :${p}",
-               ("p",sell_limit_price / receiveCoinPrice)("s",_sell_asset->symbol));
+                         "minimum selling price  ${s} equivalent :${p}",
+                         ("p", sell_limit_price / receiveCoinPrice)("s", _sell_asset->symbol));
+            }
+            else
+            {
+               FC_ASSERT(false, "${body}", ("body", resp_body.as_string()));
             }
          }
          else
          {
-              //if user want to sell with less price than meta cost
-               FC_ASSERT(receiveAmount >= sellAmount*sell_limit_price,
-               "minimum selling price of META1 dollar equivalent :${p}",
-               ("p",sell_limit_price));
+            //if user want to sell with less price than meta cost
+            FC_ASSERT(receiveAmount >= sellAmount * sell_limit_price,
+                      "minimum selling price of META1 dollar equivalent :${p}",
+                      ("p", sell_limit_price));
          }
       }
       return void_result();
