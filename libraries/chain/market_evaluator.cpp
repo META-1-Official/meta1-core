@@ -24,6 +24,7 @@
 #include <graphene/chain/account_object.hpp>
 #include <graphene/chain/asset_object.hpp>
 #include <graphene/chain/market_object.hpp>
+#include <graphene/chain/asset_limitation_object.hpp>
 
 #include <graphene/chain/market_evaluator.hpp>
 
@@ -35,35 +36,96 @@
 #include <graphene/protocol/market.hpp>
 
 #include <fc/uint128.hpp>
+#include <iostream>
+#include <string> 
+#include <curl/curl.h>
+#include <fc/io/json.hpp>
 
 namespace graphene { namespace chain {
-void_result limit_order_create_evaluator::do_evaluate(const limit_order_create_operation& op)
-{ try {
-   const database& d = db();
 
-   FC_ASSERT( op.expiration >= d.head_block_time() );
+std::size_t callback(const char *in, std::size_t size, std::size_t num, std::string *out)
+{
+   const std::size_t totalBytes = size * num;
+   out->append(in, totalBytes);
+   return totalBytes;
+}
+void_result limit_order_create_evaluator::do_evaluate(const limit_order_create_operation &op)
+{
+   try
+   {
+      const database &d = db();
 
-   _seller        = this->fee_paying_account;
-   _sell_asset    = &op.amount_to_sell.asset_id(d);
-   _receive_asset = &op.min_to_receive.asset_id(d);
+      FC_ASSERT(op.expiration >= d.head_block_time());
 
-   if( _sell_asset->options.whitelist_markets.size() )
-      FC_ASSERT( _sell_asset->options.whitelist_markets.find(_receive_asset->id) 
-            != _sell_asset->options.whitelist_markets.end(),
-            "This market has not been whitelisted." );
-   if( _sell_asset->options.blacklist_markets.size() )
-      FC_ASSERT( _sell_asset->options.blacklist_markets.find(_receive_asset->id) 
-            == _sell_asset->options.blacklist_markets.end(),
-            "This market has been blacklisted." );
+      _seller = this->fee_paying_account;
+      _sell_asset = &op.amount_to_sell.asset_id(d);
+      _receive_asset = &op.min_to_receive.asset_id(d);
 
-   FC_ASSERT( is_authorized_asset( d, *_seller, *_sell_asset ) );
-   FC_ASSERT( is_authorized_asset( d, *_seller, *_receive_asset ) );
+      if (_sell_asset->options.whitelist_markets.size())
+         FC_ASSERT(_sell_asset->options.whitelist_markets.find(_receive_asset->id) != _sell_asset->options.whitelist_markets.end(),
+                   "This market has not been whitelisted.");
+      if (_sell_asset->options.blacklist_markets.size())
+         FC_ASSERT(_sell_asset->options.blacklist_markets.find(_receive_asset->id) == _sell_asset->options.blacklist_markets.end(),
+                   "This market has been blacklisted.");
 
-   FC_ASSERT( d.get_balance( *_seller, *_sell_asset ) >= op.amount_to_sell, "insufficient balance",
-              ("balance",d.get_balance(*_seller,*_sell_asset))("amount_to_sell",op.amount_to_sell) );
+      FC_ASSERT(is_authorized_asset(d, *_seller, *_sell_asset));
+      FC_ASSERT(is_authorized_asset(d, *_seller, *_receive_asset));
 
-   return void_result();
-} FC_CAPTURE_AND_RETHROW( (op) ) }
+      FC_ASSERT(d.get_balance(*_seller, *_sell_asset) >= op.amount_to_sell, "insufficient balance",
+                ("balance", d.get_balance(*_seller, *_sell_asset))("amount_to_sell", op.amount_to_sell));
+
+      //Sell Limitation on asset limit objects
+      const auto &asset_limit_by_symbol = d.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
+      auto asset_limit_itr = asset_limit_by_symbol.find(_sell_asset->symbol);
+      if (asset_limit_itr != asset_limit_by_symbol.end())
+      {
+         double sell_limit_price = std::stod(asset_limit_itr->options.sell_limit);
+         double sellAmount = std::stod(_sell_asset->amount_to_string(op.amount_to_sell.amount));
+         double receiveAmount = std::stod(_receive_asset->amount_to_string(op.min_to_receive.amount));
+         if (_receive_asset->symbol.find("USD") == std::string::npos)
+         { //COIN to usd  data from rest api
+            const std::string url = "https://api.binance.com/api/v3/avgPrice?symbol=" + _receive_asset->symbol + "USDT";
+            CURL *curl = curl_easy_init();
+            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+            // Don't bother trying IPv6, which would increase DNS resolution time.
+            curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+            // Follow HTTP redirects if necessary.
+            curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+            std::unique_ptr<std::string> httpData(new std::string());
+            // Hook up data handling function.
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, callback);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, httpData.get());
+            // Run our HTTP GET command, capture the HTTP response code, and clean up.
+            curl_easy_perform(curl);
+            curl_easy_cleanup(curl);
+            auto resp_body = fc::json::from_string(*httpData.get());
+            const auto &resp_obj = resp_body.get_object();
+            if (resp_obj.contains("price"))
+            {
+               double receiveCoinPrice = std::stod(resp_obj["price"].as_string());
+               // if user want to sell with less price than meta cost
+               FC_ASSERT(receiveAmount * receiveCoinPrice >= sellAmount * sell_limit_price,
+                         "minimum selling price  ${s} equivalent :${p}",
+                         ("p", sell_limit_price / receiveCoinPrice)("s", _sell_asset->symbol));
+            }
+            else
+            {
+               FC_ASSERT(false, "${body}", ("body", resp_body.as_string()));
+            }
+         }
+         else
+         {
+            //if user want to sell with less price than meta cost
+            FC_ASSERT(receiveAmount >= sellAmount * sell_limit_price,
+                      "minimum selling price of META1 dollar equivalent :${p}",
+                      ("p", sell_limit_price));
+         }
+      }
+      return void_result();
+   }
+   FC_CAPTURE_AND_RETHROW((op))
+}
 
 void limit_order_create_evaluator::convert_fee()
 {

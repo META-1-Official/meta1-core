@@ -84,9 +84,6 @@ namespace graphene { namespace protocol {
        */
       string description;
       additional_asset_options_t extensions;
-
-      string meta1_sell_price_limitation = "0.00000000000";
-
       /// Perform internal consistency checks.
       /// @throws fc::exception if any check fails
       void validate()const;
@@ -534,7 +531,6 @@ FC_REFLECT( graphene::protocol::asset_options,
             (blacklist_markets)
             (description)
             (extensions)
-            (meta1_sell_price_limitation)
           )
 FC_REFLECT( graphene::protocol::bitasset_options,
             (feed_lifetime_sec)
