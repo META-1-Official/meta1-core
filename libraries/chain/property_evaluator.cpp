@@ -20,7 +20,7 @@ void_result property_create_evaluator::do_evaluate(const property_create_operati
         auto &property_indx = d.get_index_type<property_index>().indices().get<by_property_id>();
         auto property_id_itr = property_indx.find(op.property_id);
         FC_ASSERT(property_id_itr == property_indx.end());
-
+        op.validate();
         //verify that backed asset create only  with meta1 account 
         const auto& accounts_by_name = d.get_index_type<account_index>().indices().get<by_name>();
         auto itr = accounts_by_name.find("meta1");
@@ -61,6 +61,7 @@ void_result property_update_evaluator::do_evaluate(const property_update_operati
         FC_ASSERT(op.issuer == property_ob.issuer,
                   "Incorrect issuer for backed asset! (${o.issuer} != ${a.issuer})",
                   ("o.issuer", op.issuer)("a.issuer", property_ob.issuer));
+        op.validate();
         //verify that backed asset update only  with meta1 account 
         const auto& accounts_by_name = d.get_index_type<account_index>().indices().get<by_name>();
         auto itr = accounts_by_name.find("meta1");

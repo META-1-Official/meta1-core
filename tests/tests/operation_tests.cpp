@@ -2437,7 +2437,52 @@ BOOST_AUTO_TEST_CASE( vesting_balance_withdraw_test )
    }
    // TODO:  Test with non-core asset and Bob account
 } FC_LOG_AND_RETHROW() }
+BOOST_AUTO_TEST_CASE( create_property )
+{
+   try {
+      property_id_type test_property_id = db.get_index<property_object>().get_next_id();
+      property_create_operation creator;
+      creator.issuer = create_account("meta1").id;
+      creator.fee = asset();
+      creator.property_id = 41232523;
+      creator.common_options.description                 = "some description";
+      creator.common_options.title                       = "some title";
+      creator.common_options.owner_contact_email         = "my@gmail.com";
+      creator.common_options.custodian                   = "you";
+      creator.common_options.detailed_document_link      = "https://fsf.com";
+      creator.common_options.image_url                   = "https://media.licdn.com/dms/image/C5622AQE4-y8QiWwF4Q/feedshare-shrink_8192/0?e=1568851200&v=beta&t=2Pw-2SF4o4jxjhYQil3MaPqlwSjQ8QQsM5-G6Uhmntg";
+      creator.common_options.status                      = "not approved";
+      creator.common_options.property_assignee           = "222";
+      creator.common_options.appraised_property_value    = 324155872;
+      creator.common_options.property_surety_bond_value  = 1;
+      creator.common_options.property_surety_bond_number = 33104;
+      creator.common_options.smooth_allocation_time      = "1";
+      creator.common_options.backed_by_asset_symbol      = "META1";
+      trx.operations.push_back(std::move(creator));
+      PUSH_TX( db, trx, ~0 );
 
+      const property_object& test_property = test_property_id(db);
+      BOOST_CHECK(test_property.property_id                         == 41232523);
+      BOOST_CHECK(test_property.options.description                 == "some description");               
+      BOOST_CHECK(test_property.options.title                       == "some title");                    
+      BOOST_CHECK(test_property.options.owner_contact_email         == "my@gmail.com");
+      BOOST_CHECK(test_property.options.custodian                   == "you");
+      BOOST_CHECK(test_property.options.detailed_document_link      == "https://fsf.com"); 
+      BOOST_CHECK(test_property.options.image_url                   == "https://media.licdn.com/dms/image/C5622AQE4-y8QiWwF4Q/feedshare-shrink_8192/0?e=1568851200&v=beta&t=2Pw-2SF4o4jxjhYQil3MaPqlwSjQ8QQsM5-G6Uhmntg");
+      BOOST_CHECK(test_property.options.status                      == "not approved");                     
+      BOOST_CHECK(test_property.options.property_assignee           == "222");
+      BOOST_CHECK(test_property.options.appraised_property_value    == 324155872);
+      BOOST_CHECK(test_property.options.property_surety_bond_value  == 1);
+      BOOST_CHECK(test_property.options.property_surety_bond_number == 33104);
+      BOOST_CHECK(test_property.options.smooth_allocation_time      == "1");
+      BOOST_CHECK(test_property.options.backed_by_asset_symbol      == "META1");
+      GRAPHENE_REQUIRE_THROW(PUSH_TX( db, trx, ~0 ), fc::exception);
+   }
+   catch(fc::exception& e) {
+      edump((e.to_detail_string()));
+      throw;
+   }
+}
 // TODO:  Write linear VBO tests
 
 BOOST_AUTO_TEST_SUITE_END()
