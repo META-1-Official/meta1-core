@@ -33,6 +33,7 @@
 #include <fc/rpc/api_connection.hpp>
 
 #include <boost/range/iterator_range.hpp>
+#include <boost/rational.hpp>
 
 #include <cctype>
 #include <cfenv>
