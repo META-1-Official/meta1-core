@@ -896,51 +896,51 @@ BOOST_AUTO_TEST_CASE( subscription_notification_test )
       vector<object_id_type> account_ids;
       account_ids.push_back( alice_id );
       db_api1.get_objects( account_ids );         // db_api1  subscribe to Alice
-      db_api11.get_objects( account_ids );  // db_api11 subscribe to Alice
-      db_api21.get_objects( account_ids ); // db_api21 doesn't subscribe to Alice
+      db_api11.get_objects( account_ids, true );  // db_api11 subscribe to Alice
+      db_api21.get_objects( account_ids, false ); // db_api21 doesn't subscribe to Alice
       db_api31.get_objects( account_ids );        // db_api31 doesn't subscribe to Alice
-      db_api41.get_objects( account_ids );  // db_api41 subscribe to Alice
-      db_api51.get_objects( account_ids ); // db_api51 doesn't subscribe to Alice
+      db_api41.get_objects( account_ids, true );  // db_api41 subscribe to Alice
+      db_api51.get_objects( account_ids, false ); // db_api51 doesn't subscribe to Alice
 
       vector<string> account_names;
       account_names.push_back( "alice" );
       db_api4.get_accounts( account_names );         // db_api4  subscribe to Alice
-      db_api14.get_accounts( account_names );  // db_api14 subscribe to Alice
-      db_api24.get_accounts( account_names ); // db_api24 doesn't subscribe to Alice
+      db_api14.get_accounts( account_names, true );  // db_api14 subscribe to Alice
+      db_api24.get_accounts( account_names, false ); // db_api24 doesn't subscribe to Alice
       db_api34.get_accounts( account_names );        // db_api34 doesn't subscribe to Alice
-      db_api44.get_accounts( account_names );  // db_api44 subscribe to Alice
-      db_api54.get_accounts( account_names ); // db_api54 doesn't subscribe to Alice
+      db_api44.get_accounts( account_names, true );  // db_api44 subscribe to Alice
+      db_api54.get_accounts( account_names, false ); // db_api54 doesn't subscribe to Alice
 
       db_api5.lookup_accounts( "ali", 1 );         // db_api5  subscribe to Alice
-      db_api15.lookup_accounts( "ali", 1 );  // db_api15 subscribe to Alice
-      db_api25.lookup_accounts( "ali", 1 ); // db_api25 doesn't subscribe to Alice
+      db_api15.lookup_accounts( "ali", 1, true );  // db_api15 subscribe to Alice
+      db_api25.lookup_accounts( "ali", 1, false ); // db_api25 doesn't subscribe to Alice
       db_api35.lookup_accounts( "ali", 1 );        // db_api35 doesn't subscribe to Alice
-      db_api45.lookup_accounts( "ali", 1 );  // db_api45 subscribe to Alice
-      db_api55.lookup_accounts( "ali", 1 ); // db_api55 doesn't subscribe to Alice
+      db_api45.lookup_accounts( "ali", 1, true );  // db_api45 subscribe to Alice
+      db_api55.lookup_accounts( "ali", 1, false ); // db_api55 doesn't subscribe to Alice
 
       db_api6.lookup_accounts( "alice", 3 );         // db_api6  does not subscribe to Alice
-      db_api16.lookup_accounts( "alice", 3 );  // db_api16 does not subscribe to Alice
-      db_api26.lookup_accounts( "alice", 3 ); // db_api26 does not subscribe to Alice
+      db_api16.lookup_accounts( "alice", 3, true );  // db_api16 does not subscribe to Alice
+      db_api26.lookup_accounts( "alice", 3, false ); // db_api26 does not subscribe to Alice
       db_api36.lookup_accounts( "alice", 3 );        // db_api36 does not subscribe to Alice
-      db_api46.lookup_accounts( "alice", 3 );  // db_api46 does not subscribe to Alice
-      db_api56.lookup_accounts( "alice", 3 ); // db_api56 does not subscribe to Alice
+      db_api46.lookup_accounts( "alice", 3, true );  // db_api46 does not subscribe to Alice
+      db_api56.lookup_accounts( "alice", 3, false ); // db_api56 does not subscribe to Alice
 
       vector<string> asset_names;
       asset_names.push_back( "UIATEST" );
       db_api7.get_assets( asset_names );         // db_api7  subscribe to UIA
-      db_api17.get_assets( asset_names );  // db_api17 subscribe to UIA
-      db_api27.get_assets( asset_names ); // db_api27 doesn't subscribe to UIA
+      db_api17.get_assets( asset_names, true );  // db_api17 subscribe to UIA
+      db_api27.get_assets( asset_names, false ); // db_api27 doesn't subscribe to UIA
       db_api37.get_assets( asset_names );        // db_api37 doesn't subscribe to UIA
-      db_api47.get_assets( asset_names );  // db_api47 subscribe to UIA
-      db_api57.get_assets( asset_names ); // db_api57 doesn't subscribe to UIA
+      db_api47.get_assets( asset_names, true );  // db_api47 subscribe to UIA
+      db_api57.get_assets( asset_names, false ); // db_api57 doesn't subscribe to UIA
 
       graphene::chain::htlc_id_type alice_htlc_id_bob; // assuming ID of the first htlc object is 0
       db_api8.get_htlc( alice_htlc_id_bob );         // db_api8  subscribe to the HTLC object
-      db_api18.get_htlc( alice_htlc_id_bob );  // db_api18 subscribe to the HTLC object
-      db_api28.get_htlc( alice_htlc_id_bob ); // db_api28 doesn't subscribe to the HTLC object
+      db_api18.get_htlc( alice_htlc_id_bob, true );  // db_api18 subscribe to the HTLC object
+      db_api28.get_htlc( alice_htlc_id_bob, false ); // db_api28 doesn't subscribe to the HTLC object
       db_api38.get_htlc( alice_htlc_id_bob );        // db_api38 doesn't subscribe to the HTLC object
-      db_api48.get_htlc( alice_htlc_id_bob );  // db_api48 subscribe to the HTLC object
-      db_api58.get_htlc( alice_htlc_id_bob ); // db_api58 doesn't subscribe to the HTLC object
+      db_api48.get_htlc( alice_htlc_id_bob, true );  // db_api48 subscribe to the HTLC object
+      db_api58.get_htlc( alice_htlc_id_bob, false ); // db_api58 doesn't subscribe to the HTLC object
 
       generate_block();
       ++expected_objects_changed1; // db_api1 subscribed to Alice, notify Alice account creation
@@ -985,10 +985,10 @@ BOOST_AUTO_TEST_CASE( subscription_notification_test )
 
       db_api4.get_full_accounts( account_names, true );   // db_api4 subscribe to Alice with get_full_accounts
       db_api14.get_full_accounts( account_names, false ); // db_api14 doesn't subscribe
-      db_api24.get_full_accounts( account_names, true );        // db_api24 subscribe to Alice with get_full_accounts
+      db_api24.get_full_accounts( account_names );        // db_api24 subscribe to Alice with get_full_accounts
       db_api34.get_full_accounts( account_names, true );  // db_api34 subscribe to Alice with get_full_accounts
-      db_api44.get_full_accounts( account_names, false); // db_api44 doesn't subscribe
-      db_api54.get_full_accounts( account_names, false);        // db_api54 doesn't subscribe
+      db_api44.get_full_accounts( account_names, false ); // db_api44 doesn't subscribe
+      db_api54.get_full_accounts( account_names );        // db_api54 doesn't subscribe
 
       db_api5.get_full_accounts( account_names, false ); // db_api5 doesn't subscribe
 
