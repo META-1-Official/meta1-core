@@ -26,6 +26,7 @@
 #include <boost/multiprecision/cpp_int.hpp>
 
 #include <fc/io/raw.hpp>
+#include <fc/uint128.hpp>
 
 namespace graphene { namespace protocol {
       using fc::uint128_t;

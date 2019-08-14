@@ -68,7 +68,6 @@
 #include <graphene/chain/property_evaluator.hpp>
 #include <graphene/chain/asset_limitation_evaluator.hpp>
 
-#include <fc/uint128.hpp>
 #include <fc/crypto/digest.hpp>
 
 #include <boost/algorithm/string.hpp>
@@ -442,7 +441,7 @@ void database::init_genesis(const genesis_state_type& genesis_state)
       p.time = genesis_state.initial_timestamp;
       p.dynamic_flags = 0;
       p.witness_budget = 0;
-      p.recent_slots_filled = fc::uint128::max_value();
+      p.recent_slots_filled = std::numeric_limits<fc::uint128_t>::max();
    });
 
    FC_ASSERT( (genesis_state.immutable_parameters.min_witness_count & 1) == 1, "min_witness_count must be odd" );
