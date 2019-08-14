@@ -367,6 +367,7 @@ struct database_fixture {
 
    vector< operation_history_object > get_operation_history( account_id_type account_id )const;
    vector< graphene::market_history::order_history_object > get_market_order_history( asset_id_type a, asset_id_type b )const;
+   const property_object& get_property(uint32_t property_id) const;
 };
 
 namespace test {

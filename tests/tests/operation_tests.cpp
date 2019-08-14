@@ -46,6 +46,7 @@ using namespace graphene::chain;
 using namespace graphene::chain::test;
 
 #define UIA_TEST_SYMBOL "UIATEST"
+#define PROPERTY_TEST_ID 41232523
 
 BOOST_FIXTURE_TEST_SUITE( operation_tests, database_fixture )
 
@@ -2444,7 +2445,7 @@ BOOST_AUTO_TEST_CASE( create_property )
       property_create_operation creator;
       creator.issuer = create_account("meta1").id;
       creator.fee = asset();
-      creator.property_id = 41232523;
+      creator.property_id                                = PROPERTY_TEST_ID;
       creator.common_options.description                 = "some description";
       creator.common_options.title                       = "some title";
       creator.common_options.owner_contact_email         = "my@gmail.com";
@@ -2462,7 +2463,7 @@ BOOST_AUTO_TEST_CASE( create_property )
       PUSH_TX( db, trx, ~0 );
 
       const property_object& test_property = test_property_id(db);
-      BOOST_CHECK(test_property.property_id                         == 41232523);
+      BOOST_CHECK(test_property.property_id                         == PROPERTY_TEST_ID);
       BOOST_CHECK(test_property.options.description                 == "some description");               
       BOOST_CHECK(test_property.options.title                       == "some title");                    
       BOOST_CHECK(test_property.options.owner_contact_email         == "my@gmail.com");
@@ -2483,6 +2484,35 @@ BOOST_AUTO_TEST_CASE( create_property )
       throw;
    }
 }
+BOOST_AUTO_TEST_CASE(update_property)
+{
+   using namespace graphene;
+   try
+   {
+      INVOKE(create_property);
+      const auto& test  = get_property(PROPERTY_TEST_ID);
+      const auto& nathan = create_account("nathan");
+
+      property_update_operation op;
+      op.issuer = test.issuer;
+      op.property_to_update = test.id;
+      op.new_options = test.options;
+
+      trx.operations.push_back(op);
+      PUSH_TX( db, trx, ~0 );
+
+      BOOST_TEST_MESSAGE( "Can't change issuer , only meta1 can be issuer of backed assets" );
+      op.issuer = nathan.get_id();
+      trx.operations.back() = op;
+      GRAPHENE_REQUIRE_THROW(PUSH_TX( db, trx, ~0 ), fc::exception);
+   }
+   catch (fc::exception &e)
+   {
+      edump((e.to_detail_string()));
+      throw;
+   }
+}
+
 // TODO:  Write linear VBO tests
 
 BOOST_AUTO_TEST_SUITE_END()
