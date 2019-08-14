@@ -1,5 +1,10 @@
 #include <graphene/protocol/asset_limitation_ops.hpp>
 
+#include <fc/io/raw.hpp>
+
+#include <locale>
+
+
 namespace graphene
 {
 namespace protocol

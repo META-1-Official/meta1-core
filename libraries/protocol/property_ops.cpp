@@ -1,4 +1,9 @@
 #include <graphene/protocol/property_ops.hpp>
+
+#include <fc/io/raw.hpp>
+
+#include <locale>
+
 #include <string>
 #include <regex>
 

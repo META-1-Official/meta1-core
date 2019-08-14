@@ -158,17 +158,11 @@ class database_api
       /**
        * @brief Get the objects corresponding to the provided IDs
        * @param ids IDs of the objects to retrieve
-       * @param subscribe @a true to subscribe to the queried objects; @a false to not subscribe;
-       *                  @a null to subscribe or not subscribe according to current auto-subscription setting
-       *                  (see @ref set_auto_subscription)
        * @return The objects retrieved, in the order they are mentioned in ids
-       * @note operation_history_object (1.11.x) and account_transaction_history_object (2.9.x)
-       *       can not be subscribed.
        *
        * If any of the provided IDs does not map to an object, a null variant is returned in its position.
        */
-      fc::variants get_objects( const vector<object_id_type>& ids,
-                                optional<bool> subscribe = optional<bool>() )const;
+      fc::variants get_objects(const vector<object_id_type>& ids)const;
 
       ///////////////////
       // Subscriptions //
@@ -190,17 +184,14 @@ class database_api
        * @brief Set auto-subscription behavior of follow-up API queries
        * @param enable whether follow-up API queries will automatically subscribe to queried objects
        *
-       * Impacts behavior of these APIs:
+        * Impacts behavior of these APIs:
        * - get_accounts
        * - get_assets
        * - get_objects
        * - lookup_accounts
+       *
+       * Does not impact this API:
        * - get_full_accounts
-       * - get_htlc
-       *
-       * Note: auto-subscription is enabled by default
-       *
-       * @see @ref set_subscribe_callback
        */
       void set_auto_subscription( bool enable );
       /**
@@ -349,8 +340,7 @@ class database_api
        * ignored. All other accounts will be retrieved and subscribed.
        *
        */
-      std::map<string,full_account> get_full_accounts( const vector<string>& names_or_ids,
-                                                       optional<bool> subscribe = optional<bool>() );
+      std::map<string,full_account> get_full_accounts( const vector<string>& names_or_ids, bool subscribe );
 
       /**
        * @brief Get info of an account by name
@@ -371,7 +361,7 @@ class database_api
        * @param account_names Names of the accounts to retrieve
        * @return The accounts holding the provided names
        *
-       * This function has semantics identical to @ref get_objects, but doesn't subscribe.
+       * This function has semantics identical to @ref get_objects
        */
       vector<optional<account_object>> lookup_account_names(const vector<string>& account_names)const;
 
@@ -379,17 +369,9 @@ class database_api
        * @brief Get names and IDs for registered accounts
        * @param lower_bound_name Lower bound of the first name to return
        * @param limit Maximum number of results to return -- must not exceed 1000
-       * @param subscribe @a true to subscribe to the queried account objects; @a false to not subscribe;
-       *                  @a null to subscribe or not subscribe according to current auto-subscription setting
-       *                  (see @ref set_auto_subscription)
        * @return Map of account names to corresponding IDs
-       *
-       * @note In addition to the common auto-subscription rules,
-       *       this API will subscribe to the returned account only if @p limit is 1.
        */
-      map<string,account_id_type> lookup_accounts( const string& lower_bound_name,
-                                                   uint32_t limit,
-                                                   optional<bool> subscribe = optional<bool>() )const;
+      map<string,account_id_type> lookup_accounts(const string& lower_bound_name, uint32_t limit)const;
 
       //////////////
       // Balances //
@@ -935,12 +917,9 @@ class database_api
       /**
        *  @brief Get HTLC object
        *  @param id HTLC contract id
-       *  @param subscribe @a true to subscribe to the queried HTLC objects; @a false to not subscribe;
-       *                   @a null to subscribe or not subscribe according to current auto-subscription setting
-       *                   (see @ref set_auto_subscription)
        *  @return HTLC object for the id
        */
-      optional<htlc_object> get_htlc( htlc_id_type id, optional<bool> subscribe = optional<bool>() ) const;
+      optional<htlc_object> get_htlc(htlc_id_type id) const;
 
       /**
        *  @brief Get non expired HTLC objects using the sender account
