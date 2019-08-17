@@ -36,6 +36,7 @@
 #include <graphene/chain/vesting_balance_object.hpp>
 #include <graphene/chain/withdraw_permission_object.hpp>
 #include <graphene/chain/witness_object.hpp>
+#include <graphene/chain/asset_limitation_object.hpp>
 
 #include <graphene/market_history/market_history_plugin.hpp>
 #include <fc/crypto/digest.hpp>
@@ -2484,6 +2485,7 @@ BOOST_AUTO_TEST_CASE( create_property )
       throw;
    }
 }
+
 BOOST_AUTO_TEST_CASE(update_property)
 {
    using namespace graphene;
@@ -2512,6 +2514,40 @@ BOOST_AUTO_TEST_CASE(update_property)
       throw;
    }
 }
+
+BOOST_AUTO_TEST_CASE(create_asset_limitation)
+{
+   try
+   {
+      asset_limitation_id_type test_asset_limitation_id = db.get_index<asset_limitation_object>().get_next_id();
+      asset_limitation_object_create_operation creator;
+
+      creator.issuer = get_account("meta1").id;
+      creator.fee    = asset();
+      creator.common_options.buy_limit  = "0.1";
+      creator.common_options.sell_limit = "1.1";
+      trx.operations.push_back(std::move(creator));
+      PUSH_TX( db, trx, ~0 );
+
+      const asset_limitation_object& test_asset_limitation = test_asset_limitation_id(db);
+      BOOST_CHECK(test_asset_limitation.issuer ==  get_account("meta1").id);
+      BOOST_CHECK(test_asset_limitation.options.buy_limit   == "0.1");
+      BOOST_CHECK(test_asset_limitation.options.sell_limit  == "1.1");
+      GRAPHENE_REQUIRE_THROW(PUSH_TX( db, trx, ~0 ), fc::exception);
+
+      auto op = trx.operations.back().get<asset_limitation_object_create_operation>();
+      REQUIRE_THROW_WITH_VALUE(op, issuer, account_id_type(99999999)); 
+      REQUIRE_THROW_WITH_VALUE(op, common_options.sell_limit,"-0.1");
+      REQUIRE_THROW_WITH_VALUE(op, common_options.buy_limit,"-0.1");
+   }
+   catch(fc::exception &e)
+   {
+      edump((e.to_detail_string()));
+      throw;
+   }
+   
+}
+
 
 // TODO:  Write linear VBO tests
 

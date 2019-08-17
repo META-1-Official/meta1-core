@@ -9,6 +9,9 @@ void asset_limitation_options::validate() const
 {
     FC_ASSERT(!sell_limit.empty());
     FC_ASSERT(!buy_limit.empty());
+    FC_ASSERT(std::stod(sell_limit)>=0.0);
+    FC_ASSERT(std::stod(buy_limit)>0.0);
+
 }
 
 void asset_limitation_object_create_operation::validate() const

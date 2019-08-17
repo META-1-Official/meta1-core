@@ -36,7 +36,7 @@ struct property_create_operation : public base_operation
 {
     struct fee_parameters_type
     {
-        uint64_t fee = 5 * GRAPHENE_BLOCKCHAIN_PRECISION;
+        uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION;
     };
     asset fee;
 
@@ -52,7 +52,7 @@ struct property_update_operation : public base_operation
 {
     struct fee_parameters_type
     {
-        uint64_t fee = 5 * GRAPHENE_BLOCKCHAIN_PRECISION;
+        uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION;
     };
 
     property_update_operation() {}
