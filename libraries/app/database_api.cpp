@@ -475,6 +475,7 @@ vector<property_object> database_api::get_all_properties() const
 
 vector<property_object> database_api_impl::get_all_properties() const
 {
+<<<<<<< HEAD
    vector<property_object> result;
    const auto &properties_idx = _db.get_index_type<property_index>().indices().get<by_id>();
    for (const auto &p : properties_idx)
@@ -483,6 +484,9 @@ vector<property_object> database_api_impl::get_all_properties() const
    }
    return result;
 }
+=======
+   FC_ASSERT( limit <= _app_options->api_limit_get_account_limit_orders );
+>>>>>>> c3ebbc6f... Change 1: made on review comments
 
 vector<property_object>  database_api::get_properties_by_backed_asset_symbol(string symbol) const
 {
@@ -841,8 +845,7 @@ map<string,account_id_type> database_api_impl::lookup_accounts( const string& lo
                                                                 uint32_t limit,
                                                                 optional<bool> subscribe )const
 {
-   uint64_t api_limit_lookup_accounts = _app_options->api_limit_lookup_accounts;
-   FC_ASSERT( limit <= api_limit_lookup_accounts );
+   FC_ASSERT( limit <= _app_options->api_limit_lookup_accounts );
    const auto& accounts_by_name = _db.get_index_type<account_index>().indices().get<by_name>();
    map<string,account_id_type> result;
 
@@ -1371,8 +1374,7 @@ vector<collateral_bid_object> database_api::get_collateral_bids( const std::stri
 vector<collateral_bid_object> database_api_impl::get_collateral_bids( const std::string& asset,
                                                                       uint32_t limit, uint32_t skip )const
 { try {
-   uint64_t api_limit_get_collateral_bids=_app_options->api_limit_get_collateral_bids;
-   FC_ASSERT( limit <= api_limit_get_collateral_bids );
+   FC_ASSERT( limit <= _app_options->api_limit_get_collateral_bids );
    const asset_id_type asset_id = get_asset_from_string(asset)->id;
    const asset_object& swan = asset_id(_db);
    FC_ASSERT( swan.is_market_issued() );
@@ -1387,7 +1389,8 @@ vector<collateral_bid_object> database_api_impl::get_collateral_bids( const std:
                                                    price::min(back.id, asset_id),
                                                    collateral_bid_id_type(GRAPHENE_DB_MAX_INSTANCE_ID) ) );
    vector<collateral_bid_object> result;
-   if(skip<aidx.size())
+   auto distance_between_start_end= std::distance(start,end);
+   if(skip<distance_between_start_end)
    {
      std::advance(start,skip);
    }
@@ -1495,8 +1498,8 @@ order_book database_api::get_order_book( const string& base, const string& quote
 
 order_book database_api_impl::get_order_book( const string& base, const string& quote, unsigned limit )const
 {
-   uint64_t api_limit_get_order_book=_app_options->api_limit_get_order_book;
-   FC_ASSERT( limit <= api_limit_get_order_book );
+   using boost::multiprecision::uint128_t;
+   FC_ASSERT( limit <= _app_options->api_limit_get_order_book );
 
    order_book result;
    result.base = base;
@@ -1810,8 +1813,7 @@ map<string, witness_id_type> database_api::lookup_witness_accounts( const string
 map<string, witness_id_type> database_api_impl::lookup_witness_accounts( const string& lower_bound_name,
                                                                          uint32_t limit )const
 {
-   uint64_t api_limit_lookup_witness_accounts = _app_options->api_limit_lookup_witness_accounts;
-   FC_ASSERT( limit <= api_limit_lookup_witness_accounts );
+   FC_ASSERT( limit <= _app_options->api_limit_lookup_witness_accounts );
    const auto& witnesses_by_id = _db.get_index_type<witness_index>().indices().get<by_id>();
 
    // we want to order witnesses by account name, but that name is in the account object
@@ -1893,8 +1895,7 @@ map<string, committee_member_id_type> database_api::lookup_committee_member_acco
 map<string, committee_member_id_type> database_api_impl::lookup_committee_member_accounts(
                                          const string& lower_bound_name, uint32_t limit )const
 {
-   uint64_t api_limit_lookup_committee_member_accounts = _app_options->api_limit_lookup_committee_member_accounts;
-   FC_ASSERT( limit <= api_limit_lookup_committee_member_accounts );
+   FC_ASSERT( limit <= _app_options->api_limit_lookup_committee_member_accounts );
    const auto& committee_members_by_id = _db.get_index_type<committee_member_index>().indices().get<by_id>();
 
    // we want to order committee_members by account name, but that name is in the account object
@@ -1992,8 +1993,7 @@ vector<variant> database_api::lookup_vote_ids( const vector<vote_id_type>& votes
 
 vector<variant> database_api_impl::lookup_vote_ids( const vector<vote_id_type>& votes )const
 {
-   uint64_t api_limit_lookup_vote_ids = _app_options->api_limit_lookup_vote_ids;
-   FC_ASSERT( votes.size() < api_limit_lookup_vote_ids, "Only 1000 votes can be queried at a time" );
+   FC_ASSERT( votes.size() < _app_options->api_limit_lookup_vote_ids );
 
    const auto& witness_idx = _db.get_index_type<witness_index>().indices().get<by_vote_id>();
    const auto& committee_idx = _db.get_index_type<committee_member_index>().indices().get<by_vote_id>();
