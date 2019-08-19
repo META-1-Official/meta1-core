@@ -38,6 +38,11 @@
 
 #include <fc/optional.hpp>
 
+#include <graphene/api_helper_indexes/api_helper_indexes.hpp>
+#include <graphene/market_history/market_history_plugin.hpp>
+
+#include <fc/optional.hpp>
+
 namespace graphene { namespace app {
    using namespace graphene::chain;
    using namespace graphene::market_history;

@@ -26,6 +26,8 @@
 #include <fc/crypto/aes.hpp>
 #include <fc/crypto/elliptic.hpp>
 
+#include <array>
+
 namespace graphene { namespace net {
 
 /**

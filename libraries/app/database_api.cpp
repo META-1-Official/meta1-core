@@ -475,7 +475,6 @@ vector<property_object> database_api::get_all_properties() const
 
 vector<property_object> database_api_impl::get_all_properties() const
 {
-<<<<<<< HEAD
    vector<property_object> result;
    const auto &properties_idx = _db.get_index_type<property_index>().indices().get<by_id>();
    for (const auto &p : properties_idx)
@@ -484,9 +483,6 @@ vector<property_object> database_api_impl::get_all_properties() const
    }
    return result;
 }
-=======
-   FC_ASSERT( limit <= _app_options->api_limit_get_account_limit_orders );
->>>>>>> c3ebbc6f... Change 1: made on review comments
 
 vector<property_object>  database_api::get_properties_by_backed_asset_symbol(string symbol) const
 {
@@ -1498,9 +1494,8 @@ order_book database_api::get_order_book( const string& base, const string& quote
 
 order_book database_api_impl::get_order_book( const string& base, const string& quote, unsigned limit )const
 {
-   using boost::multiprecision::uint128_t;
    FC_ASSERT( limit <= _app_options->api_limit_get_order_book );
-
+  
    order_book result;
    result.base = base;
    result.quote = quote;
