@@ -1154,8 +1154,7 @@ vector<limit_order_object> database_api_impl::get_account_limit_orders(
                               const string& account_name_or_id, const string &base, const string &quote,
                               uint32_t limit, optional<limit_order_id_type> ostart_id, optional<price> ostart_price )
 {
-   uint64_t api_limit_get_account_limit_orders =_app_options->api_limit_get_account_limit_orders;
-   FC_ASSERT( limit <= api_limit_get_account_limit_orders );
+   FC_ASSERT( limit <= _app_options->api_limit_get_account_limit_orders );
 
    vector<limit_order_object>   results;
    uint32_t                     count = 0;
