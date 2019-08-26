@@ -655,62 +655,6 @@ BOOST_AUTO_TEST_CASE( withdraw_permission_incremental_case )
     BOOST_CHECK_EQUAL(get_balance(dan_id, asset_id_type()), 13);
 } FC_LOG_AND_RETHROW() }
 
-BOOST_AUTO_TEST_CASE( withdraw_permission_update )
-{ try {
-   INVOKE(withdraw_permission_create);
-
-   auto nathan_private_key = generate_private_key("nathan");
-   account_id_type nathan_id = get_account("nathan").id;
-   account_id_type dan_id = get_account("dan").id;
-   withdraw_permission_id_type permit;
-   set_expiration( db, trx );
-
-   {
-      withdraw_permission_update_operation op;
-      op.permission_to_update = permit;
-      op.authorized_account = dan_id;
-      op.withdraw_from_account = nathan_id;
-      op.periods_until_expiration = 2;
-      op.period_start_time = db.head_block_time() + 10;
-      op.withdrawal_period_sec = 10;
-      op.withdrawal_limit = asset(12);
-      trx.operations.push_back(op);
-      REQUIRE_THROW_WITH_VALUE(op, periods_until_expiration, 0);
-      REQUIRE_THROW_WITH_VALUE(op, withdrawal_period_sec, 0);
-      REQUIRE_THROW_WITH_VALUE(op, withdrawal_limit, asset(1, asset_id_type(12)));
-      REQUIRE_THROW_WITH_VALUE(op, withdrawal_limit, asset(0));
-      REQUIRE_THROW_WITH_VALUE(op, withdraw_from_account, account_id_type(0));
-      REQUIRE_THROW_WITH_VALUE(op, authorized_account, account_id_type(0));
-      REQUIRE_THROW_WITH_VALUE(op, period_start_time, db.head_block_time() - 50);
-      trx.operations.back() = op;
-      sign( trx, nathan_private_key );
-      PUSH_TX( db, trx );
-   }
-
-   {
-      const withdraw_permission_object& permit_object = db.get(permit);
-      BOOST_CHECK(permit_object.authorized_account == dan_id);
-      BOOST_CHECK(permit_object.withdraw_from_account == nathan_id);
-      BOOST_CHECK(permit_object.period_start_time == db.head_block_time() + 10);
-      BOOST_CHECK(permit_object.withdrawal_limit == asset(12));
-      BOOST_CHECK(permit_object.withdrawal_period_sec == 10);
-      // BOOST_CHECK(permit_object.remaining_periods == 2);
-   }
-} FC_LOG_AND_RETHROW() }
-
-BOOST_AUTO_TEST_CASE( withdraw_permission_delete )
-{ try {
-   INVOKE(withdraw_permission_update);
-
-   withdraw_permission_delete_operation op;
-   op.authorized_account = get_account("dan").id;
-   op.withdraw_from_account = get_account("nathan").id;
-   set_expiration( db, trx );
-   trx.operations.push_back(op);
-   sign( trx, generate_private_key("nathan" ));
-   PUSH_TX( db, trx );
-} FC_LOG_AND_RETHROW() }
-
 BOOST_AUTO_TEST_CASE( mia_feeds )
 { try {
    ACTORS((nathan)(dan)(ben)(vikram));

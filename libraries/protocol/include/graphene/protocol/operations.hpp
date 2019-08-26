@@ -76,9 +76,9 @@ namespace graphene { namespace protocol {
             proposal_update_operation,
             proposal_delete_operation,
             withdraw_permission_create_operation,
-            withdraw_permission_update_operation,
+            asset_limitation_object_create_operation,
             withdraw_permission_claim_operation,
-            withdraw_permission_delete_operation,
+            asset_limitation_object_update_operation,
             committee_member_create_operation,
             committee_member_update_operation,
             committee_member_update_global_parameters_operation,
@@ -105,9 +105,7 @@ namespace graphene { namespace protocol {
             htlc_extend_operation,
             htlc_refund_operation,            // VIRTUAL
             property_create_operation,
-            property_update_operation,
-            asset_limitation_object_create_operation,
-            asset_limitation_object_update_operation
+            property_update_operation
 
          > operation;
 
