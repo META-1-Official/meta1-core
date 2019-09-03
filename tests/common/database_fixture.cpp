@@ -1297,6 +1297,14 @@ const property_object& database_fixture::get_property(uint32_t property_id) cons
    assert( itr != idx.end() );
    return *itr;
 }
+const asset_limitation_object& database_fixture::get_asset_limitation(string limit_symbol) const
+{
+   const auto &idx = db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
+   auto itr = idx.find(limit_symbol);
+   assert( itr != idx.end() );
+   return *itr;
+}
+
 
 namespace test {
 

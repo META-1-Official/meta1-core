@@ -2439,6 +2439,7 @@ BOOST_AUTO_TEST_CASE( vesting_balance_withdraw_test )
    }
    // TODO:  Test with non-core asset and Bob account
 } FC_LOG_AND_RETHROW() }
+
 BOOST_AUTO_TEST_CASE( create_property )
 {
    try {
@@ -2522,8 +2523,9 @@ BOOST_AUTO_TEST_CASE(create_asset_limitation)
       asset_limitation_id_type test_asset_limitation_id = db.get_index<asset_limitation_object>().get_next_id();
       asset_limitation_object_create_operation creator;
 
-      creator.issuer = get_account("meta1").id;
+      creator.issuer = create_account("meta1").id;
       creator.fee    = asset();
+      creator.limit_symbol = "META1";
       creator.common_options.buy_limit  = "0.1";
       creator.common_options.sell_limit = "1.1";
       trx.operations.push_back(std::move(creator));
@@ -2539,6 +2541,13 @@ BOOST_AUTO_TEST_CASE(create_asset_limitation)
       REQUIRE_THROW_WITH_VALUE(op, issuer, account_id_type(99999999)); 
       REQUIRE_THROW_WITH_VALUE(op, common_options.sell_limit,"-0.1");
       REQUIRE_THROW_WITH_VALUE(op, common_options.buy_limit,"-0.1");
+
+      asset_id_type BTC_id = create_user_issued_asset( "BTC", get_account("meta1"), 0 ).id;
+      auto balance = get_balance(get_account("meta1"),get_asset("META1"));
+      /*const limit_order_object* order  = create_sell_order( get_account("meta1"), asset( 10, get_asset("META1").id ), asset(  50, BTC_id) );
+      generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+      generate_block();*/
+
    }
    catch(fc::exception &e)
    {
@@ -2546,6 +2555,38 @@ BOOST_AUTO_TEST_CASE(create_asset_limitation)
       throw;
    }
    
+}
+
+BOOST_AUTO_TEST_CASE(update_asset_limitation)
+{
+   try{
+      INVOKE(create_asset_limitation);
+      const auto& test  = get_asset_limitation("META1");
+
+      asset_limitation_object_update_operation op;
+
+      op.issuer = test.issuer;
+      op.asset_limitation_object_to_update = test.id;
+      asset_limitation_options ops;
+      ops.buy_limit  = "1.112";
+      ops.sell_limit = "2.1";
+      ops.validate();
+      op.new_options = ops;
+
+      trx.operations.push_back(op);
+      PUSH_TX( db, trx, ~0 );
+
+      BOOST_CHECK(test.issuer ==  get_account("meta1").id);
+      BOOST_CHECK(test.options.buy_limit  ==  "1.112");
+      BOOST_CHECK(test.options.sell_limit ==  "2.1"  );
+      //test = get_asset_limitation("META1");
+
+   }
+   catch(fc::exception &e)
+   {
+      edump((e.to_detail_string()));
+      throw;
+   }
 }
 
 
