@@ -2515,26 +2515,42 @@ BOOST_AUTO_TEST_CASE(update_property)
       throw;
    }
 }
+   asset core_asset(int64_t x )
+   {
+       return asset(x);
+   };
 
 BOOST_AUTO_TEST_CASE(create_asset_limitation)
 {
    try
    {
+      generate_block();
+      set_expiration( db, trx );
+      ACTOR(meta1);
+     
+      const asset_object& BTC = create_user_issued_asset( "BTC" );
+      const asset_object& USDT = create_user_issued_asset( "USDT" );
+
+      transfer( committee_account(db), meta1, asset( 100000000 ) );
+      issue_uia( meta1, asset( 10000000, BTC.id ) );
+      issue_uia( meta1, asset( 10000000, USDT.id ) );
+
       asset_limitation_id_type test_asset_limitation_id = db.get_index<asset_limitation_object>().get_next_id();
       asset_limitation_object_create_operation creator;
 
-      creator.issuer = create_account("meta1").id;
+      creator.issuer = meta1.id;
       creator.fee    = asset();
       creator.limit_symbol = "META1";
       creator.common_options.buy_limit  = "0.1";
-      creator.common_options.sell_limit = "1.1";
+      creator.common_options.sell_limit = "200.1";
       trx.operations.push_back(std::move(creator));
       PUSH_TX( db, trx, ~0 );
 
       const asset_limitation_object& test_asset_limitation = test_asset_limitation_id(db);
       BOOST_CHECK(test_asset_limitation.issuer ==  get_account("meta1").id);
+      BOOST_CHECK(test_asset_limitation.limit_symbol  == "META1");
       BOOST_CHECK(test_asset_limitation.options.buy_limit   == "0.1");
-      BOOST_CHECK(test_asset_limitation.options.sell_limit  == "1.1");
+      BOOST_CHECK(test_asset_limitation.options.sell_limit  == "200.1");
       GRAPHENE_REQUIRE_THROW(PUSH_TX( db, trx, ~0 ), fc::exception);
 
       auto op = trx.operations.back().get<asset_limitation_object_create_operation>();
@@ -2542,12 +2558,17 @@ BOOST_AUTO_TEST_CASE(create_asset_limitation)
       REQUIRE_THROW_WITH_VALUE(op, common_options.sell_limit,"-0.1");
       REQUIRE_THROW_WITH_VALUE(op, common_options.buy_limit,"-0.1");
 
-      asset_id_type BTC_id = create_user_issued_asset( "BTC", get_account("meta1"), 0 ).id;
-      auto balance = get_balance(get_account("meta1"),get_asset("META1"));
-      /*const limit_order_object* order  = create_sell_order( get_account("meta1"), asset( 10, get_asset("META1").id ), asset(  50, BTC_id) );
-      generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
-      generate_block();*/
+      //price limit testing using USD sell orders
+      //enough amount of USDT to buy meta1
+      BOOST_CHECK(create_sell_order( meta1,get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),USDT.amount(20011)));
+      //not enough amount of USDT to buy meta1
+      GRAPHENE_REQUIRE_THROW(create_sell_order( meta1,get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),USDT.amount(20001)  ), fc::exception);
 
+      //price limit testing using crypto sell orders
+      //enough amount of 0.04 BTC to buy meta1 
+      BOOST_CHECK(create_sell_order( meta1,get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),BTC.amount(4)  ));
+      //not enough amount of 0.01 BTC to buy meta1
+      GRAPHENE_REQUIRE_THROW(create_sell_order( meta1,get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),BTC.amount(1)  ), fc::exception);
    }
    catch(fc::exception &e)
    {
@@ -2568,8 +2589,8 @@ BOOST_AUTO_TEST_CASE(update_asset_limitation)
       op.issuer = test.issuer;
       op.asset_limitation_object_to_update = test.id;
       asset_limitation_options ops;
-      ops.buy_limit  = "1.112";
-      ops.sell_limit = "2.1";
+      ops.buy_limit  = "12.112";
+      ops.sell_limit = "200.1";
       ops.validate();
       op.new_options = ops;
 
@@ -2577,9 +2598,20 @@ BOOST_AUTO_TEST_CASE(update_asset_limitation)
       PUSH_TX( db, trx, ~0 );
 
       BOOST_CHECK(test.issuer ==  get_account("meta1").id);
-      BOOST_CHECK(test.options.buy_limit  ==  "1.112");
-      BOOST_CHECK(test.options.sell_limit ==  "2.1"  );
-      //test = get_asset_limitation("META1");
+      BOOST_CHECK(test.options.buy_limit  ==  "12.112");
+      BOOST_CHECK(test.options.sell_limit ==  "200.1"  );
+
+      //price limit testing using USD sell orders
+      //enough amount of USDT to buy meta1
+      BOOST_CHECK(create_sell_order( get_account("meta1"),get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),get_asset("USDT").amount(20011)));
+      //not enough amount of USDT to buy meta1
+      GRAPHENE_REQUIRE_THROW(create_sell_order( get_account("meta1"),get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),get_asset("USDT").amount(20001)  ), fc::exception);
+
+      //price limit testing using crypto sell orders
+      //enough amount of 0.04 BTC to buy meta1 
+      BOOST_CHECK(create_sell_order( get_account("meta1"),get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),get_asset("BTC").amount(4)  ));
+      //not enough amount of 0.01 BTC to buy meta1
+      GRAPHENE_REQUIRE_THROW(create_sell_order( get_account("meta1"),get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),get_asset("BTC").amount(1)  ), fc::exception);
 
    }
    catch(fc::exception &e)
