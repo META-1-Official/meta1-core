@@ -36,6 +36,7 @@
 #include <graphene/chain/vesting_balance_object.hpp>
 #include <graphene/chain/withdraw_permission_object.hpp>
 #include <graphene/chain/witness_object.hpp>
+#include <graphene/chain/asset_limitation_object.hpp>
 
 #include <graphene/market_history/market_history_plugin.hpp>
 #include <fc/crypto/digest.hpp>
@@ -46,6 +47,7 @@ using namespace graphene::chain;
 using namespace graphene::chain::test;
 
 #define UIA_TEST_SYMBOL "UIATEST"
+#define PROPERTY_TEST_ID 41232523
 
 BOOST_FIXTURE_TEST_SUITE( operation_tests, database_fixture )
 
@@ -2437,6 +2439,188 @@ BOOST_AUTO_TEST_CASE( vesting_balance_withdraw_test )
    }
    // TODO:  Test with non-core asset and Bob account
 } FC_LOG_AND_RETHROW() }
+
+BOOST_AUTO_TEST_CASE( create_property )
+{
+   try {
+      property_id_type test_property_id = db.get_index<property_object>().get_next_id();
+      property_create_operation creator;
+      creator.issuer = create_account("meta1").id;
+      creator.fee = asset();
+      creator.property_id                                = PROPERTY_TEST_ID;
+      creator.common_options.description                 = "some description";
+      creator.common_options.title                       = "some title";
+      creator.common_options.owner_contact_email         = "my@gmail.com";
+      creator.common_options.custodian                   = "you";
+      creator.common_options.detailed_document_link      = "https://fsf.com";
+      creator.common_options.image_url                   = "https://media.licdn.com/dms/image/C5622AQE4-y8QiWwF4Q/feedshare-shrink_8192/0?e=1568851200&v=beta&t=2Pw-2SF4o4jxjhYQil3MaPqlwSjQ8QQsM5-G6Uhmntg";
+      creator.common_options.status                      = "not approved";
+      creator.common_options.property_assignee           = "222";
+      creator.common_options.appraised_property_value    = 324155872;
+      creator.common_options.property_surety_bond_value  = 1;
+      creator.common_options.property_surety_bond_number = 33104;
+      creator.common_options.smooth_allocation_time      = "1";
+      creator.common_options.backed_by_asset_symbol      = "META1";
+      trx.operations.push_back(std::move(creator));
+      PUSH_TX( db, trx, ~0 );
+
+      const property_object& test_property = test_property_id(db);
+      BOOST_CHECK(test_property.property_id                         == PROPERTY_TEST_ID);
+      BOOST_CHECK(test_property.options.description                 == "some description");               
+      BOOST_CHECK(test_property.options.title                       == "some title");                    
+      BOOST_CHECK(test_property.options.owner_contact_email         == "my@gmail.com");
+      BOOST_CHECK(test_property.options.custodian                   == "you");
+      BOOST_CHECK(test_property.options.detailed_document_link      == "https://fsf.com"); 
+      BOOST_CHECK(test_property.options.image_url                   == "https://media.licdn.com/dms/image/C5622AQE4-y8QiWwF4Q/feedshare-shrink_8192/0?e=1568851200&v=beta&t=2Pw-2SF4o4jxjhYQil3MaPqlwSjQ8QQsM5-G6Uhmntg");
+      BOOST_CHECK(test_property.options.status                      == "not approved");                     
+      BOOST_CHECK(test_property.options.property_assignee           == "222");
+      BOOST_CHECK(test_property.options.appraised_property_value    == 324155872);
+      BOOST_CHECK(test_property.options.property_surety_bond_value  == 1);
+      BOOST_CHECK(test_property.options.property_surety_bond_number == 33104);
+      BOOST_CHECK(test_property.options.smooth_allocation_time      == "1");
+      BOOST_CHECK(test_property.options.backed_by_asset_symbol      == "META1");
+      GRAPHENE_REQUIRE_THROW(PUSH_TX( db, trx, ~0 ), fc::exception);
+   }
+   catch(fc::exception& e) {
+      edump((e.to_detail_string()));
+      throw;
+   }
+}
+
+BOOST_AUTO_TEST_CASE(update_property)
+{
+   using namespace graphene;
+   try
+   {
+      INVOKE(create_property);
+      const auto& test  = get_property(PROPERTY_TEST_ID);
+      const auto& nathan = create_account("nathan");
+
+      property_update_operation op;
+      op.issuer = test.issuer;
+      op.property_to_update = test.id;
+      op.new_options = test.options;
+
+      trx.operations.push_back(op);
+      PUSH_TX( db, trx, ~0 );
+
+      BOOST_TEST_MESSAGE( "Can't change issuer , only meta1 can be issuer of backed assets" );
+      op.issuer = nathan.get_id();
+      trx.operations.back() = op;
+      GRAPHENE_REQUIRE_THROW(PUSH_TX( db, trx, ~0 ), fc::exception);
+   }
+   catch (fc::exception &e)
+   {
+      edump((e.to_detail_string()));
+      throw;
+   }
+}
+   asset core_asset(int64_t x )
+   {
+       return asset(x);
+   };
+
+BOOST_AUTO_TEST_CASE(create_asset_limitation)
+{
+   try
+   {
+      generate_block();
+      set_expiration( db, trx );
+      ACTOR(meta1);
+     
+      const asset_object& BTC = create_user_issued_asset( "BTC" );
+      const asset_object& USDT = create_user_issued_asset( "USDT" );
+
+      transfer( committee_account(db), meta1, asset( 100000000 ) );
+      issue_uia( meta1, asset( 10000000, BTC.id ) );
+      issue_uia( meta1, asset( 10000000, USDT.id ) );
+
+      asset_limitation_id_type test_asset_limitation_id = db.get_index<asset_limitation_object>().get_next_id();
+      asset_limitation_object_create_operation creator;
+
+      creator.issuer = meta1.id;
+      creator.fee    = asset();
+      creator.limit_symbol = "META1";
+      creator.common_options.buy_limit  = "0.1";
+      creator.common_options.sell_limit = "200.1";
+      trx.operations.push_back(std::move(creator));
+      PUSH_TX( db, trx, ~0 );
+
+      const asset_limitation_object& test_asset_limitation = test_asset_limitation_id(db);
+      BOOST_CHECK(test_asset_limitation.issuer ==  get_account("meta1").id);
+      BOOST_CHECK(test_asset_limitation.limit_symbol  == "META1");
+      BOOST_CHECK(test_asset_limitation.options.buy_limit   == "0.1");
+      BOOST_CHECK(test_asset_limitation.options.sell_limit  == "200.1");
+      GRAPHENE_REQUIRE_THROW(PUSH_TX( db, trx, ~0 ), fc::exception);
+
+      auto op = trx.operations.back().get<asset_limitation_object_create_operation>();
+      REQUIRE_THROW_WITH_VALUE(op, issuer, account_id_type(99999999)); 
+      REQUIRE_THROW_WITH_VALUE(op, common_options.sell_limit,"-0.1");
+      REQUIRE_THROW_WITH_VALUE(op, common_options.buy_limit,"-0.1");
+
+      //price limit testing using USD sell orders
+      //enough amount of USDT to buy meta1
+      BOOST_CHECK(create_sell_order( meta1,get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),USDT.amount(20011)));
+      //not enough amount of USDT to buy meta1
+      GRAPHENE_REQUIRE_THROW(create_sell_order( meta1,get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),USDT.amount(20001)  ), fc::exception);
+
+      //price limit testing using crypto sell orders
+      //enough amount of 0.04 BTC to buy meta1 
+      BOOST_CHECK(create_sell_order( meta1,get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),BTC.amount(4)  ));
+      //not enough amount of 0.01 BTC to buy meta1
+      GRAPHENE_REQUIRE_THROW(create_sell_order( meta1,get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),BTC.amount(1)  ), fc::exception);
+   }
+   catch(fc::exception &e)
+   {
+      edump((e.to_detail_string()));
+      throw;
+   }
+   
+}
+
+BOOST_AUTO_TEST_CASE(update_asset_limitation)
+{
+   try{
+      INVOKE(create_asset_limitation);
+      const auto& test  = get_asset_limitation("META1");
+
+      asset_limitation_object_update_operation op;
+
+      op.issuer = test.issuer;
+      op.asset_limitation_object_to_update = test.id;
+      asset_limitation_options ops;
+      ops.buy_limit  = "12.112";
+      ops.sell_limit = "200.1";
+      ops.validate();
+      op.new_options = ops;
+
+      trx.operations.push_back(op);
+      PUSH_TX( db, trx, ~0 );
+
+      BOOST_CHECK(test.issuer ==  get_account("meta1").id);
+      BOOST_CHECK(test.options.buy_limit  ==  "12.112");
+      BOOST_CHECK(test.options.sell_limit ==  "200.1"  );
+
+      //price limit testing using USD sell orders
+      //enough amount of USDT to buy meta1
+      BOOST_CHECK(create_sell_order( get_account("meta1"),get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),get_asset("USDT").amount(20011)));
+      //not enough amount of USDT to buy meta1
+      GRAPHENE_REQUIRE_THROW(create_sell_order( get_account("meta1"),get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),get_asset("USDT").amount(20001)  ), fc::exception);
+
+      //price limit testing using crypto sell orders
+      //enough amount of 0.04 BTC to buy meta1 
+      BOOST_CHECK(create_sell_order( get_account("meta1"),get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),get_asset("BTC").amount(4)  ));
+      //not enough amount of 0.01 BTC to buy meta1
+      GRAPHENE_REQUIRE_THROW(create_sell_order( get_account("meta1"),get_asset("META1").amount(1 * GRAPHENE_BLOCKCHAIN_PRECISION),get_asset("BTC").amount(1)  ), fc::exception);
+
+   }
+   catch(fc::exception &e)
+   {
+      edump((e.to_detail_string()));
+      throw;
+   }
+}
+
 
 // TODO:  Write linear VBO tests
 

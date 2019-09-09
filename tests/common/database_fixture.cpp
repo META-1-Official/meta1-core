@@ -1290,6 +1290,22 @@ vector< graphene::market_history::order_history_object > database_fixture::get_m
    return result;
 }
 
+const property_object& database_fixture::get_property(uint32_t property_id) const
+{
+   const auto& idx = db.get_index_type<property_index>().indices().get<by_property_id>();
+   const auto itr = idx.find(property_id);
+   assert( itr != idx.end() );
+   return *itr;
+}
+const asset_limitation_object& database_fixture::get_asset_limitation(string limit_symbol) const
+{
+   const auto &idx = db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
+   auto itr = idx.find(limit_symbol);
+   assert( itr != idx.end() );
+   return *itr;
+}
+
+
 namespace test {
 
 void set_expiration( const database& db, transaction& tx )

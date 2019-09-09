@@ -173,20 +173,10 @@ struct get_impacted_account_visitor
       _impacted.insert( op.fee_payer() ); // withdraw_from_account
       _impacted.insert( op.authorized_account );
    }
-   void operator()( const withdraw_permission_update_operation& op )
-   {
-      _impacted.insert( op.fee_payer() ); // withdraw_from_account
-      _impacted.insert( op.authorized_account );
-   }
    void operator()( const withdraw_permission_claim_operation& op )
    {
       _impacted.insert( op.fee_payer() ); // withdraw_to_account
       _impacted.insert( op.withdraw_from_account );
-   }
-   void operator()( const withdraw_permission_delete_operation& op )
-   {
-      _impacted.insert( op.fee_payer() ); // withdraw_from_account
-      _impacted.insert( op.authorized_account );
    }
    void operator()( const committee_member_create_operation& op )
    {

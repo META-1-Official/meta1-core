@@ -69,41 +69,7 @@ namespace graphene { namespace protocol {
       void            validate()const;
    };
 
-   /**
-    * @brief Update an existing withdraw permission
-    * @ingroup operations
-    *
-    * This oeration is used to update the settings for an existing withdrawal permission. The accounts to withdraw to
-    * and from may never be updated. The fields which may be updated are the withdrawal limit (both amount and asset
-    * type may be updated), the withdrawal period length, the remaining number of periods until expiration, and the
-    * starting time of the new period.
-    *
-    * Fee is paid by withdraw_from_account, which is required to authorize this operation
-    */
-   struct withdraw_permission_update_operation : public base_operation
-   {
-      struct fee_parameters_type { uint64_t fee =  GRAPHENE_BLOCKCHAIN_PRECISION; };
-
-      asset                         fee;
-      /// This account pays the fee. Must match permission_to_update->withdraw_from_account
-      account_id_type               withdraw_from_account;
-      /// The account authorized to make withdrawals. Must match permission_to_update->authorized_account
-      account_id_type               authorized_account;
-      /// ID of the permission which is being updated
-      withdraw_permission_id_type   permission_to_update;
-      /// New maximum amount the withdrawer is allowed to charge per withdrawal period
-      asset                         withdrawal_limit;
-      /// New length of the period between withdrawals
-      uint32_t                      withdrawal_period_sec = 0;
-      /// New beginning of the next withdrawal period; must be in the future
-      time_point_sec                period_start_time;
-      /// The new number of withdrawal periods for which this permission will be valid
-      uint32_t                      periods_until_expiration = 0;
-
-      account_id_type fee_payer()const { return withdraw_from_account; }
-      void            validate()const;
-   };
-
+   
    /**
     * @brief Withdraw from an account which has published a withdrawal permission
     * @ingroup operations
@@ -142,50 +108,17 @@ namespace graphene { namespace protocol {
       share_type      calculate_fee(const fee_parameters_type& k)const;
    };
 
-   /**
-    * @brief Delete an existing withdrawal permission
-    * @ingroup operations
-    *
-    * This operation cancels a withdrawal permission, thus preventing any future withdrawals using that permission.
-    *
-    * Fee is paid by withdraw_from_account, which is required to authorize this operation
-    */
-   struct withdraw_permission_delete_operation : public base_operation
-   {
-      struct fee_parameters_type { uint64_t fee = 0; };
-
-      asset                         fee;
-      /// Must match withdrawal_permission->withdraw_from_account. This account pays the fee.
-      account_id_type               withdraw_from_account;
-      /// The account previously authorized to make withdrawals. Must match withdrawal_permission->authorized_account
-      account_id_type               authorized_account;
-      /// ID of the permission to be revoked.
-      withdraw_permission_id_type   withdrawal_permission;
-
-      account_id_type fee_payer()const { return withdraw_from_account; }
-      void            validate()const;
-   };
-
+   
 } } // graphene::protocol
 
 FC_REFLECT( graphene::protocol::withdraw_permission_create_operation::fee_parameters_type, (fee) )
-FC_REFLECT( graphene::protocol::withdraw_permission_update_operation::fee_parameters_type, (fee) )
 FC_REFLECT( graphene::protocol::withdraw_permission_claim_operation::fee_parameters_type, (fee)(price_per_kbyte) )
-FC_REFLECT( graphene::protocol::withdraw_permission_delete_operation::fee_parameters_type, (fee) )
 
 FC_REFLECT( graphene::protocol::withdraw_permission_create_operation, (fee)(withdraw_from_account)(authorized_account)
             (withdrawal_limit)(withdrawal_period_sec)(periods_until_expiration)(period_start_time) )
-FC_REFLECT( graphene::protocol::withdraw_permission_update_operation, (fee)(withdraw_from_account)(authorized_account)
-            (permission_to_update)(withdrawal_limit)(withdrawal_period_sec)(period_start_time)(periods_until_expiration) )
 FC_REFLECT( graphene::protocol::withdraw_permission_claim_operation, (fee)(withdraw_permission)(withdraw_from_account)(withdraw_to_account)(amount_to_withdraw)(memo) );
-FC_REFLECT( graphene::protocol::withdraw_permission_delete_operation, (fee)(withdraw_from_account)(authorized_account)
-            (withdrawal_permission) )
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::withdraw_permission_create_operation::fee_parameters_type )
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::withdraw_permission_update_operation::fee_parameters_type )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::withdraw_permission_claim_operation::fee_parameters_type )
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::withdraw_permission_delete_operation::fee_parameters_type )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::withdraw_permission_create_operation )
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::withdraw_permission_update_operation )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::withdraw_permission_claim_operation )
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::withdraw_permission_delete_operation )
