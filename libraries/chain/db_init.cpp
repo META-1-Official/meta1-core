@@ -189,6 +189,7 @@ void database::initialize_evaluators()
    register_evaluator<htlc_extend_evaluator>();
    register_evaluator<property_create_evaluator>();
    register_evaluator<property_update_evaluator>();
+   register_evaluator<property_delete_evaluator>();
    register_evaluator<asset_limitation_create_evaluator>();
    register_evaluator<asset_limitation_update_evaluator>();
 }

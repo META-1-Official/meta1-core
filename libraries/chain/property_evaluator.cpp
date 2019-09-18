@@ -71,6 +71,7 @@ void_result property_update_evaluator::do_evaluate(const property_update_operati
     }
     FC_CAPTURE_AND_RETHROW((op))
 }
+
 void_result property_update_evaluator::do_apply(const property_update_operation &op)
 {
     try
@@ -83,6 +84,26 @@ void_result property_update_evaluator::do_apply(const property_update_operation 
     }
     FC_CAPTURE_AND_RETHROW((op))
 }
+
+void_result property_delete_evaluator::do_evaluate(const property_delete_operation& o)
+{ try {
+   database& d = db();
+
+   _property = &o.property(d);
+   FC_ASSERT( _property->issuer == o.fee_paying_account );
+
+   return void_result();
+} FC_CAPTURE_AND_RETHROW( (o) ) }
+
+void_result property_delete_evaluator::do_apply(const property_delete_operation& o)
+{ try {
+    database& d = db();
+
+    property_object del_property = *_property;
+    d.remove(*_property);
+   
+   return void_result();
+} FC_CAPTURE_AND_RETHROW( (o) ) }
 
 } // namespace chain
 } // namespace graphene 

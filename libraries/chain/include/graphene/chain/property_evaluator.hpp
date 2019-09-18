@@ -26,5 +26,16 @@ public:
 
     const property_object *property_to_update = nullptr;
 };
+
+class property_delete_evaluator : public evaluator<property_delete_evaluator>
+{
+   public:
+      typedef property_delete_operation operation_type;
+
+      void_result do_evaluate( const property_delete_operation& o );
+      void_result do_apply( const property_delete_operation& o );
+
+      const property_object* _property;
+};
 } // namespace chain
 } // namespace graphene 

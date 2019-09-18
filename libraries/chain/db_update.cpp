@@ -293,7 +293,7 @@ void database::clear_expired_orders()
             if( before_core_hardfork_606 )
             {
                // check call orders
-               // Comments below are copied from ::do_apply(...)
+               // Comments below are copied from limit_order_cancel_evaluator::do_apply(...)
                // Possible optimization: order can be called by cancelling a limit order
                //   if the canceled order was at the top of the book.
                // Do I need to check calls in both assets?
