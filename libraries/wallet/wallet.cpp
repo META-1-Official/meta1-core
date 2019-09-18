@@ -1481,7 +1481,6 @@ public:
          optional<asset_limitation_object> asset_limitation_to_update = get_asset_limitaion_by_symbol(limit_symbol);
          if (!asset_limitation_to_update)
             FC_THROW("No asset limitation for asset with symbol not exis");
-
          asset_limitation_object_update_operation update_op;
          update_op.issuer = asset_limitation_to_update->issuer;
          update_op.asset_limitation_object_to_update = asset_limitation_to_update->id;
@@ -1495,7 +1494,6 @@ public:
          price_buf = std::stod (asset_limitation_ops.sell_limit);
          price_buf += std::stod (new_options.sell_limit);
          asset_limitation_ops.sell_limit = std::to_string(price_buf);
-
          update_op.new_options = asset_limitation_ops ;
 
          signed_transaction tx;
