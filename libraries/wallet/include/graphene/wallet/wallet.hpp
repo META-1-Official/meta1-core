@@ -1082,6 +1082,14 @@ class wallet_api
       signed_transaction update_property(uint32_t id,
                                          property_options new_options,
                                          bool broadcast = false);
+      
+      /** Delete an existing backed asset
+       *
+       * @param property_id the id of backed asset to be deleted
+       * @param broadcast true to broadcast the transaction on the network
+       * @returns the signed transaction deleting the backed asset
+       */
+      signed_transaction delete_property(uint32_t property_id, bool broadcast = false);
 
       //smart contracts for limitation assets buy/sell prices
       signed_transaction create_asset_limitation(string issuer,
@@ -1882,6 +1890,7 @@ FC_API( graphene::wallet::wallet_api,
         (get_transaction_id)
         (create_property)
         (update_property)
+        (delete_property)
         (create_asset_limitation)
         (update_asset_limitation)
         (create_asset)

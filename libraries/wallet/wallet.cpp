@@ -1445,6 +1445,25 @@ public:
       FC_CAPTURE_AND_RETHROW((id)(new_options)(broadcast))
    }
 
+   signed_transaction delete_property(uint32_t property_id, bool broadcast = false)
+   {
+      try
+      {
+         FC_ASSERT(!is_locked());
+         signed_transaction trx;
+
+         property_delete_operation op;
+         op.fee_paying_account = get_property(property_id).issuer;
+         op.property = get_property(property_id).id;
+         trx.operations = {op};
+         set_operation_fees(trx, _remote_db->get_global_properties().parameters.get_current_fees());
+
+         trx.validate();
+         return sign_transaction(trx, broadcast);
+      }
+      FC_CAPTURE_AND_RETHROW((property_id))
+   }
+
    signed_transaction create_asset_limitation(string issuer,
                                               string limit_symbol,
                                               asset_limitation_options common,
@@ -4059,16 +4078,25 @@ signed_transaction wallet_api::transfer(string from, string to, string amount,
 {
    return my->transfer(from, to, amount, asset_symbol, memo, broadcast);
 }
+
 signed_transaction wallet_api::create_property(string issuer, property_options common, bool broadcast)
 {
    return my->create_property(issuer, common, broadcast);
 }
+
 signed_transaction wallet_api::update_property(uint32_t id,
                                                property_options new_options,
                                                bool broadcast /*  = false*/)
 {
    return my->update_property(id, new_options, broadcast);
 }
+
+signed_transaction wallet_api::delete_property(uint32_t property_id, bool broadcast)
+{
+   FC_ASSERT(!is_locked());
+   return my->delete_property(property_id, broadcast);
+}
+
 signed_transaction wallet_api::create_asset_limitation(string issuer,
                                                        string limit_symbol,
                                                        asset_limitation_options common,
