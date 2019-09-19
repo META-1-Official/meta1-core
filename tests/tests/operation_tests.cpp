@@ -2534,6 +2534,30 @@ BOOST_AUTO_TEST_CASE(delete_property_test)
    }
 }
 
+//check what only meta1 account can delete backed asset
+BOOST_AUTO_TEST_CASE(delete_property_using_non_meta1_account)
+{
+   try
+   {
+      INVOKE(create_property);
+
+      const auto &test_property = get_property(PROPERTY_TEST_ID);
+
+      property_delete_operation delete_property;
+      delete_property.fee_paying_account = create_account("nathan").id;
+      delete_property.property = test_property.id;
+      trx.operations.push_back(delete_property);
+      trx.validate();
+      GRAPHENE_REQUIRE_THROW(PUSH_TX(db, trx, ~0), fc::assert_exception);
+      trx.operations.clear();
+   }
+   catch (fc::exception &e)
+   {
+      elog("${e}", ("e", e.to_detail_string()));
+      throw;
+   }
+}
+
 asset core_asset(int64_t x)
 {
    return asset(x);
