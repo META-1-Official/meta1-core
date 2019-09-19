@@ -342,6 +342,7 @@ struct database_fixture {
                                                 const time_point_sec order_expiration = time_point_sec::maximum(),
                                                 const price& fee_core_exchange_rate = price::unit_price() );
    asset cancel_limit_order( const limit_order_object& order );
+   void  delete_property( const property_object& property);
    void transfer( account_id_type from, account_id_type to, const asset& amount, const asset& fee = asset() );
    void transfer( const account_object& from, const account_object& to, const asset& amount, const asset& fee = asset() );
    void fund_fee_pool( const account_object& from, const asset_object& asset_to_fund, const share_type amount );

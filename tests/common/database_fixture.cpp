@@ -875,6 +875,19 @@ asset database_fixture::cancel_limit_order( const limit_order_object& order )
   return processed.operation_results[0].get<asset>();
 }
 
+void database_fixture::delete_property( const property_object& property )
+{
+  property_delete_operation delete_property;
+  delete_property.fee_paying_account = property.issuer;
+  delete_property.property = property.id;
+  trx.operations.push_back(delete_property);
+  for( auto& op : trx.operations ) db.current_fee_schedule().set_fee(op);
+  trx.validate();
+  auto processed = PUSH_TX(db, trx, ~0);
+  trx.operations.clear();
+  
+}
+
 void database_fixture::transfer(
    account_id_type from,
    account_id_type to,
@@ -1294,7 +1307,7 @@ const property_object& database_fixture::get_property(uint32_t property_id) cons
 {
    const auto& idx = db.get_index_type<property_index>().indices().get<by_property_id>();
    const auto itr = idx.find(property_id);
-   assert( itr != idx.end() );
+   FC_ASSERT( itr != idx.end() );
    return *itr;
 }
 const asset_limitation_object& database_fixture::get_asset_limitation(string limit_symbol) const

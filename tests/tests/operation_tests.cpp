@@ -2515,10 +2515,29 @@ BOOST_AUTO_TEST_CASE(update_property)
       throw;
    }
 }
-   asset core_asset(int64_t x )
+
+BOOST_AUTO_TEST_CASE(delete_property_test)
+{
+   try
    {
-       return asset(x);
-   };
+      INVOKE(create_property);
+
+      const auto &test_property = get_property(PROPERTY_TEST_ID);
+      delete_property(test_property);
+
+      GRAPHENE_REQUIRE_THROW(get_property(PROPERTY_TEST_ID), fc::assert_exception);
+   }
+   catch (fc::exception &e)
+   {
+       elog( "${e}", ("e", e.to_detail_string() ) );
+      throw;
+   }
+}
+
+asset core_asset(int64_t x)
+{
+   return asset(x);
+};
 
 BOOST_AUTO_TEST_CASE(create_asset_limitation)
 {
