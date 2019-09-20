@@ -11,8 +11,8 @@ namespace protocol
 
 struct asset_limitation_options
 {
-    string sell_limit = "0.00000";
-    string buy_limit = "0.00000";
+    string sell_limit = "0.0000000000000";
+    string buy_limit  = "0.0000000000000";
 
     void validate() const;
 };

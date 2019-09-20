@@ -1489,6 +1489,7 @@ public:
       }
       FC_CAPTURE_AND_RETHROW((issuer)(limit_symbol)(common)(broadcast))
    }
+   
    //smooth allocation assets price limitation 
    signed_transaction update_asset_limitation(string limit_symbol,
                                               asset_limitation_options new_options,
@@ -1496,7 +1497,10 @@ public:
    {
       try
       {
+         std::stringstream ss;
+         ss << std::setprecision(std::numeric_limits<double>::digits10+1);
          double price_buf = 0.0;
+
          optional<asset_limitation_object> asset_limitation_to_update = get_asset_limitaion_by_symbol(limit_symbol);
          if (!asset_limitation_to_update)
             FC_THROW("No asset limitation for asset with symbol not exis");
@@ -1505,14 +1509,19 @@ public:
          update_op.asset_limitation_object_to_update = asset_limitation_to_update->id;
 
          asset_limitation_options asset_limitation_ops = asset_limitation_to_update->options;
+
          //buy limit
          price_buf = std::stod (asset_limitation_ops.buy_limit);
          price_buf += std::stod (new_options.buy_limit);
-         asset_limitation_ops.buy_limit = std::to_string(price_buf);
+         ss << price_buf;
+         asset_limitation_ops.buy_limit = ss.str();
+         ss.str(std::string());
          //sell limit
          price_buf = std::stod (asset_limitation_ops.sell_limit);
          price_buf += std::stod (new_options.sell_limit);
-         asset_limitation_ops.sell_limit = std::to_string(price_buf);
+         ss << price_buf;
+         asset_limitation_ops.sell_limit = ss.str();
+      
          update_op.new_options = asset_limitation_ops ;
 
          signed_transaction tx;
