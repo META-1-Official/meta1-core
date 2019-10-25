@@ -26,7 +26,7 @@ void property_options::validate() const
    FC_ASSERT(property_surety_bond_value  >= 0);
    FC_ASSERT(property_surety_bond_number >= 0);
    FC_ASSERT(!smooth_allocation_time.empty());
-   FC_ASSERT(std::stod(smooth_allocation_time)>0);
+   FC_ASSERT(std::stod(smooth_allocation_time)>=0);
 }
 
 void property_create_operation::validate() const

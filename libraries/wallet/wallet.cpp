@@ -2345,7 +2345,7 @@ public:
    {
 
       set<public_key_type> approving_key_set = get_owned_required_keys(tx);
-
+      wlog("key size set :${k}",("k",approving_key_set.size()));
       auto dyn_props = get_dynamic_global_properties();
       tx.set_reference_block( dyn_props.head_block_id );
 
@@ -2365,8 +2365,10 @@ public:
          tx.set_expiration( dyn_props.time + fc::seconds(30 + expiration_time_offset) );
          tx.clear_signatures();
 
-         for( const public_key_type& key : approving_key_set )
+         for( const public_key_type& key : approving_key_set ) {
+            wlog("key :${k}",("k",key));
             tx.sign( get_private_key(key), _chain_id );
+         }
 
          graphene::chain::transaction_id_type this_transaction_id = tx.id();
          auto iter = _recently_generated_transactions.find(this_transaction_id);

@@ -23,6 +23,7 @@ public:
     property_options options;
 
     property_id_type get_id() const { return id; }
+    
 };
 
 struct by_property_id;
