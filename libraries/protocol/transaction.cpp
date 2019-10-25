@@ -276,7 +276,6 @@ void verify_authority( const vector<operation>& ops, const flat_set<public_key_t
    flat_set<account_id_type> required_active;
    flat_set<account_id_type> required_owner;
    vector<authority> other;
-   wlog("verify_authority 1");
 
    for( const auto& op : ops )
       operation_get_required_authorities( op, required_active, required_owner, other );
@@ -290,7 +289,6 @@ void verify_authority( const vector<operation>& ops, const flat_set<public_key_t
       s.approved_by.insert( id );
    for( auto& id : owner_approvals )
       s.approved_by.insert( id );
-   wlog("verify_authority 2");
 
    for( const auto& auth : other )
    {
@@ -304,7 +302,7 @@ void verify_authority( const vector<operation>& ops, const flat_set<public_key_t
                        s.check_authority(get_owner(id)),
                        tx_missing_owner_auth, "Missing Owner Authority ${id}", ("id",id)("auth",*get_owner(id)) );
    }
-   wlog("verify_authority 3 count: ${c}",("c",required_active.size()));
+  
 
    for( auto id : required_active )
    {
@@ -313,7 +311,6 @@ void verify_authority( const vector<operation>& ops, const flat_set<public_key_t
                        tx_missing_active_auth, "Missing Active Authority ${id}",
                        ("id",id)("auth",*get_active(id))("owner",*get_owner(id)) );
    }
-   wlog("verify_authority 4");
 
    GRAPHENE_ASSERT(
       !s.remove_unused_signatures(),

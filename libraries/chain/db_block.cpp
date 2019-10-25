@@ -404,11 +404,8 @@ signed_block database::_generate_block(
 
       try
       {
-         wlog( "The transaction was  1");
          auto temp_session = _undo_db.start_undo_session();
-         wlog( "The transaction was  1.1");
          processed_transaction ptx = _apply_transaction( tx );
-         wlog( "The transaction was  2");
 
          // We have to recompute pack_size(ptx) because it may be different
          // than pack_size(tx) (i.e. if one or more results increased
@@ -420,12 +417,10 @@ signed_block database::_generate_block(
             postponed_tx_count++;
             continue;
          }
-         wlog( "The transaction was  3");
          temp_session.merge();
 
          total_block_size = new_total_size;
          pending_block.transactions.push_back( ptx );
-         wlog( "The transaction was  4");
       }
       catch ( const fc::exception& e )
       {
@@ -651,14 +646,12 @@ processed_transaction database::_apply_transaction(const signed_transaction& trx
       bool allow_non_immediate_owner = ( head_block_time() >= HARDFORK_CORE_584_TIME );
       auto get_active = [&]( account_id_type id ) { return &id(*this).active; };
       auto get_owner  = [&]( account_id_type id ) { return &id(*this).owner;  };
-            wlog("_apply_transaction(const signed_transaction& trx) 2.1");
 
       trx.verify_authority( chain_id,
                             get_active,
                             get_owner,
                             allow_non_immediate_owner,
                             get_global_properties().parameters.max_authority_depth );
-      wlog("_apply_transaction(const signed_transaction& trx) 2.2");
 
    }
    //Skip all manner of expiration and TaPoS checking if we're on block 1; It's impossible that the transaction is
@@ -683,7 +676,6 @@ processed_transaction database::_apply_transaction(const signed_transaction& trx
                || trx.get_packed_size() <= chain_parameters.maximum_transaction_size,
                "Transaction exceeds maximum transaction size." );
    }
-   wlog("_apply_transaction(const signed_transaction& trx) 4");
 
    //Insert transaction into unique transactions database.
    if( !(skip & skip_transaction_dupe_check) )
@@ -695,7 +687,6 @@ processed_transaction database::_apply_transaction(const signed_transaction& trx
    }
 
    eval_state.operation_results.reserve(trx.operations.size());
-   wlog("_apply_transaction(const signed_transaction& trx) 5");
 
    //Finally process the operations
    processed_transaction ptrx(trx);
@@ -707,7 +698,6 @@ processed_transaction database::_apply_transaction(const signed_transaction& trx
       ++_current_op_in_trx;
    }
    ptrx.operation_results = std::move(eval_state.operation_results);
-   wlog("_apply_transaction(const signed_transaction& trx) 6");
 
    return ptrx;
 } FC_CAPTURE_AND_RETHROW( (trx) ) }

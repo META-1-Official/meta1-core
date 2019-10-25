@@ -94,11 +94,7 @@
    {                                                                          \
       signal( __VA_ARGS__ );                                                  \
    }                                                                          \
-   catch (const std::exception &e)                                            \
-         {                                                                    \
-            wlog(e.what());                                                   \
-         }                                                                    \
-  /* catch( const graphene::chain::plugin_exception& e )                        \
+   catch( const graphene::chain::plugin_exception& e )                        \
    {                                                                          \
       elog( "Caught plugin exception: ${e}", ("e", e.to_detail_string() ) );  \
       throw;                                                                  \
@@ -106,7 +102,7 @@
    catch( ... )                                                               \
    {                                                                          \
       wlog( "Caught unexpected exception in plugin" );                        \
-   }*/
+   }                                                                          \
 
 namespace graphene { namespace chain {
 

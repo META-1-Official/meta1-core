@@ -1,5 +1,6 @@
 #include <graphene/smooth_allocation/smooth_allocation_plugin.hpp>
 #include <graphene/chain/asset_limitation_object.hpp>
+#include <graphene/utilities/key_conversion.hpp>
 
 #include <fc/thread/thread.hpp>
 #include <algorithm>
@@ -38,30 +39,38 @@ void smooth_allocation_plugin::force_initial_smooth(property_object &backed_asse
    {
       double price_buf = 0.0;
       const double price = (backed_asset.options.appraised_property_value / 45000000) * 0.25;
+      graphene::chain::precomputable_transaction trx;
+      {
+         account_id_type meta1_id = database().get_index_type<account_index>().indices().get<by_name>().find("meta1")->id;
+          fc::optional< fc::ecc::private_key > privkey = graphene::utilities::wif_to_key("5HuCDiMeESd86xrRvTbexLjkVg2BEoKrb7BAA5RLgXizkgV3shs");
+      
+         const auto &asset_limitation_to_update = get_asset_limitation(this->database());
 
-      const auto &asset_limitation_to_update = get_asset_limitation(this->database());
-      asset_limitation_object_update_operation update_op;
+         asset_limitation_object_update_operation update_op;
 
-      update_op.issuer = asset_limitation_to_update.issuer;
-      update_op.asset_limitation_object_to_update = asset_limitation_to_update.id;
+         update_op.issuer = meta1_id;
+         update_op.asset_limitation_object_to_update = asset_limitation_to_update.id;
 
-      asset_limitation_options asset_limitation_ops = asset_limitation_to_update.options;
-      //sell limit
+         asset_limitation_options asset_limitation_ops = asset_limitation_to_update.options;
+         //sell limit
+         price_buf = std::stod(asset_limitation_ops.sell_limit);
+         price_buf += price;
+         ilog("force_initial_smooth begin 3 ${p}", ("p", price_buf));
+         asset_limitation_ops.sell_limit = std::to_string(price_buf);
 
-      price_buf = std::stod(asset_limitation_ops.sell_limit);
-      price_buf += price;
-      ilog("force_initial_smooth begin 3 ${p}", ("p", price_buf));
-      asset_limitation_ops.sell_limit = std::to_string(price_buf);
+         update_op.new_options = asset_limitation_ops;
 
-      update_op.new_options = asset_limitation_ops;
+         trx.operations.push_back(update_op);
+         database().current_fee_schedule().set_fee(trx.operations.back());
 
-      signed_transaction tx;
-      tx.operations.push_back(update_op);
-      tx.validate();
+         trx.set_expiration(fc::time_point::now() + fc::seconds(3000));
+         wlog("private key ${k}",("k",privkey));
+         trx.sign(*privkey, database().get_chain_id());
+         
+         trx.validate();
+      }
 
-      tx.set_expiration( fc::time_point::now()+ fc::seconds(3000) );
-
-      this->database().push_transaction(precomputable_transaction(tx), ~0);
+      processed_transaction ptrx = database().push_transaction(trx,~0);
    }
    catch (const std::exception &e)
    {
