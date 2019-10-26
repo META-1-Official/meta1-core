@@ -27,6 +27,7 @@
 #include <graphene/chain/database.hpp>
 #include <graphene/chain/property_object.hpp>
 #include <graphene/chain/asset_limitation_object.hpp>
+#include <graphene/utilities/key_conversion.hpp>
 
 #include <fc/thread/future.hpp>
 
@@ -73,16 +74,22 @@ public:
 private:
     vector<chain::property_object> get_all_backed_assets(chain::database &db) const;
     const chain::asset_limitation_object& get_asset_limitation(chain::database &db) const;
-
+    
     void force_initial_smooth(chain::property_object &backed_asset);
+    void increase_backed_asset_allocation_progress(chain::property_object &backed_asset,double_t increase_value);
     void schedule_allocation_loop();
 
     smooth_allocation_condition::smooth_allocation_condition_enum allocation_loop();
-    smooth_allocation_condition::smooth_allocation_condition_enum maybe_allocate_price(fc::limited_mutable_variant_object &capture);
+    smooth_allocation_condition::smooth_allocation_condition_enum maybe_allocate_price(chain::property_object &backed_asset);
 
     boost::program_options::variables_map _options;
     bool _shutting_down = false;
+
+    protocol::account_id_type meta1_id;
+    fc::optional<fc::ecc::private_key> privkey;
+
     vector<chain::property_object> backed_assets;
+    vector<chain::property_object> initial_smooth_backed_assets;
     uint32_t _production_skip_flags = graphene::chain::database::skip_nothing;
 
     fc::future<void> _smooth_allocation_task;

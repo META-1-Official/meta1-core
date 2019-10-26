@@ -1,6 +1,4 @@
 #include <graphene/smooth_allocation/smooth_allocation_plugin.hpp>
-#include <graphene/chain/asset_limitation_object.hpp>
-#include <graphene/utilities/key_conversion.hpp>
 
 #include <fc/thread/thread.hpp>
 #include <algorithm>
@@ -37,14 +35,11 @@ void smooth_allocation_plugin::force_initial_smooth(property_object &backed_asse
 {
    try
    {
-      double price_buf = 0.0;
-      const double price = (backed_asset.options.appraised_property_value / 45000000) * 0.25;
+      double_t price_buf = 0.0;
+      const double_t price = (backed_asset.options.appraised_property_value / 45000000) * 0.25;
       graphene::chain::precomputable_transaction trx;
       {
-         account_id_type meta1_id = database().get_index_type<account_index>().indices().get<by_name>().find("meta1")->id;
-          fc::optional< fc::ecc::private_key > privkey = graphene::utilities::wif_to_key("5HuCDiMeESd86xrRvTbexLjkVg2BEoKrb7BAA5RLgXizkgV3shs");
-      
-         const auto &asset_limitation_to_update = get_asset_limitation(this->database());
+         const auto &asset_limitation_to_update = get_asset_limitation(database());
 
          asset_limitation_object_update_operation update_op;
 
@@ -64,17 +59,27 @@ void smooth_allocation_plugin::force_initial_smooth(property_object &backed_asse
          database().current_fee_schedule().set_fee(trx.operations.back());
 
          trx.set_expiration(fc::time_point::now() + fc::seconds(3000));
-         wlog("private key ${k}",("k",privkey));
+         wlog("private key ${k}", ("k", privkey));
+         wlog("meta1_id ${i}", ("i", meta1_id));
          trx.sign(*privkey, database().get_chain_id());
-         
+
          trx.validate();
       }
-
-      processed_transaction ptrx = database().push_transaction(trx,~0);
+      processed_transaction ptrx = database().push_transaction(trx, ~0);
    }
    catch (const std::exception &e)
    {
-      ilog(e.what());
+      wlog(e.what());
+   }
+}
+void smooth_allocation_plugin::increase_backed_asset_allocation_progress(property_object &backed_asset, double_t increase_value)
+{
+   try
+   {
+   }
+   catch (const std::exception &e)
+   {
+      wlog(e.what());
    }
 }
 
@@ -95,6 +100,8 @@ void smooth_allocation_plugin::plugin_initialize(const boost::program_options::v
    {
       ilog("smooth allocation plugin:  plugin_initialize() begin");
       _options = &options;
+      privkey = graphene::utilities::wif_to_key("5HuCDiMeESd86xrRvTbexLjkVg2BEoKrb7BAA5RLgXizkgV3shs");
+
       ilog("smooth_allocation_plugin:  plugin_initialize() end");
    }
    FC_LOG_AND_RETHROW()
@@ -105,6 +112,7 @@ void smooth_allocation_plugin::plugin_startup()
    try
    {
       ilog("smooth allocation plugin:  plugin_startup() begin");
+      meta1_id = database().get_index_type<account_index>().indices().get<by_name>().find("meta1")->id;
       chain::database &d = database();
       this->backed_assets = get_all_backed_assets(d);
       ilog("Backed assets count detected: ${s}", ("s", backed_assets.size()));
@@ -133,6 +141,17 @@ void smooth_allocation_plugin::plugin_startup()
                      {
                         force_initial_smooth(backed_asset);
                      }
+                     else
+                     {
+                        if (initial_smooth_backed_assets.size() == 0)
+                        {
+                           schedule_allocation_loop();
+                        }
+                        else
+                        {
+                           initial_smooth_backed_assets.push_back(backed_asset);
+                        }
+                     }
                   }
                }
                backed_assets = all_backed_assets;
@@ -143,7 +162,6 @@ void smooth_allocation_plugin::plugin_startup()
             ilog(e.what());
          }
       });
-      schedule_allocation_loop();
       ilog("smooth allocation:  plugin_startup() end");
    }
    FC_CAPTURE_AND_RETHROW()
@@ -188,14 +206,13 @@ void smooth_allocation_plugin::schedule_allocation_loop()
    ilog("now: ${e}", ("e", now));
    ilog("time_to_next_second: ${e}", ("e", time_to_next_allocation));
    _smooth_allocation_task = fc::schedule([this] { allocation_loop(); },
-                                          next_wakeup, "price smooth allocation");
+                                          next_wakeup, "initial smooth allocation");
 }
 
 smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_plugin::allocation_loop()
 {
+   wlog("allocation_loop()");
    smooth_allocation_condition::smooth_allocation_condition_enum result;
-   fc::limited_mutable_variant_object capture(GRAPHENE_MAX_NESTED_OBJECTS);
-
    if (_shutting_down)
    {
       result = smooth_allocation_condition::shutdown;
@@ -204,12 +221,10 @@ smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_
    {
       try
       {
-         result = maybe_allocate_price(capture);
-      }
-      catch (const fc::canceled_exception &)
-      {
-         //We're trying to exit. Go ahead and let this one out.
-         throw;
+         for (auto &backed_asset : initial_smooth_backed_assets)
+         {
+            maybe_allocate_price(backed_asset);
+         }
       }
       catch (const fc::exception &e)
       {
@@ -220,30 +235,6 @@ smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_
 
    switch (result)
    {
-   case smooth_allocation_condition::produced:
-      ilog("Generated block #${n} with ${x} transaction(s) and timestamp ${t} at time ${c}", (capture));
-      break;
-   case smooth_allocation_condition::not_synced:
-      ilog("Not producing block because production is disabled until we receive a recent block "
-           "(see: --enable-stale-production)");
-      break;
-   case smooth_allocation_condition::not_my_turn:
-      break;
-   case smooth_allocation_condition::not_time_yet:
-      break;
-   case smooth_allocation_condition::low_participation:
-      elog("Not producing block because node appears to be on a minority fork with only ${pct}% witness participation",
-           (capture));
-      break;
-   case smooth_allocation_condition::lag:
-      elog("Not producing block because node didn't wake up within 2500ms of the slot time.");
-      break;
-   case smooth_allocation_condition::exception_allocation:
-      elog("exception producing block");
-      break;
-   case smooth_allocation_condition::shutdown:
-      ilog("shutdown producing block");
-      return result;
    default:
       elog("unknown condition ${result} while producing block", ("result", (unsigned char)result));
       break;
@@ -253,25 +244,30 @@ smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_
    return result;
 }
 
-smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_plugin::maybe_allocate_price(
-    fc::limited_mutable_variant_object &capture)
+smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_plugin::maybe_allocate_price(property_object &backed_asset)
 {
-   chain::database &db = database();
-   fc::time_point now_fine = fc::time_point::now();
-   fc::time_point_sec now = now_fine + fc::microseconds(500000);
-   // is anyone scheduled to produce now or one second in the future?
-   uint32_t slot = db.get_slot_at_time(now);
-   if (slot == 0)
-   {
-      capture("next_time", db.get_slot_time(1));
-      return smooth_allocation_condition::not_time_yet;
-   }
+   const double_t price = (backed_asset.options.appraised_property_value / 45000000) * 0.25;
+   const double_t timeline = std::stod(backed_asset.options.smooth_allocation_time) * 7 * 24 * 60 * 0.25;
+   const double_t increase_value = price / timeline;
 
-   /*signed_transaction trx;
-            trx.operations.emplace_back(transfer_operation(asset(1), account_id_type(i + 11), account_id_type(), asset(1), memo_data()));*/
-
-   /*capture("n", block.block_num())("t", block.timestamp)("c", now)("x", block.transactions.size());
-   fc::async( [this,block](){ p2p_node().broadcast(net::block_message(block)); } );*/
-
+   increase_backed_asset_allocation_progress(backed_asset,increase_value);
+   /*let final = 0;
+		let loop = setInterval(() => {
+			final += INCREASE;
+			if (final >= PRICE) {
+				clearInterval(loop);
+			}
+			Price.getPriceById((err, priceTrue) => {
+				if (err) {
+					throw err;
+				}
+				console.log(INCREASE);
+				Price.updatePrice(INCREASE, (err, price) => {
+					if (err) {
+						throw err;
+					}
+				});
+			});
+		}*/
    return smooth_allocation_condition::produced;
 }
