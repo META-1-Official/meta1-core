@@ -37,45 +37,60 @@ void smooth_allocation_plugin::force_initial_smooth(property_object &backed_asse
    {
       double_t price_buf = 0.0;
       const double_t price = (backed_asset.options.appraised_property_value / 45000000) * 0.25;
-      graphene::chain::precomputable_transaction trx;
-      {
-         const auto &asset_limitation_to_update = get_asset_limitation(database());
+      signed_transaction trx;
+      const auto &asset_limitation_to_update = get_asset_limitation(database());
 
-         asset_limitation_object_update_operation update_op;
+      asset_limitation_object_update_operation update_op;
 
-         update_op.issuer = meta1_id;
-         update_op.asset_limitation_object_to_update = asset_limitation_to_update.id;
+      update_op.issuer = meta1_id;
+      update_op.asset_limitation_object_to_update = asset_limitation_to_update.id;
 
-         asset_limitation_options asset_limitation_ops = asset_limitation_to_update.options;
-         //sell limit
-         price_buf = std::stod(asset_limitation_ops.sell_limit);
-         price_buf += price;
-         ilog("force_initial_smooth begin 3 ${p}", ("p", price_buf));
-         asset_limitation_ops.sell_limit = std::to_string(price_buf);
+      asset_limitation_options asset_limitation_ops = asset_limitation_to_update.options;
+      //sell limit
+      price_buf = std::stod(asset_limitation_ops.sell_limit);
+      price_buf += price;
+      ilog("force_initial_smooth begin : ${p}", ("p", price_buf));
+      asset_limitation_ops.sell_limit = std::to_string(price_buf);
 
-         update_op.new_options = asset_limitation_ops;
+      update_op.new_options = asset_limitation_ops;
 
-         trx.operations.push_back(update_op);
-         database().current_fee_schedule().set_fee(trx.operations.back());
+      trx.operations.push_back(update_op);
+      database().current_fee_schedule().set_fee(trx.operations.back());
+      trx.set_expiration(fc::time_point::now() + fc::seconds(3000));
+      trx.sign(*privkey, database().get_chain_id());
+      trx.validate();
+      processed_transaction ptrx = database().push_transaction(precomputable_transaction(trx), ~0);
 
-         trx.set_expiration(fc::time_point::now() + fc::seconds(3000));
-         wlog("private key ${k}", ("k", privkey));
-         wlog("meta1_id ${i}", ("i", meta1_id));
-         trx.sign(*privkey, database().get_chain_id());
-
-         trx.validate();
-      }
-      processed_transaction ptrx = database().push_transaction(trx, ~0);
+      increase_backed_asset_allocation_progress(backed_asset, price_buf);
    }
    catch (const std::exception &e)
    {
       wlog(e.what());
    }
 }
+
 void smooth_allocation_plugin::increase_backed_asset_allocation_progress(property_object &backed_asset, double_t increase_value)
 {
    try
    {
+      property_update_operation update_op;
+      signed_transaction trx;
+
+      update_op.issuer = backed_asset.issuer;
+      update_op.property_to_update = backed_asset.id;
+      if (backed_asset.options.allocation_progress == "")
+         backed_asset.options.allocation_progress = "0.00000";
+
+      double_t allocation_progress = std::stod(backed_asset.options.allocation_progress); // + increase_value;
+      backed_asset.options.allocation_progress = std::to_string(allocation_progress);
+      update_op.new_options = backed_asset.options;
+
+      trx.operations.push_back(update_op);
+      database().current_fee_schedule().set_fee(trx.operations.back());
+      trx.set_expiration(fc::time_point::now() + fc::seconds(3000));
+      trx.sign(*privkey, database().get_chain_id());
+      trx.validate();
+      processed_transaction ptrx = database().push_transaction(precomputable_transaction(trx), ~0);
    }
    catch (const std::exception &e)
    {
@@ -115,7 +130,7 @@ void smooth_allocation_plugin::plugin_startup()
       meta1_id = database().get_index_type<account_index>().indices().get<by_name>().find("meta1")->id;
       chain::database &d = database();
       this->backed_assets = get_all_backed_assets(d);
-      ilog("Backed assets count detected: ${s}", ("s", backed_assets.size()));
+      wlog("Backed assets count detected: ${s}", ("s", backed_assets.size()));
 
       d.applied_block.connect([this](const chain::signed_block &b) {
          try
@@ -134,7 +149,7 @@ void smooth_allocation_plugin::plugin_startup()
 
                   if (backed_asset_iterator == backed_assets.end())
                   {
-                     ilog("New backed asset detected: ${p}", ("p", backed_asset.id));
+                     wlog("New backed asset detected: ${p}", ("p", backed_asset.id));
 
                      if (backed_asset.options.smooth_allocation_time == "0" ||
                          backed_asset.options.smooth_allocation_time.size() == 0)
@@ -211,7 +226,7 @@ void smooth_allocation_plugin::schedule_allocation_loop()
 
 smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_plugin::allocation_loop()
 {
-   wlog("allocation_loop()");
+   wlog("initial_smooth_backed_assets count: ${c}", ("c", initial_smooth_backed_assets.size()));
    smooth_allocation_condition::smooth_allocation_condition_enum result;
    if (_shutting_down)
    {
@@ -249,8 +264,22 @@ smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_
    const double_t price = (backed_asset.options.appraised_property_value / 45000000) * 0.25;
    const double_t timeline = std::stod(backed_asset.options.smooth_allocation_time) * 7 * 24 * 60 * 0.25;
    const double_t increase_value = price / timeline;
+   if (std::stod(backed_asset.options.allocation_progress) < price)
+   {
+      wlog("Backed asset: ${p}", ("p", backed_asset.id));
+      wlog("Backed asset progress: ${p}", ("p", backed_asset.options.allocation_progress));
+      increase_backed_asset_allocation_progress(backed_asset, increase_value);
+   }
+   else
+   {
+      std::vector<property_object>::iterator backed_asset_iterator = std::find_if(initial_smooth_backed_assets.begin(), initial_smooth_backed_assets.end(),
+                                                                                  [backed_asset](const property_object &o) {
+                                                                                     return o.id == backed_asset.id;
+                                                                                  });
 
-   increase_backed_asset_allocation_progress(backed_asset,increase_value);
+      initial_smooth_backed_assets.erase(backed_asset_iterator);
+   }
+
    /*let final = 0;
 		let loop = setInterval(() => {
 			final += INCREASE;

@@ -28,6 +28,7 @@
 #include <graphene/chain/property_object.hpp>
 #include <graphene/chain/asset_limitation_object.hpp>
 #include <graphene/utilities/key_conversion.hpp>
+#include <graphene/protocol/operations.hpp>
 
 #include <fc/thread/future.hpp>
 
@@ -74,7 +75,7 @@ public:
 private:
     vector<chain::property_object> get_all_backed_assets(chain::database &db) const;
     const chain::asset_limitation_object& get_asset_limitation(chain::database &db) const;
-    
+
     void force_initial_smooth(chain::property_object &backed_asset);
     void increase_backed_asset_allocation_progress(chain::property_object &backed_asset,double_t increase_value);
     void schedule_allocation_loop();
