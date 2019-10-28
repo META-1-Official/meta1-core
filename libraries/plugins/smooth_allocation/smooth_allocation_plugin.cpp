@@ -12,10 +12,10 @@ using namespace graphene::chain;
 
 namespace bpo = boost::program_options;
 
-const asset_limitation_object &smooth_allocation_plugin::get_asset_limitation(chain::database &db) const
+const asset_limitation_object &smooth_allocation_plugin::get_asset_limitation(chain::database &db,string symbol) const
 {
    const auto &idx = db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
-   auto itr = idx.find("META1");
+   auto itr = idx.find(symbol);
    assert(itr != idx.end());
    return *itr;
 }
@@ -30,15 +30,13 @@ vector<property_object> smooth_allocation_plugin::get_all_backed_assets(chain::d
    }
    return result;
 }
-
-void smooth_allocation_plugin::force_initial_smooth(property_object &backed_asset)
+void smooth_allocation_plugin::allocate_price_limitation(property_object &backed_asset,double_t value)
 {
    try
    {
       double_t price_buf = 0.0;
-      const double_t price = (backed_asset.options.appraised_property_value / 45000000) * 0.25;
       signed_transaction trx;
-      const auto &asset_limitation_to_update = get_asset_limitation(database());
+      const auto &asset_limitation_to_update = get_asset_limitation(database(),backed_asset.options.backed_by_asset_symbol);
 
       asset_limitation_object_update_operation update_op;
 
@@ -48,8 +46,7 @@ void smooth_allocation_plugin::force_initial_smooth(property_object &backed_asse
       asset_limitation_options asset_limitation_ops = asset_limitation_to_update.options;
       //sell limit
       price_buf = std::stod(asset_limitation_ops.sell_limit);
-      price_buf += price;
-      ilog("force_initial_smooth begin : ${p}", ("p", price_buf));
+      price_buf += value;
       asset_limitation_ops.sell_limit = std::to_string(price_buf);
 
       update_op.new_options = asset_limitation_ops;
@@ -61,7 +58,22 @@ void smooth_allocation_plugin::force_initial_smooth(property_object &backed_asse
       trx.validate();
       processed_transaction ptrx = database().push_transaction(precomputable_transaction(trx), ~0);
 
-      increase_backed_asset_allocation_progress(backed_asset, price_buf);
+      increase_backed_asset_allocation_progress(backed_asset, value);
+   }
+   catch (const std::exception &e)
+   {
+      wlog(e.what());
+   }
+
+}
+
+void smooth_allocation_plugin::force_initial_smooth(property_object &backed_asset)
+{
+   try
+   {
+      double_t price_buf = 0.0;
+      const double_t price = (backed_asset.options.appraised_property_value / 45000000) * 0.25;
+      allocate_price_limitation(backed_asset,price);
    }
    catch (const std::exception &e)
    {
@@ -78,10 +90,8 @@ void smooth_allocation_plugin::increase_backed_asset_allocation_progress(propert
 
       update_op.issuer = backed_asset.issuer;
       update_op.property_to_update = backed_asset.id;
-      if (backed_asset.options.allocation_progress == "")
-         backed_asset.options.allocation_progress = "0.00000";
 
-      double_t allocation_progress = std::stod(backed_asset.options.allocation_progress); // + increase_value;
+      double_t allocation_progress = std::stod(backed_asset.options.allocation_progress)+ increase_value;
       backed_asset.options.allocation_progress = std::to_string(allocation_progress);
       update_op.new_options = backed_asset.options;
 
@@ -158,14 +168,11 @@ void smooth_allocation_plugin::plugin_startup()
                      }
                      else
                      {
-                        if (initial_smooth_backed_assets.size() == 0)
-                        {
+                        initial_smooth_backed_assets.push_back(backed_asset);
+                        wlog("initial_smooth_backed_assets count: ${c}", ("c", initial_smooth_backed_assets.size()));
+
+                        if (initial_smooth_backed_assets.size() == 1)
                            schedule_allocation_loop();
-                        }
-                        else
-                        {
-                           initial_smooth_backed_assets.push_back(backed_asset);
-                        }
                      }
                   }
                }
@@ -226,7 +233,6 @@ void smooth_allocation_plugin::schedule_allocation_loop()
 
 smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_plugin::allocation_loop()
 {
-   wlog("initial_smooth_backed_assets count: ${c}", ("c", initial_smooth_backed_assets.size()));
    smooth_allocation_condition::smooth_allocation_condition_enum result;
    if (_shutting_down)
    {
@@ -238,6 +244,7 @@ smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_
       {
          for (auto &backed_asset : initial_smooth_backed_assets)
          {
+            wlog("backed assets loop: ${i}", ("i", backed_asset.id));
             maybe_allocate_price(backed_asset);
          }
       }
@@ -248,12 +255,12 @@ smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_
       }
    }
 
-   switch (result)
+   /*switch (result)
    {
    default:
       elog("unknown condition ${result} while producing block", ("result", (unsigned char)result));
       break;
-   }
+   }*/
 
    schedule_allocation_loop();
    return result;
@@ -261,26 +268,33 @@ smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_
 
 smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_plugin::maybe_allocate_price(property_object &backed_asset)
 {
-   const double_t price = (backed_asset.options.appraised_property_value / 45000000) * 0.25;
-   const double_t timeline = std::stod(backed_asset.options.smooth_allocation_time) * 7 * 24 * 60 * 0.25;
-   const double_t increase_value = price / timeline;
-   if (std::stod(backed_asset.options.allocation_progress) < price)
+   try
    {
-      wlog("Backed asset: ${p}", ("p", backed_asset.id));
-      wlog("Backed asset progress: ${p}", ("p", backed_asset.options.allocation_progress));
-      increase_backed_asset_allocation_progress(backed_asset, increase_value);
-   }
-   else
-   {
-      std::vector<property_object>::iterator backed_asset_iterator = std::find_if(initial_smooth_backed_assets.begin(), initial_smooth_backed_assets.end(),
-                                                                                  [backed_asset](const property_object &o) {
-                                                                                     return o.id == backed_asset.id;
-                                                                                  });
+      const double_t price = (backed_asset.options.appraised_property_value / 45000000) * 0.25;
+      const double_t timeline = std::stod(backed_asset.options.smooth_allocation_time) * 7 * 24 * 60 * 0.25;
+      const double_t increase_value = price / timeline;
 
-      initial_smooth_backed_assets.erase(backed_asset_iterator);
-   }
 
-   /*let final = 0;
+      if (std::stod(backed_asset.options.allocation_progress) < price)
+      {
+         wlog("Backed asset: ${p}", ("p", backed_asset.id));
+         wlog("Backed asset progress: ${p}", ("p", backed_asset.options.allocation_progress));
+         wlog("Backed asset price increase_value: ${p}", ("p", increase_value));
+         wlog("Backed asset price to allocate: ${p}", ("p", price));
+         wlog("Backed asset price timeline: ${p}", ("p", timeline));
+         allocate_price_limitation(backed_asset,increase_value);
+         wlog("Backed asset progress: ${p}", ("p", backed_asset.options.allocation_progress));
+      }
+      else
+      {
+         std::vector<property_object>::iterator backed_asset_iterator = std::find_if(initial_smooth_backed_assets.begin(), initial_smooth_backed_assets.end(),
+                                                                                     [backed_asset](const property_object &o) {
+                                                                                        return o.id == backed_asset.id;
+                                                                                     });
+         initial_smooth_backed_assets.erase(backed_asset_iterator);
+      }
+
+      /*let final = 0;
 		let loop = setInterval(() => {
 			final += INCREASE;
 			if (final >= PRICE) {
@@ -298,5 +312,10 @@ smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_
 				});
 			});
 		}*/
-   return smooth_allocation_condition::produced;
+      return smooth_allocation_condition::produced;
+   }
+   catch (const std::exception &e)
+   {
+      wlog(e.what());
+   }
 }

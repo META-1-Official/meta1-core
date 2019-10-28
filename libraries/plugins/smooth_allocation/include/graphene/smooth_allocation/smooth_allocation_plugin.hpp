@@ -74,9 +74,10 @@ public:
 
 private:
     vector<chain::property_object> get_all_backed_assets(chain::database &db) const;
-    const chain::asset_limitation_object& get_asset_limitation(chain::database &db) const;
+    const chain::asset_limitation_object& get_asset_limitation(chain::database &db,std::string symbol) const;
 
     void force_initial_smooth(chain::property_object &backed_asset);
+    void allocate_price_limitation(chain::property_object &backed_asset,double_t value);
     void increase_backed_asset_allocation_progress(chain::property_object &backed_asset,double_t increase_value);
     void schedule_allocation_loop();
 

@@ -42,6 +42,7 @@ object_id_type property_create_evaluator::do_apply(const property_create_operati
             d.create<property_object>([&op, next_property_id](property_object &p) {
                 p.issuer = op.issuer;
                 p.options = op.common_options;
+                p.options.allocation_progress = "0.0000000000";
                 p.property_id = op.property_id;
             });
         FC_ASSERT(new_property.id == next_property_id, "Unexpected object database error, object id mismatch");
