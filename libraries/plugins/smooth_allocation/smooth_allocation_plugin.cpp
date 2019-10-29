@@ -92,7 +92,8 @@ void smooth_allocation_plugin::increase_backed_asset_allocation_progress(propert
       update_op.property_to_update = backed_asset.id;
 
       double_t allocation_progress = std::stod(backed_asset.options.allocation_progress)+ increase_value;
-      backed_asset.options.allocation_progress = std::to_string(allocation_progress);
+      backed_asset.options.allocation_progress = boost::lexical_cast<std::string>(allocation_progress);
+
       update_op.new_options = backed_asset.options;
 
       trx.operations.push_back(update_op);

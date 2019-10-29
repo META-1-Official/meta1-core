@@ -31,7 +31,9 @@
 #include <graphene/protocol/operations.hpp>
 
 #include <fc/thread/future.hpp>
-
+	
+#include <sstream>
+#include <boost/lexical_cast.hpp>
 #include <string>
 using std::vector;
 
