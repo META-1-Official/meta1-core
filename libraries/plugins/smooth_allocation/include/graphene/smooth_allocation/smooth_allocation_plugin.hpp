@@ -31,8 +31,7 @@
 #include <graphene/protocol/operations.hpp>
 
 #include <fc/thread/future.hpp>
-	
-#include <sstream>
+
 #include <boost/lexical_cast.hpp>
 #include <string>
 using std::vector;
@@ -46,14 +45,9 @@ namespace smooth_allocation_condition
 {
 enum smooth_allocation_condition_enum
 {
-    produced = 0,
-    not_synced = 1,
-    not_my_turn = 2,
-    not_time_yet = 3,
-    low_participation = 4,
-    lag = 5,
-    exception_allocation = 6,
-    shutdown = 7
+    allocation_produced = 0,
+    exception_allocation = 1,
+    stop_smooth_allocation = 2
 };
 }
 
@@ -76,15 +70,15 @@ public:
 
 private:
     vector<chain::property_object> get_all_backed_assets(chain::database &db) const;
-    const chain::asset_limitation_object& get_asset_limitation(chain::database &db,std::string symbol) const;
+    const chain::asset_limitation_object &get_asset_limitation(chain::database &db, std::string symbol) const;
 
     void force_initial_smooth(chain::property_object &backed_asset);
-    void allocate_price_limitation(chain::property_object &backed_asset,double_t value);
-    void increase_backed_asset_allocation_progress(chain::property_object &backed_asset,double_t increase_value);
+    void allocate_price_limitation(chain::property_object &backed_asset, double_t value);
+    void increase_backed_asset_allocation_progress(chain::property_object &backed_asset, double_t increase_value);
     void schedule_allocation_loop();
 
     smooth_allocation_condition::smooth_allocation_condition_enum allocation_loop();
-    smooth_allocation_condition::smooth_allocation_condition_enum maybe_allocate_price(chain::property_object &backed_asset);
+    smooth_allocation_condition::smooth_allocation_condition_enum maybe_allocate_price(chain::property_object &backed_asset, double_t allocation_percent,fc::limited_mutable_variant_object& capture );
 
     boost::program_options::variables_map _options;
     bool _shutting_down = false;
@@ -92,9 +86,9 @@ private:
     protocol::account_id_type meta1_id;
     fc::optional<fc::ecc::private_key> privkey;
 
-    vector<chain::property_object> backed_assets;
+    vector<chain::property_object> backed_assets_local_storage;
     vector<chain::property_object> initial_smooth_backed_assets;
-    uint32_t _production_skip_flags = graphene::chain::database::skip_nothing;
+    vector<chain::property_object> approve_smooth_backed_assets;
 
     fc::future<void> _smooth_allocation_task;
 };

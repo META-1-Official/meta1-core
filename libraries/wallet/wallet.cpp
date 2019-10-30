@@ -1445,6 +1445,36 @@ public:
       FC_CAPTURE_AND_RETHROW((id)(new_options)(broadcast))
    }
 
+   signed_transaction approve_property(uint32_t id,
+                                       bool broadcast = false)
+   {
+      try
+      {
+         optional<property_object> property_to_update = find_property(id);
+         if (!property_to_update)
+            FC_THROW("No property with that id exists!");
+
+         property_update_operation update_op;
+         update_op.issuer = property_to_update->issuer;
+         update_op.property_to_update = property_to_update->id;
+         update_op.new_options = property_to_update->options;
+
+         if(update_op.new_options.status == "not approved") {
+            update_op.new_options.status = "approved";
+         }
+         else {
+          FC_THROW("Property is already approved!");
+         }
+         signed_transaction tx;
+         tx.operations.push_back(update_op);
+         set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
+         tx.validate();
+
+         return sign_transaction(tx, broadcast);
+      }
+      FC_CAPTURE_AND_RETHROW((id)(broadcast))
+   }                                    
+
    signed_transaction create_asset_limitation(string issuer,
                                               string limit_symbol,
                                               asset_limitation_options common,
@@ -4071,6 +4101,11 @@ signed_transaction wallet_api::update_property(uint32_t id,
 {
    return my->update_property(id, new_options, broadcast);
 }
+signed_transaction wallet_api::approve_property(uint32_t id,
+                                          bool broadcast)
+{
+   return my->approve_property(id, broadcast);
+}     
 signed_transaction wallet_api::create_asset_limitation(string issuer,
                                                        string limit_symbol,
                                                        asset_limitation_options common,
