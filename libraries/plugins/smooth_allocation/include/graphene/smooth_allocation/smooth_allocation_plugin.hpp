@@ -46,8 +46,10 @@ namespace smooth_allocation_condition
 enum smooth_allocation_condition_enum
 {
     allocation_produced = 0,
-    exception_allocation = 1,
-    stop_smooth_allocation = 2
+    initial_allocation_completed = 1,
+    approve_allocation_completed = 2,
+    exception_allocation = 3,
+    stop_smooth_allocation = 4
 };
 }
 
@@ -71,19 +73,21 @@ public:
 private:
     vector<chain::property_object> get_all_backed_assets(chain::database &db) const;
     const chain::asset_limitation_object &get_asset_limitation(chain::database &db, std::string symbol) const;
+    const int64_t get_asset_supply(chain::database &db, std::string symbol) const;
 
-    void force_initial_smooth(chain::property_object &backed_asset);
+
     void allocate_price_limitation(chain::property_object &backed_asset, double_t value);
     void increase_backed_asset_allocation_progress(chain::property_object &backed_asset, double_t increase_value);
     void schedule_allocation_loop();
+    void result_viewer(smooth_allocation_condition::smooth_allocation_condition_enum result, fc::limited_mutable_variant_object &capture);
 
-    smooth_allocation_condition::smooth_allocation_condition_enum allocation_loop();
-    smooth_allocation_condition::smooth_allocation_condition_enum maybe_allocate_price(chain::property_object &backed_asset, double_t allocation_percent,fc::limited_mutable_variant_object& capture );
+    void allocation_loop();
+    smooth_allocation_condition::smooth_allocation_condition_enum maybe_allocate_price(chain::property_object &backed_asset, double_t allocation_percent, fc::limited_mutable_variant_object &capture);
 
     boost::program_options::variables_map _options;
     bool _shutting_down = false;
 
-    protocol::account_id_type meta1_id;
+    protocol::account_id_type meta1_account_id;
     fc::optional<fc::ecc::private_key> privkey;
 
     vector<chain::property_object> backed_assets_local_storage;
