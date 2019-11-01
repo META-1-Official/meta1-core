@@ -66,7 +66,6 @@ void smooth_allocation_plugin::allocate_price_limitation(property_object &backed
       asset_limitation_options asset_limitation_ops = asset_limitation_to_update.options;
       //sell limit
       price_buf = boost::lexical_cast<double_t>(asset_limitation_ops.sell_limit);
-      wlog("price_buf : ${p}", ("p", price_buf));
       price_buf += value;
       asset_limitation_ops.sell_limit = boost::lexical_cast<std::string>(price_buf);
 
@@ -124,7 +123,7 @@ void smooth_allocation_plugin::plugin_set_program_options(
 
 std::string smooth_allocation_plugin::plugin_name() const
 {
-   return "smooth allocation";
+   return "smooth_allocation";
 }
 
 void smooth_allocation_plugin::plugin_initialize(const boost::program_options::variables_map &options)
@@ -149,7 +148,7 @@ void smooth_allocation_plugin::plugin_startup()
       meta1_account_id = database().get_index_type<account_index>().indices().get<by_name>().find("meta1")->id;
       chain::database &d = database();
       backed_assets_local_storage = get_all_backed_assets(d);
-      wlog("Backed assets count detected: ${s}", ("s", backed_assets_local_storage.size()));
+      ilog("Backed assets count detected: ${s}", ("s", backed_assets_local_storage.size()));
 
       //check for new backed assets or approve backed assets
       d.applied_block.connect([this](const chain::signed_block &b) {
@@ -169,14 +168,14 @@ void smooth_allocation_plugin::plugin_startup()
                   if (backed_asset.options.smooth_allocation_time == "0" ||
                       backed_asset.options.smooth_allocation_time.size() == 0)
                   {
-                     wlog("force initial");
+                     //wlog("force initial");
                      const double_t price = ((double)backed_asset.options.appraised_property_value / get_asset_supply(database(), backed_asset.options.backed_by_asset_symbol)) * 0.25;
 
                      allocate_price_limitation(backed_asset, price);
                   }
                   else
                   {
-                     wlog("smooth initial");
+                     //wlog("smooth initial");
                      initial_smooth_backed_assets.push_back(backed_asset);
                      if (initial_smooth_backed_assets.size() == 1 && approve_smooth_backed_assets.size() == 0)
                      {
@@ -190,15 +189,14 @@ void smooth_allocation_plugin::plugin_startup()
                   if (backed_asset.options.smooth_allocation_time == "0" ||
                       backed_asset.options.smooth_allocation_time.size() == 0)
                   {
-                     wlog("force approve");
+                     //wlog("force approve");
                      const double_t price = ((double)backed_asset.options.appraised_property_value / get_asset_supply(database(), backed_asset.options.backed_by_asset_symbol)) * 0.75;
 
-                     allocate_price_limitation(backed_asset,
-                                               price);
+                     allocate_price_limitation(backed_asset,price);
                   }
                   else
                   {
-                     wlog("smooth approve");
+                    //wlog("smooth approve");
                      approve_smooth_backed_assets.push_back(backed_asset);
                      if (approve_smooth_backed_assets.size() == 1 && initial_smooth_backed_assets.size() == 0)
                      {
@@ -251,9 +249,9 @@ void smooth_allocation_plugin::schedule_allocation_loop()
 
    // If we would wait less than 5000ms, wait for the whole min.
    fc::time_point now = fc::time_point::now();
-   int64_t time_to_next_allocation = 600000 /*00*/ - (now.time_since_epoch().count() % 1000000); // 1 min = 60000000
-                                                                                                 // if (time_to_next_allocation < 5000000)                                                   // we must sleep for at least 5000ms
-   //   time_to_next_allocation += 60000000;
+   int64_t time_to_next_allocation = 60000000 - (now.time_since_epoch().count() % 1000000); // 1 min = 60000000
+    if (time_to_next_allocation < 5000000)                                                   // we must sleep for at least 5000ms
+      time_to_next_allocation += 60000000;
 
    fc::time_point next_wakeup(now + fc::microseconds(time_to_next_allocation));
    _smooth_allocation_task = fc::schedule([this] { allocation_loop(); },
@@ -340,9 +338,13 @@ smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_
          price = (double)backed_asset.options.appraised_property_value / get_asset_supply(database(), backed_asset.options.backed_by_asset_symbol);
 
       const double_t timeline = boost::lexical_cast<double_t>(backed_asset.options.smooth_allocation_time) * 7 * 24 * 60 * allocation_percent;
-      const double_t increase_value = price / timeline;
+      double_t increase_value = price / timeline;
       capture("backed_asset", backed_asset.id);
-      wlog("ALLOCATION LEVEL: ${p}", ("p", price));
+
+      //if +=increase_value out of range (price) we should change increase value
+      if (boost::lexical_cast<double_t>(get_backed_asset(database(), backed_asset.property_id).options.allocation_progress)+increase_value > price)
+            increase_value = price - boost::lexical_cast<double_t>(get_backed_asset(database(), backed_asset.property_id).options.allocation_progress);
+
       if (boost::lexical_cast<double_t>(get_backed_asset(database(), backed_asset.property_id).options.allocation_progress) < price)
       {
          allocate_price_limitation(backed_asset, increase_value);
