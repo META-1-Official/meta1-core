@@ -2,7 +2,7 @@
 
 #include <fc/thread/thread.hpp>
 #include <algorithm>
-
+#include <cmath>
 #include <iostream>
 
 using namespace graphene::smooth_allocation;
@@ -31,12 +31,23 @@ const asset_limitation_object &smooth_allocation_plugin::get_asset_limitation(ch
    return *itr;
 }
 
+const property_object &smooth_allocation_plugin::get_backed_asset(chain::database &db, uint32_t backed_asset_id) const
+{
+   const auto &idx = db.get_index_type<property_index>().indices().get<by_id>();
+   for (const auto &b : idx)
+   {
+      if (b.property_id == backed_asset_id)
+         return b;
+   }
+}
+
 const int64_t smooth_allocation_plugin::get_asset_supply(chain::database &db, string symbol) const
 {
    const auto &idx = db.get_index_type<asset_index>().indices().get<by_symbol>();
    auto itr = idx.find(symbol);
    assert(itr != idx.end());
-   return itr->options.max_supply.value;
+   //calc supply for smooth allocation formula supply of coin / 10
+   return itr->options.max_supply.value / 10 / std::pow(10, itr->precision);
 }
 
 void smooth_allocation_plugin::allocate_price_limitation(property_object &backed_asset, double_t value)
@@ -54,15 +65,12 @@ void smooth_allocation_plugin::allocate_price_limitation(property_object &backed
 
       asset_limitation_options asset_limitation_ops = asset_limitation_to_update.options;
       //sell limit
-      price_buf = std::stod(asset_limitation_ops.sell_limit);
-      //wlog(" price_buf: ${e}",("e",price_buf));
-
+      price_buf = boost::lexical_cast<double_t>(asset_limitation_ops.sell_limit);
+      wlog("price_buf : ${p}", ("p", price_buf));
       price_buf += value;
-      //wlog(" price_buf: ${e}",("e",price_buf));
       asset_limitation_ops.sell_limit = boost::lexical_cast<std::string>(price_buf);
 
       update_op.new_options = asset_limitation_ops;
-      //wlog(" asset_limitation_ops.sell_limit ${e} :",("e",asset_limitation_ops.sell_limit));
 
       trx.operations.push_back(update_op);
       database().current_fee_schedule().set_fee(trx.operations.back());
@@ -70,7 +78,6 @@ void smooth_allocation_plugin::allocate_price_limitation(property_object &backed
       trx.sign(*privkey, database().get_chain_id());
       trx.validate();
       processed_transaction ptrx = database().push_transaction(precomputable_transaction(trx), ~0);
-      //wlog("allocate_price_limitation \n");
       increase_backed_asset_allocation_progress(backed_asset, value);
    }
    catch (const std::exception &e)
@@ -83,17 +90,18 @@ void smooth_allocation_plugin::increase_backed_asset_allocation_progress(propert
 {
    try
    {
-      // wlog("increase_backed_asset_allocation_progress 1 ");
+      double_t allocation_progress = 0.0;
       property_update_operation update_op;
       signed_transaction trx;
+      const auto &backed_asset_to_update = get_backed_asset(database(), backed_asset.property_id);
 
-      update_op.issuer = backed_asset.issuer;
-      update_op.property_to_update = backed_asset.id;
+      update_op.issuer = backed_asset_to_update.issuer;
+      update_op.property_to_update = backed_asset_to_update.id;
+      allocation_progress = boost::lexical_cast<double_t>(backed_asset_to_update.options.allocation_progress);
+      allocation_progress += increase_value;
 
-      double_t allocation_progress = std::stod(backed_asset.options.allocation_progress) + increase_value;
-      backed_asset.options.allocation_progress = boost::lexical_cast<std::string>(allocation_progress);
-
-      update_op.new_options = backed_asset.options;
+      update_op.new_options = backed_asset_to_update.options;
+      update_op.new_options.allocation_progress = boost::lexical_cast<std::string>(allocation_progress);
 
       trx.operations.push_back(update_op);
       database().current_fee_schedule().set_fee(trx.operations.back());
@@ -101,7 +109,6 @@ void smooth_allocation_plugin::increase_backed_asset_allocation_progress(propert
       trx.sign(*privkey, database().get_chain_id());
       trx.validate();
       processed_transaction ptrx = database().push_transaction(precomputable_transaction(trx), ~0);
-      //wlog("increase_backed_asset_allocation_progress 2 ");
    }
    catch (const std::exception &e)
    {
@@ -159,18 +166,17 @@ void smooth_allocation_plugin::plugin_startup()
 
                if (backed_asset_iterator == backed_assets_local_storage.end())
                {
-                  //else //when new backed asset added
-                  //{
                   if (backed_asset.options.smooth_allocation_time == "0" ||
                       backed_asset.options.smooth_allocation_time.size() == 0)
                   {
-                     wlog("3");
+                     wlog("force initial");
                      const double_t price = ((double)backed_asset.options.appraised_property_value / get_asset_supply(database(), backed_asset.options.backed_by_asset_symbol)) * 0.25;
+
                      allocate_price_limitation(backed_asset, price);
                   }
                   else
                   {
-                     wlog("4");
+                     wlog("smooth initial");
                      initial_smooth_backed_assets.push_back(backed_asset);
                      if (initial_smooth_backed_assets.size() == 1 && approve_smooth_backed_assets.size() == 0)
                      {
@@ -178,24 +184,24 @@ void smooth_allocation_plugin::plugin_startup()
                         schedule_allocation_loop();
                      }
                   }
-                  //}
                }
                else if (backed_asset_iterator->options.status == "not approved" && backed_asset.options.status == "approved")
                {
                   if (backed_asset.options.smooth_allocation_time == "0" ||
                       backed_asset.options.smooth_allocation_time.size() == 0)
                   {
-                     wlog("1");
+                     wlog("force approve");
                      const double_t price = ((double)backed_asset.options.appraised_property_value / get_asset_supply(database(), backed_asset.options.backed_by_asset_symbol)) * 0.75;
-                     allocate_price_limitation(backed_asset, price);
+
+                     allocate_price_limitation(backed_asset,
+                                               price);
                   }
                   else
                   {
-                     wlog("2");
+                     wlog("smooth approve");
                      approve_smooth_backed_assets.push_back(backed_asset);
                      if (approve_smooth_backed_assets.size() == 1 && initial_smooth_backed_assets.size() == 0)
                      {
-                        wlog("2.1");
                         _shutting_down = false;
                         schedule_allocation_loop();
                      }
@@ -245,7 +251,7 @@ void smooth_allocation_plugin::schedule_allocation_loop()
 
    // If we would wait less than 5000ms, wait for the whole min.
    fc::time_point now = fc::time_point::now();
-   int64_t time_to_next_allocation = 6000000 /*0*/ - (now.time_since_epoch().count() % 1000000); // 1 min = 60000000
+   int64_t time_to_next_allocation = 600000 /*00*/ - (now.time_since_epoch().count() % 1000000); // 1 min = 60000000
                                                                                                  // if (time_to_next_allocation < 5000000)                                                   // we must sleep for at least 5000ms
    //   time_to_next_allocation += 60000000;
 
@@ -258,14 +264,17 @@ void smooth_allocation_plugin::result_viewer(smooth_allocation_condition::smooth
 {
    switch (result)
    {
-   case smooth_allocation_condition::allocation_produced:
-      ilog("Allocation produced for backed_asset: ${backed_asset} with progress: ${progress}", (capture));
+   case smooth_allocation_condition::initial_allocation_produced:
+      wlog("Initial allocation produced for backed_asset: ${backed_asset} with progress: ${progress}", (capture));
+      break;
+   case smooth_allocation_condition::approve_allocation_produced:
+      wlog("Approve allocation produced for backed_asset: ${backed_asset} with progress: ${progress}", (capture));
       break;
    case smooth_allocation_condition::initial_allocation_completed:
-      ilog("Initial allocation completed for: ${backed_asset}", (capture));
+      wlog("Initial allocation completed for: ${backed_asset}", (capture));
       break;
    case smooth_allocation_condition::approve_allocation_completed:
-      ilog("Approve allocation completed for: ${backed_asset}", (capture));
+      wlog("Approve allocation completed for: ${backed_asset}", (capture));
       break;
    case smooth_allocation_condition::exception_allocation:
       elog("Exception in allocation error log: ${err}", (capture));
@@ -273,7 +282,7 @@ void smooth_allocation_plugin::result_viewer(smooth_allocation_condition::smooth
    case smooth_allocation_condition::stop_smooth_allocation:
       break;
    default:
-      elog("unknown condition");
+      wlog("unknown condition");
       break;
    }
 }
@@ -297,13 +306,16 @@ void smooth_allocation_plugin::allocation_loop()
          {
             result = maybe_allocate_price(backed_asset, 0.25, capture);
             result_viewer(result, capture);
+            const auto &asset_limitation_to_update = get_asset_limitation(database(), backed_asset.options.backed_by_asset_symbol);
+            //wlog("limit 1: ${l}",("l",asset_limitation_to_update.options.sell_limit));
          }
 
          for (auto &backed_asset : approve_smooth_backed_assets)
          {
-            wlog("approve backed_asset");
             result = maybe_allocate_price(backed_asset, 0.75, capture);
             result_viewer(result, capture);
+            const auto &asset_limitation_to_update = get_asset_limitation(database(), backed_asset.options.backed_by_asset_symbol);
+            //wlog("limit 2: ${l}",("l",asset_limitation_to_update.options.sell_limit));
          }
       }
       catch (const fc::exception &e)
@@ -321,15 +333,28 @@ smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_
 {
    try
    {
-      const double_t price = ((double)backed_asset.options.appraised_property_value / get_asset_supply(database(), backed_asset.options.backed_by_asset_symbol)) * allocation_percent;
-      const double_t timeline = std::stod(backed_asset.options.smooth_allocation_time) * 7 * 24 * 60 * allocation_percent;
+      double_t price;
+      if (allocation_percent == 0.25)
+         price = ((double)backed_asset.options.appraised_property_value / get_asset_supply(database(), backed_asset.options.backed_by_asset_symbol)) * allocation_percent;
+      else
+         price = (double)backed_asset.options.appraised_property_value / get_asset_supply(database(), backed_asset.options.backed_by_asset_symbol);
+
+      const double_t timeline = boost::lexical_cast<double_t>(backed_asset.options.smooth_allocation_time) * 7 * 24 * 60 * allocation_percent;
       const double_t increase_value = price / timeline;
       capture("backed_asset", backed_asset.id);
-      if (std::stod(backed_asset.options.allocation_progress) < price)
+      wlog("ALLOCATION LEVEL: ${p}", ("p", price));
+      if (boost::lexical_cast<double_t>(get_backed_asset(database(), backed_asset.property_id).options.allocation_progress) < price)
       {
          allocate_price_limitation(backed_asset, increase_value);
-         capture("progress", backed_asset.options.allocation_progress);
-         return smooth_allocation_condition::allocation_produced;
+         capture("progress", get_backed_asset(database(), backed_asset.property_id).options.allocation_progress);
+         if (allocation_percent == 0.25)
+         {
+            return smooth_allocation_condition::initial_allocation_produced;
+         }
+         else
+         {
+            return smooth_allocation_condition::approve_allocation_produced;
+         }
       }
       else if (allocation_percent == 0.25)
       {

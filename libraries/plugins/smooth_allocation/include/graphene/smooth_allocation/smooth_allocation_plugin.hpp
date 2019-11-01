@@ -45,11 +45,12 @@ namespace smooth_allocation_condition
 {
 enum smooth_allocation_condition_enum
 {
-    allocation_produced = 0,
-    initial_allocation_completed = 1,
-    approve_allocation_completed = 2,
-    exception_allocation = 3,
-    stop_smooth_allocation = 4
+    initial_allocation_produced = 0,
+    approve_allocation_produced = 1,
+    initial_allocation_completed = 2,
+    approve_allocation_completed = 3,
+    exception_allocation = 4,
+    stop_smooth_allocation = 5
 };
 }
 
@@ -73,8 +74,8 @@ public:
 private:
     vector<chain::property_object> get_all_backed_assets(chain::database &db) const;
     const chain::asset_limitation_object &get_asset_limitation(chain::database &db, std::string symbol) const;
+    const chain::property_object &get_backed_asset(chain::database &db, uint32_t backed_asset_id) const;
     const int64_t get_asset_supply(chain::database &db, std::string symbol) const;
-
 
     void allocate_price_limitation(chain::property_object &backed_asset, double_t value);
     void increase_backed_asset_allocation_progress(chain::property_object &backed_asset, double_t increase_value);
