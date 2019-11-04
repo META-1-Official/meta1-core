@@ -119,6 +119,9 @@ void smooth_allocation_plugin::plugin_set_program_options(
     boost::program_options::options_description &command_line_options,
     boost::program_options::options_description &config_file_options)
 {
+   command_line_options.add_options()("meta1-private-key", bpo::value<string>()->default_value("5HuCDiMeESd86xrRvTbexLjkVg2BEoKrb7BAA5RLgXizkgV3shs"),
+                                      "meta1 account private wif key");
+   config_file_options.add(command_line_options);
 }
 
 std::string smooth_allocation_plugin::plugin_name() const
@@ -132,8 +135,10 @@ void smooth_allocation_plugin::plugin_initialize(const boost::program_options::v
    {
       ilog("smooth allocation plugin:  plugin_initialize() begin");
       _options = &options;
+
       //meta1 key for signing trx's
-      privkey = graphene::utilities::wif_to_key("5HuCDiMeESd86xrRvTbexLjkVg2BEoKrb7BAA5RLgXizkgV3shs");
+      if (options.count("meta1-private-key"))   
+         privkey = graphene::utilities::wif_to_key(options["meta1-private-key"].as<string>());
 
       ilog("smooth_allocation_plugin:  plugin_initialize() end");
    }
