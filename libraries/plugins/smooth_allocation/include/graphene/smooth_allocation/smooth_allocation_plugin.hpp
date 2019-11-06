@@ -25,15 +25,9 @@
 
 #include <graphene/app/plugin.hpp>
 #include <graphene/chain/database.hpp>
-#include <graphene/chain/property_object.hpp>
 #include <graphene/chain/asset_limitation_object.hpp>
 #include <graphene/utilities/key_conversion.hpp>
-#include <graphene/protocol/operations.hpp>
 
-#include <fc/thread/future.hpp>
-
-#include <boost/lexical_cast.hpp>
-#include <string>
 using std::vector;
 
 namespace graphene

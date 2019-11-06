@@ -1,10 +1,5 @@
 #include <graphene/smooth_allocation/smooth_allocation_plugin.hpp>
 
-#include <fc/thread/thread.hpp>
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-
 using namespace graphene::smooth_allocation;
 using std::string;
 using std::vector;
@@ -137,9 +132,13 @@ void smooth_allocation_plugin::plugin_initialize(const boost::program_options::v
       _options = &options;
 
       //meta1 key for signing trx's
-      if (options.count("meta1-private-key"))   
+      if (options.count("meta1-private-key"))
+      {  
          privkey = graphene::utilities::wif_to_key(options["meta1-private-key"].as<string>());
-
+         wlog("privKEy 1 : ${k}",("k",privkey));
+         wlog("privKEy 2 :${k}",("k",options["meta1-private-key"].as<string>()));
+      }
+      
       ilog("smooth_allocation_plugin:  plugin_initialize() end");
    }
    FC_LOG_AND_RETHROW()
@@ -154,11 +153,11 @@ void smooth_allocation_plugin::plugin_startup()
       chain::database &d = database();
       backed_assets_local_storage = get_all_backed_assets(d);
       ilog("Backed assets count detected: ${s}", ("s", backed_assets_local_storage.size()));
-
       //check for new backed assets or approve backed assets
       d.applied_block.connect([this](const chain::signed_block &b) {
          try
          {
+            //wlog("p2p_node count: ${s}", ("s",p2p_node().get_connection_count()));
             std::vector<property_object>::iterator backed_asset_iterator;
             auto all_backed_assets = get_all_backed_assets(database());
             for (auto &backed_asset : all_backed_assets)
@@ -173,14 +172,16 @@ void smooth_allocation_plugin::plugin_startup()
                   if (backed_asset.options.smooth_allocation_time == "0" ||
                       backed_asset.options.smooth_allocation_time.size() == 0)
                   {
-                     //wlog("force initial");
+                     wlog("force initial");
                      const double_t price = ((double)backed_asset.options.appraised_property_value / get_asset_supply(database(), backed_asset.options.backed_by_asset_symbol)) * 0.25;
-
+                     //wlog("price: ${p}",("p",price));
+                     //price = price / (p2p_node().get_connection_count()+1);
+                     //wlog("price: ${p}",("p",price));
                      allocate_price_limitation(backed_asset, price);
                   }
                   else
                   {
-                     //wlog("smooth initial");
+                     wlog("smooth initial");
                      initial_smooth_backed_assets.push_back(backed_asset);
                      if (initial_smooth_backed_assets.size() == 1 && approve_smooth_backed_assets.size() == 0)
                      {
@@ -194,14 +195,16 @@ void smooth_allocation_plugin::plugin_startup()
                   if (backed_asset.options.smooth_allocation_time == "0" ||
                       backed_asset.options.smooth_allocation_time.size() == 0)
                   {
-                     //wlog("force approve");
+                     wlog("force approve");
                      const double_t price = ((double)backed_asset.options.appraised_property_value / get_asset_supply(database(), backed_asset.options.backed_by_asset_symbol)) * 0.75;
-
+                     //wlog("price: ${p}",("p",price));
+                     //price = price / (p2p_node().get_connection_count()+1);
+                     //wlog("price: ${p}",("p",price));
                      allocate_price_limitation(backed_asset,price);
                   }
                   else
                   {
-                    //wlog("smooth approve");
+                    wlog("smooth approve");
                      approve_smooth_backed_assets.push_back(backed_asset);
                      if (approve_smooth_backed_assets.size() == 1 && initial_smooth_backed_assets.size() == 0)
                      {
@@ -309,7 +312,7 @@ void smooth_allocation_plugin::allocation_loop()
          {
             result = maybe_allocate_price(backed_asset, 0.25, capture);
             result_viewer(result, capture);
-            const auto &asset_limitation_to_update = get_asset_limitation(database(), backed_asset.options.backed_by_asset_symbol);
+            //const auto &asset_limitation_to_update = get_asset_limitation(database(), backed_asset.options.backed_by_asset_symbol);
             //wlog("limit 1: ${l}",("l",asset_limitation_to_update.options.sell_limit));
          }
 
@@ -317,7 +320,7 @@ void smooth_allocation_plugin::allocation_loop()
          {
             result = maybe_allocate_price(backed_asset, 0.75, capture);
             result_viewer(result, capture);
-            const auto &asset_limitation_to_update = get_asset_limitation(database(), backed_asset.options.backed_by_asset_symbol);
+            //const auto &asset_limitation_to_update = get_asset_limitation(database(), backed_asset.options.backed_by_asset_symbol);
             //wlog("limit 2: ${l}",("l",asset_limitation_to_update.options.sell_limit));
          }
       }
