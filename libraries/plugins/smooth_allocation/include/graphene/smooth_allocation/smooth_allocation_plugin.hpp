@@ -69,10 +69,11 @@ private:
     vector<chain::property_object> get_all_backed_assets(chain::database &db) const;
     const chain::asset_limitation_object &get_asset_limitation(chain::database &db, std::string symbol) const;
     const chain::property_object &get_backed_asset(chain::database &db, uint32_t backed_asset_id) const;
+    const chain::property_object &get_backed_asset(chain::database &db, protocol::property_id_type backed_asset_id_type) const;
     const int64_t get_asset_supply(chain::database &db, std::string symbol) const;
 
-    void allocate_price_limitation(chain::property_object &backed_asset, double_t value);
-    void increase_backed_asset_allocation_progress(chain::property_object &backed_asset, double_t increase_value);
+    void allocate_price_limitation(std::string backed_by_asset_symbol, uint32_t backed_asset_id, double_t value);
+    void increase_backed_asset_allocation_progress(uint32_t backed_asset_id, double_t increase_value);
     void schedule_allocation_loop();
     void result_viewer(smooth_allocation_condition::smooth_allocation_condition_enum result, fc::limited_mutable_variant_object &capture);
 
