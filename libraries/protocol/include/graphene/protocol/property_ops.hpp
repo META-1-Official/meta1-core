@@ -68,6 +68,18 @@ struct property_update_operation : public base_operation
     void validate() const;
 };
 
+struct property_delete_operation : public base_operation
+{
+    struct fee_parameters_type { uint64_t fee = 0; };
+
+    asset fee;
+    property_id_type property;
+    account_id_type fee_paying_account;
+
+    account_id_type fee_payer() const { return fee_paying_account; }
+    void            validate() const;
+};
+
 } // namespace chain
 } // namespace graphene
 
@@ -92,6 +104,7 @@ FC_REFLECT(graphene::protocol::property_options,
 
 FC_REFLECT(graphene::protocol::property_create_operation::fee_parameters_type, (fee))
 FC_REFLECT(graphene::protocol::property_update_operation::fee_parameters_type, (fee))
+FC_REFLECT(graphene::protocol::property_delete_operation::fee_parameters_type, (fee))
 
 FC_REFLECT(graphene::protocol::property_create_operation,
            (fee)
@@ -107,9 +120,17 @@ FC_REFLECT(graphene::protocol::property_update_operation,
            (new_options)
            )
 
+FC_REFLECT(graphene::protocol::property_delete_operation,
+            (fee)
+            (property)
+            (fee_paying_account)
+            )
+
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_options )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_update_operation::fee_parameters_type )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_create_operation::fee_parameters_type )
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_delete_operation::fee_parameters_type )
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_create_operation )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_update_operation ) 
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_delete_operation )

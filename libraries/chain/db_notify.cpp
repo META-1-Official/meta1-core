@@ -283,6 +283,10 @@ struct get_impacted_account_visitor
       _impacted.insert(op.fee_payer());
       _impacted.insert(op.issuer); // issuer
    }
+   void operator()( const property_delete_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // fee_paying_account
+   }
        void operator()(const asset_limitation_object_create_operation &op)
    {
       _impacted.insert(op.fee_payer());

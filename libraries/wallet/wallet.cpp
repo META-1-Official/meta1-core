@@ -1474,6 +1474,25 @@ public:
       }
       FC_CAPTURE_AND_RETHROW((id)(broadcast))
    }                                    
+  
+   signed_transaction delete_property(uint32_t property_id, bool broadcast = false)
+   {
+      try
+      {
+         FC_ASSERT(!is_locked());
+         signed_transaction trx;
+
+         property_delete_operation op;
+         op.fee_paying_account = get_property(property_id).issuer;
+         op.property = get_property(property_id).id;
+         trx.operations = {op};
+         set_operation_fees(trx, _remote_db->get_global_properties().parameters.get_current_fees());
+
+         trx.validate();
+         return sign_transaction(trx, broadcast);
+      }
+      FC_CAPTURE_AND_RETHROW((property_id))
+   }
 
    signed_transaction create_asset_limitation(string issuer,
                                               string limit_symbol,
@@ -1500,6 +1519,7 @@ public:
       }
       FC_CAPTURE_AND_RETHROW((issuer)(limit_symbol)(common)(broadcast))
    }
+   
    //smooth allocation assets price limitation 
    signed_transaction update_asset_limitation(string limit_symbol,
                                               asset_limitation_options new_options,
@@ -1507,25 +1527,31 @@ public:
    {
       try
       {
+         std::stringstream ss;
+         ss << std::setprecision(std::numeric_limits<double>::digits10+1);
          double price_buf = 0.0;
+
          optional<asset_limitation_object> asset_limitation_to_update = get_asset_limitaion_by_symbol(limit_symbol);
          if (!asset_limitation_to_update)
             FC_THROW("No asset limitation for asset with symbol not exis");
-
          asset_limitation_object_update_operation update_op;
          update_op.issuer = asset_limitation_to_update->issuer;
          update_op.asset_limitation_object_to_update = asset_limitation_to_update->id;
 
          asset_limitation_options asset_limitation_ops = asset_limitation_to_update->options;
+
          //buy limit
          price_buf = std::stod (asset_limitation_ops.buy_limit);
          price_buf += std::stod (new_options.buy_limit);
-         asset_limitation_ops.buy_limit = std::to_string(price_buf);
+         ss << price_buf;
+         asset_limitation_ops.buy_limit = ss.str();
+         ss.str(std::string());
          //sell limit
          price_buf = std::stod (asset_limitation_ops.sell_limit);
          price_buf += std::stod (new_options.sell_limit);
-         asset_limitation_ops.sell_limit = std::to_string(price_buf);
-
+         ss << price_buf;
+         asset_limitation_ops.sell_limit = ss.str();
+      
          update_op.new_options = asset_limitation_ops ;
 
          signed_transaction tx;
@@ -4091,21 +4117,31 @@ signed_transaction wallet_api::transfer(string from, string to, string amount,
 {
    return my->transfer(from, to, amount, asset_symbol, memo, broadcast);
 }
+
 signed_transaction wallet_api::create_property(string issuer, property_options common, bool broadcast)
 {
    return my->create_property(issuer, common, broadcast);
 }
+
 signed_transaction wallet_api::update_property(uint32_t id,
                                                property_options new_options,
                                                bool broadcast /*  = false*/)
 {
    return my->update_property(id, new_options, broadcast);
 }
+
 signed_transaction wallet_api::approve_property(uint32_t id,
                                           bool broadcast)
 {
    return my->approve_property(id, broadcast);
 }     
+
+signed_transaction wallet_api::delete_property(uint32_t property_id, bool broadcast)
+{
+   FC_ASSERT(!is_locked());
+   return my->delete_property(property_id, broadcast);
+}
+
 signed_transaction wallet_api::create_asset_limitation(string issuer,
                                                        string limit_symbol,
                                                        asset_limitation_options common,
