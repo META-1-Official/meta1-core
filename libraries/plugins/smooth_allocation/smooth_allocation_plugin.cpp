@@ -154,6 +154,35 @@ void smooth_allocation_plugin::plugin_initialize(const boost::program_options::v
    FC_LOG_AND_RETHROW()
 }
 
+void smooth_allocation_plugin::synchronize_backed_assets(chain::database &db)
+{
+   auto all_backed_assets = get_all_backed_assets(db);
+   double_t allocation_value;
+   for (auto &backed_asset : all_backed_assets)
+   {
+      allocation_value = ((double_t)backed_asset.options.appraised_property_value / get_asset_supply(db, backed_asset.options.backed_by_asset_symbol)) * 0.25;
+      if ((boost::lexical_cast<double_t>(backed_asset.options.allocation_progress) < allocation_value))
+      {
+         initial_smooth_backed_assets.push_back(get_backed_asset(database(), backed_asset.property_id));
+      }
+
+      if (backed_asset.options.status == "approved")
+      {
+         allocation_value = ((double_t)backed_asset.options.appraised_property_value / get_asset_supply(db, backed_asset.options.backed_by_asset_symbol));
+         if ((boost::lexical_cast<double_t>(backed_asset.options.allocation_progress) < allocation_value))
+         {
+            approve_smooth_backed_assets.push_back(get_backed_asset(database(), backed_asset.property_id));
+         }
+      }
+   }
+   if (initial_smooth_backed_assets.size() > 0 || approve_smooth_backed_assets.size() > 0)
+   {
+      wlog("schedule_allocation_loop on ");
+      _shutting_down = false;
+      schedule_allocation_loop();
+   }
+}
+
 void smooth_allocation_plugin::plugin_startup()
 {
    try
@@ -161,8 +190,11 @@ void smooth_allocation_plugin::plugin_startup()
       ilog("smooth allocation plugin:  plugin_startup() begin");
       meta1_account_id = database().get_index_type<account_index>().indices().get<by_name>().find("meta1")->id;
       chain::database &d = database();
+      synchronize_backed_assets(d);
       //backed_assets_local_storage = get_all_backed_assets(d);
       //ilog("Backed assets count detected: ${s}", ("s", backed_assets_local_storage.size()));
+      wlog("initial backed assets size:${s}", ("s", initial_smooth_backed_assets.size()));
+      wlog("approve backed assets size:${s}", ("s", approve_smooth_backed_assets.size()));
 
       d.on_pending_transaction.connect([this](const signed_transaction &t) {
          for (auto &operation : t.operations)
