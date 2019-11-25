@@ -183,6 +183,18 @@ void smooth_allocation_plugin::synchronize_backed_assets(chain::database &db)
    }
 }
 
+void smooth_allocation_plugin::erase_backed_asset(vector<chain::property_object> &backed_asset_storage, protocol::property_id_type backed_asset_id_type)
+{
+   std::vector<property_object>::iterator backed_asset_iterator = std::find_if(backed_asset_storage.begin(), backed_asset_storage.end(),
+                                                                               [backed_asset_id_type](const property_object &o) {
+                                                                                  return o.get_id() == backed_asset_id_type;
+                                                                               });
+   if (backed_asset_iterator != backed_asset_storage.end())
+   {
+      backed_asset_storage.erase(backed_asset_iterator);
+   }
+}
+
 void smooth_allocation_plugin::plugin_startup()
 {
    try
@@ -229,6 +241,12 @@ void smooth_allocation_plugin::plugin_startup()
                   }
                }
             }
+            else if (operation.is_type<property_delete_operation>())
+            {
+               const property_delete_operation &backed_asset_delete_op = operation.get<property_delete_operation>();
+               erase_backed_asset(initial_smooth_backed_assets,backed_asset_delete_op.property);
+               erase_backed_asset(approve_smooth_backed_assets,backed_asset_delete_op.property);
+            }
          }
       });
       ilog("smooth allocation:  plugin_startup() end");
@@ -268,7 +286,7 @@ void smooth_allocation_plugin::schedule_allocation_loop()
    // If we would wait less than 5000ms, wait for the whole min.
    fc::time_point now = fc::time_point::now();
    int64_t time_to_next_allocation = 60000000 - (now.time_since_epoch().count() % 1000000); // 1 min = 60000000
-   if (time_to_next_allocation < 5000000)                                                   // we must sleep for at least 5000ms
+   if (time_to_next_allocation < 5000000)                                                       // we must sleep for at least 5000ms
       time_to_next_allocation += 60000000;
 
    fc::time_point next_wakeup(now + fc::microseconds(time_to_next_allocation));
@@ -354,7 +372,6 @@ smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_
          price = ((double)backed_asset.options.appraised_property_value / get_asset_supply(database(), backed_asset.options.backed_by_asset_symbol)) * allocation_percent;
       else
          price = (double)backed_asset.options.appraised_property_value / get_asset_supply(database(), backed_asset.options.backed_by_asset_symbol);
-
       const double_t timeline = boost::lexical_cast<double_t>(backed_asset.options.smooth_allocation_time) * 7 * 24 * 60 * allocation_percent;
       double_t increase_value = price / timeline;
       capture("backed_asset", backed_asset.id);
@@ -378,20 +395,12 @@ smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_
       }
       else if (allocation_percent == 0.25)
       {
-         std::vector<property_object>::iterator backed_asset_iterator = std::find_if(initial_smooth_backed_assets.begin(), initial_smooth_backed_assets.end(),
-                                                                                     [backed_asset](const property_object &o) {
-                                                                                        return o.id == backed_asset.id;
-                                                                                     });
-         initial_smooth_backed_assets.erase(backed_asset_iterator);
+         erase_backed_asset(initial_smooth_backed_assets, backed_asset.get_id());
          return smooth_allocation_condition::initial_allocation_completed;
       }
       else if (allocation_percent == 0.75)
       {
-         std::vector<property_object>::iterator backed_asset_iterator = std::find_if(approve_smooth_backed_assets.begin(), approve_smooth_backed_assets.end(),
-                                                                                     [backed_asset](const property_object &o) {
-                                                                                        return o.id == backed_asset.id;
-                                                                                     });
-         approve_smooth_backed_assets.erase(backed_asset_iterator);
+         erase_backed_asset(approve_smooth_backed_assets, backed_asset.get_id());
          return smooth_allocation_condition::approve_allocation_completed;
       }
    }

@@ -73,6 +73,7 @@ private:
     const int64_t get_asset_supply(chain::database &db, std::string symbol) const;
 
     void synchronize_backed_assets(chain::database &db);
+    void erase_backed_asset(vector<chain::property_object> &backed_asset_storage,protocol::property_id_type backed_asset_id_type);
 
     void allocate_price_limitation(std::string backed_by_asset_symbol, uint32_t backed_asset_id, double_t value);
     void increase_backed_asset_allocation_progress(uint32_t backed_asset_id, double_t increase_value);
