@@ -99,7 +99,6 @@ void_result property_delete_evaluator::do_apply(const property_delete_operation&
 { try {
     database& d = db();
 
-    property_object del_property = *_property;
     d.remove(*_property);
    
    return void_result();
