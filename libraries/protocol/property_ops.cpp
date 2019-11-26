@@ -37,6 +37,8 @@ void property_options::validate() const
 void property_create_operation::validate() const
 {
    FC_ASSERT(fee.amount >= 0);
+   //all backing assets are not approved on creation
+   FC_ASSERT(common_options.status == "not approved");
    common_options.validate();
 }
 
