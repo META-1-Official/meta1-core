@@ -1,5 +1,6 @@
 #include <graphene/chain/property_evaluator.hpp>
 #include <graphene/chain/property_object.hpp>
+#include <graphene/chain/asset_limitation_object.hpp>
 #include <graphene/chain/account_object.hpp>
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/database.hpp>
@@ -17,10 +18,17 @@ void_result property_create_evaluator::do_evaluate(const property_create_operati
     try
     {
         database &d = db();
+
         auto &property_indx = d.get_index_type<property_index>().indices().get<by_property_id>();
         auto property_id_itr = property_indx.find(op.property_id);
         FC_ASSERT(property_id_itr == property_indx.end());
         op.validate();
+
+        //verify that asset_limitation_object exists for backed_by_asset_symbol
+        const auto &idx = d.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
+        auto asset_limitation_itr = idx.find(op.common_options.backed_by_asset_symbol);
+        FC_ASSERT(asset_limitation_itr != idx.end(),"asset_limitation_object not exists for backed_by_asset_symbol");
+
         //verify that backed asset create only  with meta1 account 
         const auto& accounts_by_name = d.get_index_type<account_index>().indices().get<by_name>();
         auto itr = accounts_by_name.find("meta1");
@@ -62,6 +70,12 @@ void_result property_update_evaluator::do_evaluate(const property_update_operati
                   "Incorrect issuer for backed asset! (${o.issuer} != ${a.issuer})",
                   ("o.issuer", op.issuer)("a.issuer", property_ob.issuer));
         op.validate();
+
+        //verify that asset_limitation_object exists for backed_by_asset_symbol
+        const auto &idx = d.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
+        auto asset_limitation_itr = idx.find(property_ob.options.backed_by_asset_symbol);
+        FC_ASSERT(asset_limitation_itr != idx.end(),"asset_limitation_object not exists for backed_by_asset_symbol");
+
         //verify that backed asset update only  with meta1 account 
         const auto& accounts_by_name = d.get_index_type<account_index>().indices().get<by_name>();
         auto itr = accounts_by_name.find("meta1");
