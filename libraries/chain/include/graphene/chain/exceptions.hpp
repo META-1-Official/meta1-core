@@ -102,7 +102,7 @@
    catch( ... )                                                               \
    {                                                                          \
       wlog( "Caught unexpected exception in plugin" );                        \
-   }
+   }                                                                          \
 
 namespace graphene { namespace chain {
 

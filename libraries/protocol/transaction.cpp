@@ -302,6 +302,7 @@ void verify_authority( const vector<operation>& ops, const flat_set<public_key_t
                        s.check_authority(get_owner(id)),
                        tx_missing_owner_auth, "Missing Owner Authority ${id}", ("id",id)("auth",*get_owner(id)) );
    }
+  
 
    for( auto id : required_active )
    {

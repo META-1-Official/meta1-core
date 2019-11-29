@@ -3,6 +3,7 @@
 #include <graphene/chain/asset_limitation_object.hpp>
 #include <graphene/chain/account_object.hpp>
 #include <graphene/chain/market_object.hpp>
+#include <graphene/chain/asset_limitation_object.hpp>
 #include <graphene/chain/database.hpp>
 #include <graphene/chain/exceptions.hpp>
 #include <graphene/chain/is_authorized_asset.hpp>
@@ -50,6 +51,7 @@ object_id_type property_create_evaluator::do_apply(const property_create_operati
             d.create<property_object>([&op, next_property_id](property_object &p) {
                 p.issuer = op.issuer;
                 p.options = op.common_options;
+                p.options.allocation_progress = "0.0000000000";
                 p.property_id = op.property_id;
             });
         FC_ASSERT(new_property.id == next_property_id, "Unexpected object database error, object id mismatch");
@@ -111,11 +113,27 @@ void_result property_delete_evaluator::do_evaluate(const property_delete_operati
 
 void_result property_delete_evaluator::do_apply(const property_delete_operation& o)
 { try {
-    database& d = db();
+    database &d = db();
+
+    //Roll back asset_limitation value if we delete backed asset
+    const asset_limitation_object *asset_limitaion = nullptr;
+    const auto &idx = d.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
+    auto itr = idx.find(o.property(d).options.backed_by_asset_symbol);
+    if (itr != idx.end())
+    {
+        asset_limitaion = &*itr;
+        double_t sell_limit = boost::lexical_cast<double_t>(asset_limitaion->options.sell_limit);
+        double_t allocation_progress = boost::lexical_cast<double_t>(o.property(d).options.allocation_progress);
+        string new_sell_limit = boost::lexical_cast<string>(sell_limit - allocation_progress);
+
+        d.modify(*asset_limitaion, [&new_sell_limit](asset_limitation_object &a) {
+            a.options.sell_limit = new_sell_limit;
+        });
+    }
 
     d.remove(*_property);
-   
-   return void_result();
+  
+    return void_result();
 } FC_CAPTURE_AND_RETHROW( (o) ) }
 
 } // namespace chain

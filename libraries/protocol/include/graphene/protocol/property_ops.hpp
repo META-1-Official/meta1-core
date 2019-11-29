@@ -25,6 +25,7 @@ struct property_options
     uint64_t property_surety_bond_value;
     uint64_t property_surety_bond_number;
     string smooth_allocation_time;
+    string allocation_progress;
 
     string backed_by_asset_symbol;
 
@@ -95,6 +96,7 @@ FC_REFLECT(graphene::protocol::property_options,
            (property_surety_bond_value)
            (property_surety_bond_number)
            (smooth_allocation_time)
+           (allocation_progress)
            (backed_by_asset_symbol)
            )
 

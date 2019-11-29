@@ -417,7 +417,6 @@ signed_block database::_generate_block(
             postponed_tx_count++;
             continue;
          }
-
          temp_session.merge();
 
          total_block_size = new_total_size;
@@ -640,19 +639,21 @@ processed_transaction database::_apply_transaction(const signed_transaction& trx
    transaction_evaluation_state eval_state(this);
    const chain_parameters& chain_parameters = get_global_properties().parameters;
    eval_state._trx = &trx;
+ 
 
    if( !(skip & skip_transaction_signatures) )
-   {
+   { 
       bool allow_non_immediate_owner = ( head_block_time() >= HARDFORK_CORE_584_TIME );
       auto get_active = [&]( account_id_type id ) { return &id(*this).active; };
       auto get_owner  = [&]( account_id_type id ) { return &id(*this).owner;  };
+
       trx.verify_authority( chain_id,
                             get_active,
                             get_owner,
                             allow_non_immediate_owner,
                             get_global_properties().parameters.max_authority_depth );
-   }
 
+   }
    //Skip all manner of expiration and TaPoS checking if we're on block 1; It's impossible that the transaction is
    //expired, and TaPoS makes no sense as no blocks exist.
    if( BOOST_LIKELY(head_block_num() > 0) )

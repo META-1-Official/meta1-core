@@ -1091,6 +1091,9 @@ class wallet_api
        */
       signed_transaction delete_property(uint32_t property_id, bool broadcast = false);
 
+      signed_transaction approve_property(uint32_t id,
+                                          bool broadcast = false);                        
+
       //smart contracts for limitation assets buy/sell prices
       signed_transaction create_asset_limitation(string issuer,
                                                  string limit_symbol,
@@ -1890,6 +1893,7 @@ FC_API( graphene::wallet::wallet_api,
         (get_transaction_id)
         (create_property)
         (update_property)
+        (approve_property)
         (delete_property)
         (create_asset_limitation)
         (update_asset_limitation)
