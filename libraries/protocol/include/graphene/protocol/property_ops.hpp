@@ -63,7 +63,6 @@ struct property_update_operation : public base_operation
     property_id_type property_to_update;
     property_options new_options;
 
-    property_options common_options;
     account_id_type fee_payer() const { return issuer; }
     void validate() const;
 };
