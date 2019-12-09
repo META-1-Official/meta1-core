@@ -24,6 +24,8 @@
 #include <graphene/app/application.hpp>
 #include <graphene/app/plugin.hpp>
 
+#include "../common/database_fixture.hpp"
+
 #include <graphene/utilities/tempdir.hpp>
 
 #include <graphene/account_history/account_history_plugin.hpp>
@@ -977,7 +979,7 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
          BOOST_CHECK(con.wallet_api_ptr->import_key("alice", bki.wif_priv_key));
          con.wallet_api_ptr->save_wallet_file(con.wallet_filename);
          // attempt to give alice some bitsahres
-         BOOST_TEST_MESSAGE("Transferring bitshares from Nathan to alice");
+         BOOST_TEST_MESSAGE("Transferring meta1 from Nathan to alice");
          signed_transaction transfer_tx = con.wallet_api_ptr->transfer("nathan", "alice", "10000", "1.3.0", 
                "Here are some CORE token for your new account", true);
       }
@@ -1083,4 +1085,154 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
       throw;
    }
    app1->shutdown();
+}
+
+BOOST_FIXTURE_TEST_CASE(create_asset_limitation, cli_fixture)
+{
+   try
+   {
+      INVOKE(upgrade_nathan_account);
+
+      // create a new account for meta1
+      {
+         graphene::wallet::brain_key_info bki = con.wallet_api_ptr->suggest_brain_key();
+         BOOST_CHECK(!bki.brain_priv_key.empty());
+         signed_transaction create_acct_tx = con.wallet_api_ptr->create_account_with_brain_key(bki.brain_priv_key, "meta1",
+                                                                                               "nathan", "nathan", true);
+         // save the private key for this new account in the wallet file
+         BOOST_CHECK(con.wallet_api_ptr->import_key("meta1", bki.wif_priv_key));
+         con.wallet_api_ptr->save_wallet_file(con.wallet_filename);
+         // attempt to give meta1 some bitsahres
+         BOOST_TEST_MESSAGE("Transferring meta1 from Nathan to meta1");
+         signed_transaction transfer_tx = con.wallet_api_ptr->transfer("nathan", "meta1", "10000", "1.3.0",
+                                                                       "Here are some CORE token for your new account", true);
+      }
+      // create_asset_limitation for META1 asset
+      asset_limitation_options asset_limitation_ops = {
+          "0.0000000000000000",
+          "0.0000000000000001",
+      };
+      signed_transaction asset_limitation_trx = con.wallet_api_ptr->create_asset_limitation("meta1", "META1", asset_limitation_ops, true);
+      //get asset_limitation for META1 asset
+      auto asset_limitation_meta1 = con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1");
+      BOOST_CHECK(asset_limitation_meta1->limit_symbol == "META1");
+      BOOST_CHECK(asset_limitation_meta1->issuer == con.wallet_api_ptr->get_account("meta1").get_id());
+      BOOST_CHECK(asset_limitation_meta1->options.sell_limit == "0.0000000000000000");
+      BOOST_CHECK(asset_limitation_meta1->options.buy_limit == "0.0000000000000001");
+   }
+   catch (fc::exception &e)
+   {
+      edump((e.to_detail_string()));
+      throw;
+   }
+}
+
+BOOST_FIXTURE_TEST_CASE(update_asset_limitation, cli_fixture)
+{
+   try
+   {
+      INVOKE(create_asset_limitation);
+      // create_asset_limitation for META1 asset
+      asset_limitation_options new_asset_limitation_ops = {
+          "1.000000000123457",
+          "0.00000012",
+      };
+      signed_transaction asset_limitation_trx = con.wallet_api_ptr->update_asset_limitation("META1", new_asset_limitation_ops, true);
+      //get asset_limitation for META1 asset
+      auto asset_limitation_meta1 = con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1");
+      BOOST_CHECK(asset_limitation_meta1->limit_symbol == "META1");
+      BOOST_CHECK(asset_limitation_meta1->issuer == con.wallet_api_ptr->get_account("meta1").get_id());
+      BOOST_CHECK(asset_limitation_meta1->options.sell_limit == "1.000000000123457");
+      BOOST_CHECK(asset_limitation_meta1->options.buy_limit == "1.200000001e-07");
+   }
+   catch (fc::exception &e)
+   {
+      edump((e.to_detail_string()));
+      throw;
+   }
+}
+
+BOOST_FIXTURE_TEST_CASE(backing_asset_tests,cli_fixture)
+{
+  try{
+     INVOKE(create_asset_limitation);
+      //create backing asset
+      property_options property_ops = {
+         "some description",
+         "some title",
+         "my@email.com",
+         "you",
+         "https://fsf.com",
+         "https://purepng.com/public/uploads/large/purepng.com-gold-bargoldatomic-number-79chemical-elementgroup-11-elementaurumgold-dustprecious-metal-1701528976849tkdsl.png",
+         "not approved",
+         "222",
+         1000000000,
+         1,
+         33104,
+         "1",
+         "0.000000000000",
+         "META1",
+      };
+      //create_backing_asset test
+      signed_transaction create_backing_asset = con.wallet_api_ptr->create_property("meta1",property_ops,true);
+      //get backing asset
+      auto backing_asset_create = create_backing_asset.operations.back().get<property_create_operation>();
+      BOOST_CHECK(backing_asset_create.issuer == con.wallet_api_ptr->get_account("meta1").get_id());
+      BOOST_CHECK(backing_asset_create.common_options.description == "some description");
+      BOOST_CHECK(backing_asset_create.common_options.title == "some title");
+      BOOST_CHECK(backing_asset_create.common_options.owner_contact_email == "my@email.com");
+      BOOST_CHECK(backing_asset_create.common_options.custodian ==  "you");
+      BOOST_CHECK(backing_asset_create.common_options.detailed_document_link == "https://fsf.com");
+      BOOST_CHECK(backing_asset_create.common_options.image_url == "https://purepng.com/public/uploads/large/purepng.com-gold-bargoldatomic-number-79chemical-elementgroup-11-elementaurumgold-dustprecious-metal-1701528976849tkdsl.png");
+      BOOST_CHECK(backing_asset_create.common_options.status == "not approved");
+      BOOST_CHECK(backing_asset_create.common_options.property_assignee == "222");
+      BOOST_CHECK(backing_asset_create.common_options.appraised_property_value == 1000000000);
+      BOOST_CHECK(backing_asset_create.common_options.property_surety_bond_value == 1);
+      BOOST_CHECK(backing_asset_create.common_options.property_surety_bond_number == 33104);
+      BOOST_CHECK(backing_asset_create.common_options.smooth_allocation_time == "1");
+      BOOST_CHECK(backing_asset_create.common_options.allocation_progress == "0.000000000000");
+      BOOST_CHECK(backing_asset_create.common_options.backed_by_asset_symbol == "META1");
+
+      //approve_backing_asset test
+      signed_transaction approve_backing_asset = con.wallet_api_ptr->approve_property(backing_asset_create.property_id,true);
+      //get backing asset
+      auto backing_asset = con.wallet_api_ptr->get_property(backing_asset_create.property_id);
+      BOOST_CHECK(backing_asset.options.status == "approved");
+
+      //edit backing asset (update) test
+      property_ops.title = "new title";
+      property_ops.description = "new description";
+      signed_transaction update_backing_asset = con.wallet_api_ptr->update_property(backing_asset_create.property_id,property_ops,true);
+      //get backing asset
+      backing_asset = con.wallet_api_ptr->get_property(backing_asset_create.property_id);
+      BOOST_CHECK(backing_asset.issuer == con.wallet_api_ptr->get_account("meta1").get_id());
+      BOOST_CHECK(backing_asset.options.description == "new description");
+      BOOST_CHECK(backing_asset.options.title == "new title");
+      BOOST_CHECK(backing_asset.options.owner_contact_email == "my@email.com");
+      BOOST_CHECK(backing_asset.options.custodian ==  "you");
+      BOOST_CHECK(backing_asset.options.detailed_document_link == "https://fsf.com");
+      BOOST_CHECK(backing_asset.options.image_url == "https://purepng.com/public/uploads/large/purepng.com-gold-bargoldatomic-number-79chemical-elementgroup-11-elementaurumgold-dustprecious-metal-1701528976849tkdsl.png");
+      BOOST_CHECK(backing_asset.options.status == "not approved");
+      BOOST_CHECK(backing_asset.options.property_assignee == "222");
+      BOOST_CHECK(backing_asset.options.appraised_property_value == 1000000000);
+      BOOST_CHECK(backing_asset.options.property_surety_bond_value == 1);
+      BOOST_CHECK(backing_asset.options.property_surety_bond_number == 33104);
+      BOOST_CHECK(backing_asset.options.smooth_allocation_time == "1");
+      BOOST_CHECK(backing_asset.options.allocation_progress == "0.000000000000");
+      BOOST_CHECK(backing_asset.options.backed_by_asset_symbol == "META1");
+
+      //create second backing_asset 
+      signed_transaction create_backing_asset_second = con.wallet_api_ptr->create_property("meta1",property_ops,true);
+      //get_all_backing_assets test
+      BOOST_CHECK(con.wallet_api_ptr->get_all_properties().size() == 2);
+
+      //delete_backing_asset test
+      signed_transaction delete_backing_asset = con.wallet_api_ptr->delete_property(backing_asset_create.property_id,true);
+      GRAPHENE_CHECK_THROW(con.wallet_api_ptr->get_property(backing_asset_create.property_id), fc::exception);
+   }
+   catch (fc::exception &e)
+   {
+      edump((e.to_detail_string()));
+      throw;
+   }
 }
