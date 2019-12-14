@@ -33,6 +33,7 @@
 #include <graphene/market_history/market_history_plugin.hpp>
 #include <graphene/egenesis/egenesis.hpp>
 #include <graphene/wallet/wallet.hpp>
+#include <graphene/smooth_allocation/smooth_allocation_plugin.hpp>
 
 #include <fc/thread/thread.hpp>
 #include <fc/network/http/websocket.hpp>
@@ -126,6 +127,7 @@ std::shared_ptr<graphene::app::application> start_application(fc::temp_directory
    app1->register_plugin< graphene::market_history::market_history_plugin >(true);
    app1->register_plugin< graphene::witness_plugin::witness_plugin >(true);
    app1->register_plugin< graphene::grouped_orders::grouped_orders_plugin>(true);
+   app1->register_plugin< graphene::smooth_allocation::smooth_allocation_plugin>(true);
    app1->startup_plugins();
    boost::program_options::variables_map cfg;
 #ifdef _WIN32
@@ -138,13 +140,14 @@ std::shared_ptr<graphene::app::application> start_application(fc::temp_directory
    );
    cfg.emplace("genesis-json", boost::program_options::variable_value(create_genesis_file(app_dir), false));
    cfg.emplace("seed-nodes", boost::program_options::variable_value(string("[]"), false));
+   cfg.emplace("meta1-private-key",  boost::program_options::variable_value(string("5HuCDiMeESd86xrRvTbexLjkVg2BEoKrb7BAA5RLgXizkgV3shs"), false));
    app1->initialize(app_dir.path(), cfg);
 
    app1->initialize_plugins(cfg);
    app1->startup_plugins();
 
    app1->startup();
-   fc::usleep(fc::milliseconds(500));
+   fc::usleep(fc::milliseconds(5));
    return app1;
 }
 
@@ -1104,8 +1107,11 @@ BOOST_FIXTURE_TEST_CASE(create_asset_limitation, cli_fixture)
          con.wallet_api_ptr->save_wallet_file(con.wallet_filename);
          // attempt to give meta1 some bitsahres
          BOOST_TEST_MESSAGE("Transferring meta1 from Nathan to meta1");
-         signed_transaction transfer_tx = con.wallet_api_ptr->transfer("nathan", "meta1", "10000", "1.3.0",
+         signed_transaction transfer_tx = con.wallet_api_ptr->transfer("nathan", "meta1", "100000", "1.3.0",
                                                                        "Here are some CORE token for your new account", true);
+         
+         signed_transaction upgrade_tx = con.wallet_api_ptr->upgrade_account("meta1", true);
+
       }
       // create_asset_limitation for META1 asset
       asset_limitation_options asset_limitation_ops = {
@@ -1223,12 +1229,22 @@ BOOST_FIXTURE_TEST_CASE(backing_asset_tests,cli_fixture)
 
       //create second backing_asset 
       signed_transaction create_backing_asset_second = con.wallet_api_ptr->create_property("meta1",property_ops,true);
+      auto backing_asset_create_second = create_backing_asset_second.operations.back().get<property_create_operation>();
+
       //get_all_backing_assets test
       BOOST_CHECK(con.wallet_api_ptr->get_all_properties().size() == 2);
 
       //delete_backing_asset test
       signed_transaction delete_backing_asset = con.wallet_api_ptr->delete_property(backing_asset_create.property_id,true);
       GRAPHENE_CHECK_THROW(con.wallet_api_ptr->get_property(backing_asset_create.property_id), fc::exception);
+       wlog("start sleep backing:${b}",("b",con.wallet_api_ptr->get_property(backing_asset_create_second.property_id)));
+       for(int i = 1; i <61 ;++i)
+       {
+           fc::usleep(fc::seconds(1));
+           wlog("timer: ${i}s",("i",i));
+       }
+      wlog("asset_limitation:${l}",("l",con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")));
+      wlog("sleep ends backing:${b}",("b",con.wallet_api_ptr->get_property(backing_asset_create_second.property_id)));
    }
    catch (fc::exception &e)
    {

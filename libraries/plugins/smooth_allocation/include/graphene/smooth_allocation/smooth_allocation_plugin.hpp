@@ -86,10 +86,8 @@ private:
     boost::program_options::variables_map _options;
     bool _shutting_down = false;
 
-    protocol::account_id_type meta1_account_id;
     fc::optional<fc::ecc::private_key> privkey;
 
-    vector<chain::property_object> backed_assets_local_storage;
     vector<chain::property_object> initial_smooth_backed_assets;
     vector<chain::property_object> approve_smooth_backed_assets;
 
