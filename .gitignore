@@ -43,6 +43,7 @@ tests/intense_test
 tests/performance_test
 tests/es_test
 tests/cli_test
+tests/allocation_plugin_test
 tests/generate_empty_blocks/generate_empty_blocks
 
 doxygen

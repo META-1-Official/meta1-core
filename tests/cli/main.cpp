@@ -33,7 +33,6 @@
 #include <graphene/market_history/market_history_plugin.hpp>
 #include <graphene/egenesis/egenesis.hpp>
 #include <graphene/wallet/wallet.hpp>
-#include <graphene/smooth_allocation/smooth_allocation_plugin.hpp>
 
 #include <fc/thread/thread.hpp>
 #include <fc/network/http/websocket.hpp>
@@ -127,7 +126,6 @@ std::shared_ptr<graphene::app::application> start_application(fc::temp_directory
    app1->register_plugin< graphene::market_history::market_history_plugin >(true);
    app1->register_plugin< graphene::witness_plugin::witness_plugin >(true);
    app1->register_plugin< graphene::grouped_orders::grouped_orders_plugin>(true);
-   app1->register_plugin< graphene::smooth_allocation::smooth_allocation_plugin>(true);
    app1->startup_plugins();
    boost::program_options::variables_map cfg;
 #ifdef _WIN32
@@ -140,7 +138,6 @@ std::shared_ptr<graphene::app::application> start_application(fc::temp_directory
    );
    cfg.emplace("genesis-json", boost::program_options::variable_value(create_genesis_file(app_dir), false));
    cfg.emplace("seed-nodes", boost::program_options::variable_value(string("[]"), false));
-   cfg.emplace("meta1-private-key",  boost::program_options::variable_value(string("5HuCDiMeESd86xrRvTbexLjkVg2BEoKrb7BAA5RLgXizkgV3shs"), false));
    app1->initialize(app_dir.path(), cfg);
 
    app1->initialize_plugins(cfg);
@@ -1237,145 +1234,6 @@ BOOST_FIXTURE_TEST_CASE(backing_asset_tests,cli_fixture)
       //delete_backing_asset test
       signed_transaction delete_backing_asset = con.wallet_api_ptr->delete_property(backing_asset_create.property_id,true);
       GRAPHENE_CHECK_THROW(con.wallet_api_ptr->get_property(backing_asset_create.property_id), fc::exception);
-   }
-   catch (fc::exception &e)
-   {
-      edump((e.to_detail_string()));
-      throw;
-   }
-}
-
-const int64_t get_asset_supply(asset_object asset) 
-{
-   //calc supply for smooth allocation formula supply of coin / 10
-   return asset.options.max_supply.value / 10 / std::pow(10, asset.precision);
-}
-
-bool double_equals(double a, double b, double epsilon = 0.000001)
-{
-    return std::abs(a - b) < epsilon;
-}
-///////////////////////////////////////////////////////////////////
-//smooth_allocation_plugin TEST                                  //
-//Use cli_fixture as an easy way to send transactions for testing//
-///////////////////////////////////////////////////////////////////
-BOOST_FIXTURE_TEST_CASE(smooth_allocation_plugin, cli_fixture)
-{
-   try
-   {
-      INVOKE(create_asset_limitation);
-      property_options property_ops = {
-         "some description",
-         "some title",
-         "my@email.com",
-         "you",
-         "https://fsf.com",
-         "https://purepng.com/public/uploads/large/purepng.com-gold-bargoldatomic-number-79chemical-elementgroup-11-elementaurumgold-dustprecious-metal-1701528976849tkdsl.png",
-         "not approved",
-         "222",
-         1000000000,
-         1,
-         33104,
-         "1",
-         "0.000000000000",
-         "META1",
-      };
-
-      signed_transaction create_backing_asset = con.wallet_api_ptr->create_property("meta1",property_ops,true);
-      auto backing_asset_create = create_backing_asset.operations.back().get<property_create_operation>();
-
-      //create_backing_asset && wait 60s.for allocation META1 sell_limitation
-      ilog("Create backing Asset");
-      ilog("META1 sell limitation:${l}", ("l", con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit));
-      ilog("Waiting first minute");
-      fc::usleep(fc::seconds(60));
-      double_t price = ((double)backing_asset_create.common_options.appraised_property_value / get_asset_supply(con.wallet_api_ptr->get_asset("META1"))) * 0.25;
-      double_t timeline = boost::lexical_cast<double_t>(backing_asset_create.common_options.smooth_allocation_time) * 7 * 24 * 60 * 0.25;
-      double_t increase_value = price / timeline;
-      double_t progress = increase_value;
-
-      //check that allocation progress in backing asset && META1 sell_limitation are same double_t progress
-      BOOST_CHECK( boost::lexical_cast<double_t>(con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit) == progress);
-      BOOST_CHECK( boost::lexical_cast<double_t>(con.wallet_api_ptr->get_property(backing_asset_create.property_id).options.allocation_progress) == progress);
-
-      ilog("Waiting second minute");
-      fc::usleep(fc::seconds(60));
-      progress+=increase_value;
-      ilog("test_progress :${b}", ("b", progress));
-      //check that allocation progress in backing asset && META1 sell_limitation are same double_t progress*2
-      BOOST_CHECK( boost::lexical_cast<double_t>(con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit) == progress);
-      BOOST_CHECK( boost::lexical_cast<double_t>(con.wallet_api_ptr->get_property(backing_asset_create.property_id).options.allocation_progress) == progress);
-
-      //approve_backing_asset
-      signed_transaction approve_backing_asset = con.wallet_api_ptr->approve_property(backing_asset_create.property_id,true);
-      ilog("Waiting third minute");
-      ilog("Approve backing Asset");
-      fc::usleep(fc::seconds(60));
-      progress+=increase_value;
-      ilog("test_progress for initial 3 min${b}", ("b", progress));
-
-      price = ((double)backing_asset_create.common_options.appraised_property_value / get_asset_supply(con.wallet_api_ptr->get_asset("META1")));
-      timeline = boost::lexical_cast<double_t>(backing_asset_create.common_options.smooth_allocation_time) * 7 * 24 * 60 * 0.75;
-      progress+=  price / timeline;
-
-      ilog("test_progress for initial && approve allocation 3 min:${b}", ("b", progress));
-       //check that allocation progress in backing asset && META1 sell_limitation are same double_t progress with initial && approve allocation at the same time
-      BOOST_CHECK( boost::lexical_cast<double_t>(con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit) == progress);
-      BOOST_CHECK( boost::lexical_cast<double_t>(con.wallet_api_ptr->get_property(backing_asset_create.property_id).options.allocation_progress) == progress);
-
-      ilog("Waiting fourth minute");
-      fc::usleep(fc::seconds(60));
-      progress+=increase_value;
-      progress+=  price / timeline;
-
-      ilog("test_progress for initial && approve allocation 4 min:${b}", ("b", progress));
-       //check that allocation progress in backing asset && META1 sell_limitation are same double_t progress with initial && approve allocation at the same time
-      BOOST_CHECK( boost::lexical_cast<double_t>(con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit) == progress);
-      BOOST_CHECK( boost::lexical_cast<double_t>(con.wallet_api_ptr->get_property(backing_asset_create.property_id).options.allocation_progress) == progress);
-
-      //if we pass previous test of allocation backing_asset progress state, NOW we will check allocation producing with 2 backing_assets
-      ilog("create second backing_asset");
-      signed_transaction create_backing_asset_second = con.wallet_api_ptr->create_property("meta1",property_ops,true);
-      auto backing_asset_create_second = create_backing_asset_second.operations.back().get<property_create_operation>();
-      ilog("Waiting fifth minute");
-      fc::usleep(fc::seconds(60));
-      //progress from first backing_asset
-      progress+=increase_value;
-      progress+=  price / timeline;
-      //progress from second backing_asset that is not approved and have same stats as the first one 
-      progress+=increase_value;
-
-      BOOST_CHECK( boost::lexical_cast<double_t>(con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit) == progress);
-
-      //approve second property
-      approve_backing_asset = con.wallet_api_ptr->approve_property(backing_asset_create_second.property_id,true);
-      ilog("approve second property");
-      ilog("Waiting sixth minute");
-      fc::usleep(fc::seconds(60));
-       //progress from first backing_asset
-      progress+=increase_value;
-      progress+=  price / timeline;
-      //progress from second approved backing_asset  and have same stats as the first one 
-      progress+=increase_value;
-      progress+=  price / timeline;
-       wlog("META1 limit: ${l}",("l",con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")));
-      BOOST_CHECK( boost::lexical_cast<double_t>(con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit) == progress);
-      
-      //erase_backed_asset plugin storage if delete backing_asset and stop allocation from this asset to sell_limit
-      //and recount sell_limit -allocation progress of deleted backing asset
-      //delete_backing_asset first
-      ilog("delete_backing_asset");
-      signed_transaction delete_backing_asset = con.wallet_api_ptr->delete_property(backing_asset_create.property_id,true);
-      ilog("Waiting seventh minute");
-      fc::usleep(fc::seconds(60));
-      progress+=increase_value;
-      progress+=  price / timeline;
-      double_t second_backing_asset_progress = boost::lexical_cast<double_t>(con.wallet_api_ptr->get_property(backing_asset_create_second.property_id).options.allocation_progress);
-
-      //rolling back progress from first backing_asset in property_delete operation
-      //check that now META1 sell_limit == allocations only from existing second backing_asset
-      BOOST_CHECK(double_equals( boost::lexical_cast<double_t>(con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit),second_backing_asset_progress));
-   
    }
    catch (fc::exception &e)
    {
