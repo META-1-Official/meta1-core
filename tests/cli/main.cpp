@@ -24,6 +24,8 @@
 #include <graphene/app/application.hpp>
 #include <graphene/app/plugin.hpp>
 
+#include "../common/database_fixture.hpp"
+
 #include <graphene/utilities/key_conversion.hpp>
 #include <graphene/utilities/tempdir.hpp>
 
