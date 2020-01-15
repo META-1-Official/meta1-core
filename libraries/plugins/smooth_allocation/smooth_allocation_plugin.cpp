@@ -80,7 +80,9 @@ void smooth_allocation_plugin::allocate_price_limitation(string backed_by_asset_
       trx.set_expiration(fc::time_point::now() + fc::seconds(3000));
       trx.sign(*privkey, database().get_chain_id());
       trx.validate();
-      processed_transaction ptrx = database().push_transaction(precomputable_transaction(trx), ~0);
+      wlog("allocate_price_limitation 1");
+      processed_transaction ptrx = database().push_transaction(precomputable_transaction(trx));
+      wlog("allocate_price_limitation 2");
       increase_backed_asset_allocation_progress(backed_asset_id, value);
    }
    catch (const std::exception &e)
@@ -111,7 +113,7 @@ void smooth_allocation_plugin::increase_backed_asset_allocation_progress(uint32_
       trx.set_expiration(fc::time_point::now() + fc::seconds(3000));
       trx.sign(*privkey, database().get_chain_id());
       trx.validate();
-      processed_transaction ptrx = database().push_transaction(precomputable_transaction(trx), ~0);
+      processed_transaction ptrx = database().push_transaction(precomputable_transaction(trx));
    }
    catch (const std::exception &e)
    {
