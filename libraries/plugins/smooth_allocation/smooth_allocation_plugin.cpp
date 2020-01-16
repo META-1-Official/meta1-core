@@ -368,6 +368,30 @@ void smooth_allocation_plugin::allocation_loop()
    schedule_allocation_loop();
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                                  //
+// "Coin Appreciation" Smart Contract: This contract is defined as nine-times (9X) the newly added asset value plus //
+// the original entire asset value, divided by the “fixed” number of coins (450,000,000), equals the value per coin.//
+// In our pro forma financial projections, the coin will increase in value by approximately                         //
+// $22.22 a coin per $1 billion in asset assignment. As the asset is “In Process” and then “Verified” in            //
+// the two Smart Contracts, the META 1 Coin will realize 100% of the market value of the new asset.                 //
+//                                                                                                                  //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                                  //
+// "Smooth Allocation" Smart Contract:                                                                              // 
+// Smart Contract divides the market value of the asset, $1,000,000,000 / 52 weeks =                                // 
+// $19,230,769 per week of asset value assigned to the META 1 Coin.                                                 //
+//                                                                                                                  //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                                  //
+// "In Process" Smart Contract: During the IN-PROCESS                                                               //
+// stage, 25% of the Market Value of the asset will be sent to the COIN APPRECIATION CONTRACT,                      //
+// increasing the META 1 Coin values accordingly.                                                                   //
+//                                                                                                                  // 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*White paper url https://www.meta1.io/Assets/PDFs/META1%20Coin%20White%20Paper.pdf*/
+
 smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_plugin::maybe_allocate_price(property_object &backed_asset, double_t allocation_percent, fc::limited_mutable_variant_object &capture)
 {
    try
