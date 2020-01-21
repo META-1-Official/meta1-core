@@ -172,12 +172,6 @@ void smooth_allocation_plugin::synchronize_backed_assets(chain::database &db)
          }
       }
    }
-   if (initial_smooth_backed_assets.size() > 0 || approve_smooth_backed_assets.size() > 0)
-   {
-      wlog("schedule_allocation_loop on ");
-      _shutting_down = false;
-      schedule_allocation_loop();
-   }
 }
 
 void smooth_allocation_plugin::erase_backed_asset(vector<chain::property_object> &backed_asset_storage, protocol::property_id_type backed_asset_id_type)
@@ -203,6 +197,10 @@ void smooth_allocation_plugin::plugin_startup()
       wlog("initial backed assets size:${s}", ("s", initial_smooth_backed_assets.size()));
       wlog("approve backed assets size:${s}", ("s", approve_smooth_backed_assets.size()));
 
+      //start smooth_allocation_loop
+      wlog("schedule_allocation_loop on ");
+      schedule_allocation_loop();
+      
       d.on_pending_transaction.connect([this](const signed_transaction &t) {
          for (auto &operation : t.operations)
          {
@@ -215,15 +213,8 @@ void smooth_allocation_plugin::plugin_startup()
                                                          });
 
                if (backed_asset_iterator == initial_smooth_backed_assets.end())
-               {
                   initial_smooth_backed_assets.push_back(get_backed_asset(database(), backed_asset_create_op.property_id));
-                  if (initial_smooth_backed_assets.size() == 1 && approve_smooth_backed_assets.size() == 0)
-                  {
-                     _shutting_down = false;
-                     wlog("schedule_allocation_loop on ");
-                     schedule_allocation_loop();
-                  }
-               }
+
             }
             else if (operation.is_type<property_update_operation>())
             {
@@ -234,15 +225,8 @@ void smooth_allocation_plugin::plugin_startup()
                                                          });
 
                if (backed_asset_update_op.new_options.status == "approved" && backed_asset_iterator == approve_smooth_backed_assets.end())
-               {
                   approve_smooth_backed_assets.push_back(get_backed_asset(database(), backed_asset_update_op.property_to_update));
-                  if (approve_smooth_backed_assets.size() == 1 && initial_smooth_backed_assets.size() == 0)
-                  {
-                     wlog("schedule_allocation_loop on ");
-                     _shutting_down = false;
-                     schedule_allocation_loop();
-                  }
-               }
+
             }
             else if (operation.is_type<property_delete_operation>())
             {
@@ -329,14 +313,6 @@ void smooth_allocation_plugin::allocation_loop()
    smooth_allocation_condition::smooth_allocation_condition_enum result;
    fc::limited_mutable_variant_object capture(GRAPHENE_MAX_NESTED_OBJECTS);
 
-   if (initial_smooth_backed_assets.size() == 0 && approve_smooth_backed_assets.size() == 0)
-   {
-      result = smooth_allocation_condition::stop_smooth_allocation;
-      result_viewer(result, capture);
-      stop_allocation();
-   }
-   else
-   {
       try
       {
          for (auto &backed_asset : initial_smooth_backed_assets)
@@ -359,7 +335,6 @@ void smooth_allocation_plugin::allocation_loop()
          capture("err", e.what());
          result_viewer(result, capture);
       }
-   }
 
    schedule_allocation_loop();
 }
