@@ -28,22 +28,18 @@ const asset_limitation_object &smooth_allocation_plugin::get_asset_limitation(ch
 
 const property_object &smooth_allocation_plugin::get_backed_asset(chain::database &db, uint32_t backed_asset_id) const
 {
-   const auto &idx = db.get_index_type<property_index>().indices().get<by_id>();
-   for (const auto &b : idx)
-   {
-      if (b.property_id == backed_asset_id)
-         return b;
-   }
+   const auto &idx = db.get_index_type<property_index>().indices().get<by_property_id>();
+   auto itr = idx.find(backed_asset_id);
+   assert(itr != idx.end());
+   return *itr;
 }
 
 const property_object &smooth_allocation_plugin::get_backed_asset(chain::database &db, protocol::property_id_type backed_asset_id_type) const
 {
    const auto &idx = db.get_index_type<property_index>().indices().get<by_id>();
-   for (const auto &b : idx)
-   {
-      if (b.get_id() == backed_asset_id_type)
-         return b;
-   }
+   auto itr = idx.find(backed_asset_id_type);
+   assert(itr != idx.end());
+   return *itr;
 }
 
 const int64_t smooth_allocation_plugin::get_asset_supply(chain::database &db, string symbol) const
