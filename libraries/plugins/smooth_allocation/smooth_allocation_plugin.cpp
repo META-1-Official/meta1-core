@@ -68,7 +68,6 @@ void smooth_allocation_plugin::allocate_price_limitation(string backed_by_asset_
       price_buf = boost::lexical_cast<double_t>(asset_limitation_ops.sell_limit);
       price_buf += value;
       asset_limitation_ops.sell_limit = boost::lexical_cast<std::string>(price_buf);
-
       update_op.new_options = asset_limitation_ops;
 
       trx.operations.push_back(update_op);
@@ -76,9 +75,9 @@ void smooth_allocation_plugin::allocate_price_limitation(string backed_by_asset_
       trx.set_expiration(fc::time_point::now() + fc::seconds(3000));
       trx.sign(*privkey, database().get_chain_id());
       trx.validate();
-      wlog("allocate_price_limitation 1");
-      processed_transaction ptrx = database().push_transaction(precomputable_transaction(trx));
-      wlog("allocate_price_limitation 2");
+
+      //~0 param used for testing mode(./allocation_plugin_test)
+      processed_transaction ptrx = database().push_transaction(precomputable_transaction(trx), ~0);
       increase_backed_asset_allocation_progress(backed_asset_id, value);
    }
    catch (const std::exception &e)
@@ -109,7 +108,9 @@ void smooth_allocation_plugin::increase_backed_asset_allocation_progress(uint32_
       trx.set_expiration(fc::time_point::now() + fc::seconds(3000));
       trx.sign(*privkey, database().get_chain_id());
       trx.validate();
-      processed_transaction ptrx = database().push_transaction(precomputable_transaction(trx));
+
+      //~0 param used for testing mode(./allocation_plugin_test)
+      processed_transaction ptrx = database().push_transaction(precomputable_transaction(trx), ~0);
    }
    catch (const std::exception &e)
    {
@@ -142,8 +143,15 @@ void smooth_allocation_plugin::plugin_initialize(const boost::program_options::v
       if (options.count("meta1-private-key"))
       {
          privkey = graphene::utilities::wif_to_key(options["meta1-private-key"].as<string>());
-         wlog("privKEy 1 : ${k}", ("k", privkey));
-         wlog("privKEy 2 :${k}", ("k", options["meta1-private-key"].as<string>()));
+         //wlog("privKEy 1 : ${k}", ("k", privkey));
+         //wlog("privKEy 2 :${k}", ("k", options["meta1-private-key"].as<string>()));
+      }
+
+      if (options.count("smooth-allocation-plugin-testing-mode"))
+      {
+         _is_testing_mode =options["smooth-allocation-plugin-testing-mode"].as<bool>();
+         dlog("Smooth_allocation_plugin testing mode:${m}",("m",_is_testing_mode));
+         allocation_loop_speed = _is_testing_mode ? fc::milliseconds(100) : fc::minutes(1);
       }
 
       ilog("smooth_allocation_plugin:  plugin_initialize() end");
@@ -172,6 +180,12 @@ void smooth_allocation_plugin::synchronize_backed_assets(chain::database &db)
          }
       }
    }
+   if (initial_smooth_backed_assets.size() > 0 || approve_smooth_backed_assets.size() > 0)
+   {
+      dlog("schedule_allocation_loop on ");
+      _shutting_down = false;
+      schedule_allocation_loop();
+   }
 }
 
 void smooth_allocation_plugin::erase_backed_asset(vector<chain::property_object> &backed_asset_storage, protocol::property_id_type backed_asset_id_type)
@@ -194,12 +208,8 @@ void smooth_allocation_plugin::plugin_startup()
       chain::database &d = database();
       synchronize_backed_assets(d);
 
-      wlog("initial backed assets size:${s}", ("s", initial_smooth_backed_assets.size()));
-      wlog("approve backed assets size:${s}", ("s", approve_smooth_backed_assets.size()));
-
-      //start smooth_allocation_loop
-      wlog("schedule_allocation_loop on ");
-      schedule_allocation_loop();
+      ilog("initial backed assets size:${s}", ("s", initial_smooth_backed_assets.size()));
+      ilog("approve backed assets size:${s}", ("s", approve_smooth_backed_assets.size()));
       
       d.on_pending_transaction.connect([this](const signed_transaction &t) {
          for (auto &operation : t.operations)
@@ -213,8 +223,16 @@ void smooth_allocation_plugin::plugin_startup()
                                                          });
 
                if (backed_asset_iterator == initial_smooth_backed_assets.end())
+               {
                   initial_smooth_backed_assets.push_back(get_backed_asset(database(), backed_asset_create_op.property_id));
-
+                  //check if schedule_allocation_loop is off and we add first backing asset
+                  if ( _shutting_down == true)
+                  {
+                    _shutting_down = false;
+                     dlog("schedule_allocation_loop on ");
+                     schedule_allocation_loop();
+                  }
+               }
             }
             else if (operation.is_type<property_update_operation>())
             {
@@ -225,7 +243,16 @@ void smooth_allocation_plugin::plugin_startup()
                                                          });
 
                if (backed_asset_update_op.new_options.status == "approved" && backed_asset_iterator == approve_smooth_backed_assets.end())
+               {
                   approve_smooth_backed_assets.push_back(get_backed_asset(database(), backed_asset_update_op.property_to_update));
+                  //check maybe we have backing assets, but catch approve_operation and should on allocation_loop
+                  if (_shutting_down == true)
+                  {
+                     dlog("schedule_allocation_loop on ");
+                     _shutting_down = false;
+                     schedule_allocation_loop();
+                  }
+               }
 
             }
             else if (operation.is_type<property_delete_operation>())
@@ -270,13 +297,9 @@ void smooth_allocation_plugin::schedule_allocation_loop()
    if (_shutting_down)
       return;
 
-   // If we would wait less than 5000ms, wait for the whole min.
    fc::time_point now = fc::time_point::now();
-   int64_t time_to_next_allocation = 60000000 - (now.time_since_epoch().count() % 1000000); // 1 min = 60000000
-   if (time_to_next_allocation < 5000000)                                                   // we must sleep for at least 5000ms
-      time_to_next_allocation += 60000000;
 
-   fc::time_point next_wakeup(now + fc::microseconds(time_to_next_allocation));
+   fc::time_point next_wakeup(now + allocation_loop_speed);
    _smooth_allocation_task = fc::schedule([this] { allocation_loop(); },
                                           next_wakeup, "smooth allocation");
 }
@@ -286,16 +309,16 @@ void smooth_allocation_plugin::result_viewer(smooth_allocation_condition::smooth
    switch (result)
    {
    case smooth_allocation_condition::initial_allocation_produced:
-      wlog("Initial allocation produced for backed_asset: ${backed_asset} with progress: ${progress}", (capture));
+      dlog("Initial allocation produced for backed_asset: ${backed_asset} with progress: ${progress}", (capture));
       break;
    case smooth_allocation_condition::approve_allocation_produced:
-      wlog("Approve allocation produced for backed_asset: ${backed_asset} with progress: ${progress}", (capture));
+      dlog("Approve allocation produced for backed_asset: ${backed_asset} with progress: ${progress}", (capture));
       break;
    case smooth_allocation_condition::initial_allocation_completed:
-      wlog("Initial allocation completed for: ${backed_asset}", (capture));
+      dlog("Initial allocation completed for: ${backed_asset}", (capture));
       break;
    case smooth_allocation_condition::approve_allocation_completed:
-      wlog("Approve allocation completed for: ${backed_asset}", (capture));
+      dlog("Approve allocation completed for: ${backed_asset}", (capture));
       break;
    case smooth_allocation_condition::exception_allocation:
       elog("Exception in allocation error log: ${err}", (capture));
@@ -312,29 +335,28 @@ void smooth_allocation_plugin::allocation_loop()
 {
    smooth_allocation_condition::smooth_allocation_condition_enum result;
    fc::limited_mutable_variant_object capture(GRAPHENE_MAX_NESTED_OBJECTS);
-
-      try
+   try
+   {
+      for (auto &backed_asset : initial_smooth_backed_assets)
       {
-         for (auto &backed_asset : initial_smooth_backed_assets)
-         {
-            result = maybe_allocate_price(backed_asset, 0.25, capture);
-            result_viewer(result, capture);
-            //const auto &asset_limitation_to_update = get_asset_limitation(database(), backed_asset.options.backed_by_asset_symbol);
-         }
-
-         for (auto &backed_asset : approve_smooth_backed_assets)
-         {
-            result = maybe_allocate_price(backed_asset, 0.75, capture);
-            result_viewer(result, capture);
-            //const auto &asset_limitation_to_update = get_asset_limitation(database(), backed_asset.options.backed_by_asset_symbol);
-         }
-      }
-      catch (const fc::exception &e)
-      {
-         result = smooth_allocation_condition::exception_allocation;
-         capture("err", e.what());
+         result = maybe_allocate_price(backed_asset, 0.25, capture);
          result_viewer(result, capture);
+         //const auto &asset_limitation_to_update = get_asset_limitation(database(), backed_asset.options.backed_by_asset_symbol);
       }
+
+      for (auto &backed_asset : approve_smooth_backed_assets)
+      {
+         result = maybe_allocate_price(backed_asset, 0.75, capture);
+         result_viewer(result, capture);
+         //const auto &asset_limitation_to_update = get_asset_limitation(database(), backed_asset.options.backed_by_asset_symbol);
+      }
+   }
+   catch (const fc::exception &e)
+   {
+      result = smooth_allocation_condition::exception_allocation;
+      capture("err", e.what());
+      result_viewer(result, capture);
+   }
 
    schedule_allocation_loop();
 }
@@ -374,6 +396,7 @@ smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_
          price = (double)backed_asset.options.appraised_property_value / get_asset_supply(database(), backed_asset.options.backed_by_asset_symbol);
       const double_t timeline = boost::lexical_cast<double_t>(backed_asset.options.smooth_allocation_time) * 7 * 24 * 60 * allocation_percent;
       double_t increase_value = price / timeline;
+      dlog("Plugin price: ${p}",("p",price));
       capture("backed_asset", backed_asset.id);
       //if +=increase_value out of range (price) we should change increase value
       if (boost::lexical_cast<double_t>(get_backed_asset(database(), backed_asset.property_id).options.allocation_progress) + increase_value > price)

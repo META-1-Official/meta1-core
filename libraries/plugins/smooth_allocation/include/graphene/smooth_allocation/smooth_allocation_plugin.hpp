@@ -84,7 +84,17 @@ private:
     smooth_allocation_condition::smooth_allocation_condition_enum maybe_allocate_price(chain::property_object &backed_asset, double_t allocation_percent, fc::limited_mutable_variant_object &capture);
 
     boost::program_options::variables_map _options;
-    bool _shutting_down = false;
+    bool _shutting_down = true;
+
+    ///////////
+    /// @param _is_testing_mode value determines in what mode the plugin will be launched
+    bool _is_testing_mode;
+
+    ///////////
+    /// @param allocation_loop_speed the value determines the speed of the allocation. 
+    //In production mode, allocation speed  = 1 minute; 
+    //In test mode, allocation speed        = 100 milliseconds;
+    fc::microseconds allocation_loop_speed;
 
     fc::optional<fc::ecc::private_key> privkey;
 

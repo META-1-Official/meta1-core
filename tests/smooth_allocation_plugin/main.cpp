@@ -96,9 +96,8 @@ int get_available_port()
 /// @param server_port_number to be filled with the rpc endpoint port number
 /// @returns the application object
 //////////
-std::shared_ptr<graphene::app::application> start_application(fc::temp_directory& app_dir, int& server_port_number) {
+std::shared_ptr<graphene::app::application> start_application(fc::temp_directory& app_dir, int& server_port_number, bool& allocation_plugin_mode) {
    std::shared_ptr<graphene::app::application> app1(new graphene::app::application{});
-
    app1->register_plugin< graphene::witness_plugin::witness_plugin >(true);
    app1->register_plugin< graphene::smooth_allocation::smooth_allocation_plugin>(true);
    app1->startup_plugins();
@@ -114,6 +113,9 @@ std::shared_ptr<graphene::app::application> start_application(fc::temp_directory
    cfg.emplace("genesis-json", boost::program_options::variable_value(create_genesis_file(app_dir), false));
    cfg.emplace("seed-nodes", boost::program_options::variable_value(string("[]"), false));
    cfg.emplace("meta1-private-key",  boost::program_options::variable_value(string("5HuCDiMeESd86xrRvTbexLjkVg2BEoKrb7BAA5RLgXizkgV3shs"), false));
+
+   /// @param allocation_plugin_mode : true = test_mode , false = production_mode
+   cfg.emplace("smooth-allocation-plugin-testing-mode",  boost::program_options::variable_value(allocation_plugin_mode, false));
    app1->initialize(app_dir.path(), cfg);
 
    app1->initialize_plugins(cfg);
@@ -188,7 +190,11 @@ public:
 // Cli Wallet Fixture
 ///////////////////////////////
 
-struct cli_fixture
+/// @brief used to launch allocation plugin in test mode
+/// @param production_mode defines timeouts between allocation
+//In production mode, allocation speed  = 1 minute; 
+//In test mode, allocation speed        = 100 milliseconds;
+struct test_cli_fixture
 {
    class dummy
    {
@@ -205,16 +211,16 @@ struct cli_fixture
    std::shared_ptr<graphene::app::application> app1;
    client_connection con;
    std::vector<std::string> nathan_keys;
-
-   cli_fixture() :
+   bool flag;
+   /// @param allocation_plugin_mode : true = test_mode , false = production_mode
+   test_cli_fixture(bool allocation_plugin_mode = true) :
       server_port_number(0),
       app_dir( graphene::utilities::temp_directory_path() ),
-      app1( start_application(app_dir, server_port_number) ),
+      app1( start_application(app_dir, server_port_number,allocation_plugin_mode) ),
       con( app1, app_dir, server_port_number ),
       nathan_keys( {"5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"} )
    {
       BOOST_TEST_MESSAGE("Setup cli_wallet::boost_fixture_test_case");
-
       using namespace graphene::chain;
       using namespace graphene::app;
 
@@ -234,7 +240,7 @@ struct cli_fixture
       }
    }
 
-   ~cli_fixture()
+   ~test_cli_fixture()
    {
       BOOST_TEST_MESSAGE("Cleanup cli_wallet::boost_fixture_test_case");
 
@@ -248,11 +254,74 @@ struct cli_fixture
    }
 };
 
+/// @brief used to launch allocation plugin in production mode
+/// @param production_mode defines timeouts between allocation
+//In production mode, allocation speed  = 1 minute; 
+//In test mode, allocation speed        = 100 milliseconds;
+struct production_cli_fixture
+{
+   class dummy
+   {
+   public:
+      ~dummy()
+      {
+         // wait for everything to finish up
+         fc::usleep(fc::milliseconds(500));
+      }
+   };
+   dummy dmy;
+   int server_port_number;
+   fc::temp_directory app_dir;
+   std::shared_ptr<graphene::app::application> app1;
+   client_connection con;
+   std::vector<std::string> nathan_keys;
+   bool flag;
+   //allocation_plugin mode: true = test_mode , false = production_mode
+   production_cli_fixture(bool allocation_plugin_mode = false) :
+      server_port_number(0),
+      app_dir( graphene::utilities::temp_directory_path() ),
+      app1( start_application(app_dir, server_port_number,allocation_plugin_mode) ),
+      con( app1, app_dir, server_port_number ),
+      nathan_keys( {"5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"} )
+   {
+      BOOST_TEST_MESSAGE("Setup cli_wallet::boost_fixture_test_case");
+      using namespace graphene::chain;
+      using namespace graphene::app;
+
+      try
+      {
+         BOOST_TEST_MESSAGE("Setting wallet password");
+         con.wallet_api_ptr->set_password("supersecret");
+         con.wallet_api_ptr->unlock("supersecret");
+
+         // import Nathan account
+         BOOST_TEST_MESSAGE("Importing nathan key");
+         BOOST_CHECK_EQUAL(nathan_keys[0], "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3");
+         BOOST_CHECK(con.wallet_api_ptr->import_key("nathan", nathan_keys[0]));
+      } catch( fc::exception& e ) {
+         edump((e.to_detail_string()));
+         throw;
+      }
+   }
+
+   ~production_cli_fixture()
+   {
+      BOOST_TEST_MESSAGE("Cleanup cli_wallet::boost_fixture_test_case");
+
+      // wait for everything to finish up
+      fc::usleep(fc::seconds(1));
+
+      app1->shutdown();
+#ifdef _WIN32
+      sockQuit();
+#endif
+   }
+};
 ///////////////////////////////
 // Tests
 ///////////////////////////////
 
-BOOST_FIXTURE_TEST_CASE( upgrade_nathan_account, cli_fixture )
+BOOST_FIXTURE_TEST_CASE( upgrade_nathan_account, test_cli_fixture )
 {
    try
    {
@@ -284,7 +353,7 @@ BOOST_FIXTURE_TEST_CASE( upgrade_nathan_account, cli_fixture )
    }
 }
 
-BOOST_FIXTURE_TEST_CASE(create_asset_limitation, cli_fixture)
+BOOST_FIXTURE_TEST_CASE(create_asset_limitation, test_cli_fixture)
 {
    try
    {
@@ -309,7 +378,7 @@ BOOST_FIXTURE_TEST_CASE(create_asset_limitation, cli_fixture)
       }
       // create_asset_limitation for META1 asset
       asset_limitation_options asset_limitation_ops = {
-          "0.0000000000000000",
+          "0.00000000000000",
           "0.0000000000000001",
       };
       signed_transaction asset_limitation_trx = con.wallet_api_ptr->create_asset_limitation("meta1", "META1", asset_limitation_ops, true);
@@ -317,7 +386,7 @@ BOOST_FIXTURE_TEST_CASE(create_asset_limitation, cli_fixture)
       auto asset_limitation_meta1 = con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1");
       BOOST_CHECK(asset_limitation_meta1->limit_symbol == "META1");
       BOOST_CHECK(asset_limitation_meta1->issuer == con.wallet_api_ptr->get_account("meta1").get_id());
-      BOOST_CHECK(asset_limitation_meta1->options.sell_limit == "0.0000000000000000");
+      BOOST_CHECK(asset_limitation_meta1->options.sell_limit == "0.00000000000000");
       BOOST_CHECK(asset_limitation_meta1->options.buy_limit == "0.0000000000000001");
    }
    catch (fc::exception &e)
@@ -337,11 +406,219 @@ bool double_equals(double a, double b, double epsilon = 0.000001)
 {
     return std::abs(a - b) < epsilon;
 }
+
+/////////////////////////////////////////////////////////////////////
+//https://github.com/meta1-blockchain/meta1-core/issues/18         //
+/////////////////////////////////////////////////////////////////////
+
+// (Case A) 
+// An asset is added on Date 1. It is appraised at a certain value. 
+// It remains in the "in processing contract" but it is never verified. 
+// Demonstrate that the "Smooth Allocation Smart Contract" increases the value over time.
+
+///////////
+/// @brief in_time_test tests that the plugin is in production mode,
+///        allocates the value exactly every minute and checks that progress value are calculated correctly.
+///
+///        Test duration: 3 minutes
+//////////
+BOOST_FIXTURE_TEST_CASE(in_time_test, production_cli_fixture)
+{
+   try
+   {
+      INVOKE(create_asset_limitation);
+      ilog("asset_limitation for META1 created");
+
+      property_options property_ops = {
+          "some description",
+          "some title",
+          "my@email.com",
+          "you",
+          "https://fsf.com",
+          "https://purepng.com/metal-1701528976849tkdsl.png",
+          "not approved",
+          "222",
+          1000000000,
+          1,
+          33104,
+          "52",
+          "0.000000000000",
+          "META1",
+      };
+
+      signed_transaction create_backing_asset = con.wallet_api_ptr->create_property("meta1", property_ops, true);
+      time_point start_time = fc::time_point::now();
+      int loop_counter = 0;
+
+      ilog("Start time:${t}", ("t", start_time));
+      auto backing_asset_create = create_backing_asset.operations.back().get<property_create_operation>();
+
+      //create_backing_asset && wait 60s.for allocation META1 sell_limitation
+      ilog("Backing Asset created\nINFO:\n ${b}\n", ("b", backing_asset_create.common_options));
+
+      ilog("META1 sell limitation:${l}", ("l", con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit));
+      ilog("Waiting first minute for allocation progress\n");
+      //First minute
+      fc::usleep(fc::minutes(1));
+      ++loop_counter;
+
+      //checking that the current time - 1 minute == creation time of new backing asset
+      BOOST_CHECK(fc::time_point::now().sec_since_epoch() - 60 * loop_counter == start_time.sec_since_epoch());
+      ilog("Time:${t}", ("t", fc::time_point::now()));
+      double_t price = ((double)backing_asset_create.common_options.appraised_property_value / get_asset_supply(con.wallet_api_ptr->get_asset("META1"))) * 0.25;
+      double_t timeline = boost::lexical_cast<double_t>(backing_asset_create.common_options.smooth_allocation_time) * 7 * 24 * 60 * 0.25;
+      double_t increase_value = price / timeline;
+      double_t progress = increase_value;
+
+      ilog("META1 sell limitation:${l}", ("l", con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit));
+      ilog("Price to allocate    :${p}", ("p", price));
+      ilog("Timeline             :${t}", ("t", timeline));
+      ilog("Increase_value       :${i}", ("i", increase_value));
+      ilog("Progress             :${p}", ("p", progress));
+
+      //check that allocation progress in backing asset && META1 sell_limitation are same double_t progress
+      BOOST_CHECK(boost::lexical_cast<double_t>(con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit) == progress);
+      BOOST_CHECK(boost::lexical_cast<double_t>(con.wallet_api_ptr->get_property(backing_asset_create.property_id).options.allocation_progress) == progress);
+
+      ilog("Waiting second minute for allocation progress\n");
+      //Second minute
+      fc::usleep(fc::minutes(1));
+      ++loop_counter;
+
+      progress += increase_value;
+
+      //checking that the current time - 2 minute == creation time of new backing asset
+      BOOST_CHECK(fc::time_point::now().sec_since_epoch() - 60 * loop_counter == start_time.sec_since_epoch());
+
+      ilog("Time:${t}", ("t", fc::time_point::now()));
+      ilog("META1 sell limitation:${l}", ("l", con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit));
+      ilog("Price to allocate    :${p}", ("p", price));
+      ilog("Timeline             :${t}", ("t", timeline));
+      ilog("Increase_value       :${i}", ("i", increase_value));
+      ilog("Progress             :${p}", ("p", progress));
+
+      //check that allocation progress in backing asset && META1 sell_limitation are same double_t progress
+      BOOST_CHECK(boost::lexical_cast<double_t>(con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit) == progress);
+      BOOST_CHECK(boost::lexical_cast<double_t>(con.wallet_api_ptr->get_property(backing_asset_create.property_id).options.allocation_progress) == progress);
+
+      ilog("Waiting third minute for allocation progress\n");
+      //Third minute
+      fc::usleep(fc::minutes(1));
+      ++loop_counter;
+
+      progress += increase_value;
+
+      //checking that the current time - 3 minute == creation time of new backing asset
+      BOOST_CHECK(fc::time_point::now().sec_since_epoch() - 60 * loop_counter == start_time.sec_since_epoch());
+
+      ilog("Time:${t}", ("t", fc::time_point::now()));
+      ilog("META1 sell limitation:${l}", ("l", con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit));
+      ilog("Price to allocate    :${p}", ("p", price));
+      ilog("Timeline             :${t}", ("t", timeline));
+      ilog("Increase_value       :${i}", ("i", increase_value));
+      ilog("Progress             :${p}", ("p", progress));
+
+      //check that allocation progress in backing asset && META1 sell_limitation are same double_t progress
+      BOOST_CHECK(boost::lexical_cast<double_t>(con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit) == progress);
+      BOOST_CHECK(boost::lexical_cast<double_t>(con.wallet_api_ptr->get_property(backing_asset_create.property_id).options.allocation_progress) == progress);
+   }
+   catch (fc::exception &e)
+   {
+      edump((e.to_detail_string()));
+      throw;
+   }
+}
+
+///////////
+/// @brief end_of_the_vesting_period_test tests that the plugin is in test mode (speed up allocation mode)
+///        allocates backing asset progress && META1 price_limit value using 1 minute progress with  100 milliseconds speed.
+///        Demonstrate at the end of the vesting period that the smooth allocation has allocated 0.25 of the appraisal value 
+///        Demonstrate after the end of the vesting period that the smooth allocation has not allocated more than 0.25 of the appraisal value
+///        
+///        Test duration: ~5 minutes
+//////////
+BOOST_FIXTURE_TEST_CASE(end_of_the_vesting_period_test, test_cli_fixture)
+{
+   try
+   {
+      INVOKE(create_asset_limitation);
+      ilog("asset_limitation for META1 created");
+
+      property_options property_ops = {
+          "some description",
+          "some title",
+          "my@email.com",
+          "you",
+          "https://fsf.com",
+          "https://purepng.com/metal-1701528976849tkdsl.png",
+          "not approved",
+          "222",
+          1000000000,
+          1,
+          33104,
+          "1",
+          "0.000000000000",
+          "META1",
+      };
+      //Price to allocate
+      double_t price = ((double)property_ops.appraised_property_value / get_asset_supply(con.wallet_api_ptr->get_asset("META1"))) * 0.25;
+      double_t timeline = boost::lexical_cast<double_t>(property_ops.smooth_allocation_time) * 7 * 24 * 60 * 0.25;
+      double_t increase_value = price / timeline;
+      double_t progress = 0.0;
+
+      //Calculated value of the end of allocation, in milliseconds
+      int loop_ends_in_milliseconds = price / increase_value * 100;
+      time_point start_time = fc::time_point::now();
+
+      signed_transaction create_backing_asset = con.wallet_api_ptr->create_property("meta1", property_ops, true);
+      auto backing_asset_create = create_backing_asset.operations.back().get<property_create_operation>();
+
+      //loop for checking allocation_progress && sell_limit progress
+      for (int i = 0; i < loop_ends_in_milliseconds; i += 100)
+      {
+         //////////
+         //Waiting for new allocation progress.
+         //99 milliseconds.
+         //Due to the fact that allocation occurs very quickly, we have a slight delay in the tests thread.
+         //It will be enough to expect every cycle 1 millisecond less.
+         fc::usleep(fc::milliseconds(99));
+
+         progress += increase_value;
+
+         ilog("Price to allocate    :${p}", ("p", price));
+         ilog("META1 sell limitation:${l}", ("l", con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit));
+         ilog("Time:${t}", ("t", fc::time_point::now()));
+         ilog("progress:${t}", ("t", progress));
+
+         //Check that allocation progress in backing asset && META1 sell_limitation are same double_t progress
+         BOOST_CHECK(boost::lexical_cast<double_t>(con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit) == progress);
+         BOOST_CHECK(boost::lexical_cast<double_t>(con.wallet_api_ptr->get_property(backing_asset_create.property_id).options.allocation_progress) == progress);
+      }
+
+      fc::usleep(fc::milliseconds(500));
+
+      ilog("Price to allocate    :${p}", ("p", price));
+      ilog("META1 sell limitation:${l}", ("l", con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit));
+      ilog("Time:${t}", ("t", fc::time_point::now()));
+      ilog("progress:${t}", ("t", progress));
+
+      //Check that allocatation not produced out of price(Price to allocate) range
+      BOOST_CHECK(boost::lexical_cast<double_t>(con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1")->options.sell_limit) == price);
+      BOOST_CHECK(boost::lexical_cast<double_t>(con.wallet_api_ptr->get_property(backing_asset_create.property_id).options.allocation_progress) == price);
+   }
+   catch (fc::exception &e)
+   {
+      edump((e.to_detail_string()));
+      throw;
+   }
+}
+
+// OLD TESTS//
 ///////////////////////////////////////////////////////////////////
 //smooth_allocation_plugin TEST                                  //
-//Use cli_fixture as an easy way to send transactions for testing//
+//Use test_cli_fixture as an easy way to send transactions for testing//
 ///////////////////////////////////////////////////////////////////
-BOOST_FIXTURE_TEST_CASE(smooth_allocation_plugin, cli_fixture)
+BOOST_FIXTURE_TEST_CASE(smooth_allocation_plugin, production_cli_fixture)
 {
    try
    {
