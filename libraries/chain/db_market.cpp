@@ -822,7 +822,7 @@ bool database::fill_limit_order( const limit_order_object& order, const asset& p
    const account_object& seller = order.seller(*this);
    const asset_object& recv_asset = receives.asset_id(*this);
 
-   auto issuer_fees = pay_market_fees(&seller, recv_asset, receives);
+   auto issuer_fees = pay_market_fees(&seller, recv_asset, receives, is_maker);
 
    pay_order( seller, receives - issuer_fees, pays );
 
@@ -933,9 +933,16 @@ bool database::fill_settle_order( const force_settlement_object& settle, const a
 { try {
    bool filled = false;
 
-   auto issuer_fees = ( head_block_time() < HARDFORK_CORE_1780_TIME ) ?
-      pay_market_fees(nullptr, get(receives.asset_id), receives) :
-      pay_market_fees(&settle.owner(*this), get(receives.asset_id), receives);
+   const account_object* settle_owner_ptr = nullptr;
+   // The owner of the settle order pays market fees to the issuer of the collateral asset after HF core-1780
+   //
+   // TODO Check whether the HF check can be removed after the HF.
+   //      Note: even if logically it can be removed, perhaps the removal will lead to a small performance
+   //            loss. Needs testing.
+   if( head_block_time() >= HARDFORK_CORE_1780_TIME )
+      settle_owner_ptr = &settle.owner(*this);
+
+   auto issuer_fees = pay_market_fees( settle_owner_ptr, get(receives.asset_id), receives, is_maker );
 
    if( pays < settle.balance )
    {
@@ -1189,7 +1196,7 @@ void database::pay_order( const account_object& receiver, const asset& receives,
    adjust_balance(receiver.get_id(), receives);
 }
 
-asset database::calculate_market_fee( const asset_object& trade_asset, const asset& trade_amount )
+asset database::calculate_market_fee( const asset_object& trade_asset, const asset& trade_amount, const bool& is_maker)
 {
    assert( trade_asset.id == trade_amount.asset_id );
 
@@ -1198,7 +1205,19 @@ asset database::calculate_market_fee( const asset_object& trade_asset, const ass
    if( trade_asset.options.market_fee_percent == 0 )
       return trade_asset.amount(0);
 
-   auto value = detail::calculate_percent(trade_amount.amount, trade_asset.options.market_fee_percent);
+   // BSIP81: Asset owners may specify different market fee rate for maker orders and taker orders
+   uint16_t fee_percent;
+   auto maint_time = get_dynamic_global_properties().next_maintenance_time;
+   bool before_core_hardfork_bsip81 = ( maint_time <= HARDFORK_BSIP_81_TIME ); // before simple maker-taker fee
+   if( before_core_hardfork_bsip81 ) {
+      // Before BSIP81, the fee is the market fee
+      fee_percent = trade_asset.options.market_fee_percent;
+   } else {
+      // After BSIP81, the fee depends on if maker or taker
+      fee_percent = is_maker ? trade_asset.options.market_fee_percent : trade_asset.options.taker_fee_percent;
+   }
+
+   auto value = detail::calculate_percent(trade_amount.amount, fee_percent);
    asset percent_fee = trade_asset.amount(value);
 
    if( percent_fee.amount > trade_asset.options.max_market_fee )
@@ -1207,9 +1226,11 @@ asset database::calculate_market_fee( const asset_object& trade_asset, const ass
    return percent_fee;
 }
 
-asset database::pay_market_fees(const account_object* seller, const asset_object& recv_asset, const asset& receives )
+asset database::pay_market_fees(const account_object* seller, const asset_object& recv_asset, const asset& receives,
+                                const bool& is_maker)
 {
-   const auto issuer_fees = calculate_market_fee( recv_asset, receives );
+   const auto market_fees = calculate_market_fee( recv_asset, receives, is_maker );
+   auto issuer_fees = market_fees;
    FC_ASSERT( issuer_fees <= receives, "Market fee shouldn't be greater than receives");
    //Don't dirty undo state if not actually collecting any fees
    if ( issuer_fees.amount > 0 )
