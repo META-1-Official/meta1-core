@@ -1256,7 +1256,7 @@ asset database::pay_market_fees(const account_object& seller, const asset_object
                   FC_ASSERT( reward < issuer_fees, "Market reward should be less than issuer fees");
                }
                else{
-                  FC_ASSERT( reward <= issuer_fees, "Market reward should be less or equal than issuer fees");
+                  FC_ASSERT( reward <= issuer_fees, "Market reward should not be greater than issuer fees");
                }
                // cut referrer percent from reward
                auto registrar_reward = reward;
@@ -1274,7 +1274,8 @@ asset database::pay_market_fees(const account_object& seller, const asset_object
                      deposit_market_fee_vesting_balance(seller.referrer, referrer_reward);
                   }
                }
-               deposit_market_fee_vesting_balance(seller.registrar, registrar_reward);
+               if( registrar_reward.amount > 0 )
+                  deposit_market_fee_vesting_balance(seller.registrar, registrar_reward);
             }
          }
       }
