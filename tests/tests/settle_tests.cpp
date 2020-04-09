@@ -1625,6 +1625,10 @@ BOOST_AUTO_TEST_CASE( create_bitassets )
       generate_blocks( db.get_dynamic_global_properties().next_maintenance_time );
       set_expiration( db, trx );
 
+      generate_blocks( HARDFORK_480_TIME ); // avoid being affected by the price feed bug
+      generate_block();
+      set_expiration( db, trx );
+
       ACTORS((paul)(rachelregistrar)(rachelreferrer));
 
       upgrade_to_lifetime_member(rachelregistrar);
