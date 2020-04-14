@@ -52,7 +52,9 @@ namespace detail {
    {
       if (block_time < HARDFORK_BSIP_81_TIME) {
          // Taker fees should be zero until activation of BSIP81
-         FC_ASSERT(options.taker_fee_percent == 0, "Taker fee must be 0% until HARDFORK_BSIP_81_TIME");
+         FC_ASSERT(!options.extensions.value.taker_fee_percent.valid() ||
+                   *options.extensions.value.taker_fee_percent == 0,
+                   "Taker fee must be 0% until HARDFORK_BSIP_81_TIME");
       }
    }
 }
@@ -126,7 +128,9 @@ void_result asset_create_evaluator::do_evaluate( const asset_create_operation& o
 
    // Taker fees should be zero until activation of BSIP81
    if(now <= HARDFORK_BSIP_81_TIME) {
-      FC_ASSERT(op.common_options.taker_fee_percent == 0, "Simple maker-taker fees are not yet activated");
+      FC_ASSERT(!op.common_options.extensions.value.taker_fee_percent.valid()
+                || *op.common_options.extensions.value.taker_fee_percent == 0,
+                "Simple maker-taker fees are not yet activated");
    }
 
    return void_result();
@@ -333,7 +337,9 @@ void_result asset_update_evaluator::do_evaluate(const asset_update_operation& o)
 
    if(now <= HARDFORK_BSIP_81_TIME) {
       // Taker fees should be zero until activation of BSIP81
-      FC_ASSERT(o.new_options.taker_fee_percent == 0, "Simple maker-taker fees are not yet activated");
+      FC_ASSERT(!o.new_options.extensions.value.taker_fee_percent.valid()
+                || *o.new_options.extensions.value.taker_fee_percent == 0,
+                "Simple maker-taker fees are not yet activated");
    }
 
    return void_result();
