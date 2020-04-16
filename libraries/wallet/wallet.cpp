@@ -1435,19 +1435,11 @@ public:
          if (!property_to_update)
             FC_THROW("No property with that id exists!");
 
-         property_update_operation update_op;
-         update_op.issuer = property_to_update->issuer;
-         update_op.property_to_update = property_to_update->id;
-         update_op.new_options = property_to_update->options;
+         property_approve_operation approve_op;
+         approve_op.issuer = property_to_update->issuer;
 
-         if(update_op.new_options.status == "not approved") {
-            update_op.new_options.status = "approved";
-         }
-         else {
-          FC_THROW("Property is already approved!");
-         }
          signed_transaction tx;
-         tx.operations.push_back(update_op);
+         tx.operations.push_back(approve_op);
          set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
          tx.validate();
 

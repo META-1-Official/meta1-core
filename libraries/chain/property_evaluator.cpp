@@ -140,8 +140,37 @@ void_result property_update_evaluator::do_apply(const property_update_operation 
     {
         database &d = db();
        d.modify(*property_to_update, [&op, &d](property_object &p) {
-            time_point_sec current_time = d.head_block_time();
+            p.options = op.new_options;
+        });
+        return void_result();
+    }
+    FC_CAPTURE_AND_RETHROW((op))
+}
 
+   void_result property_approve_evaluator::do_evaluate(const property_approve_operation &op) {
+      try {
+         database &d = db();
+         const property_object &property_ob = op.property_to_approve(d);
+         property_to_approve = &property_ob;
+
+         FC_ASSERT(op.issuer == property_ob.issuer,
+                   "Incorrect issuer for backed asset! (${o.issuer} != ${a.issuer})",
+                   ("o.issuer", op.issuer)("a.issuer", property_ob.issuer));
+         op.validate();
+
+         FC_ASSERT(property_to_approve->options.status == "not approved", "Backing asset is already approved!");
+
+         return void_result();
+      }
+      FC_CAPTURE_AND_RETHROW((op))
+   }
+
+   void_result property_approve_evaluator::do_apply(const property_approve_operation &op) {
+      try {
+         database &d = db();
+         auto next_property_id = d.get_index_type<property_index>().get_next_id();
+         const time_point_sec current_time = d.head_block_time();
+         d.modify(*property_to_approve, [&current_time](property_object &p) {
             // Set the approval date
             p.date_approval = current_time;
 
@@ -164,13 +193,11 @@ void_result property_update_evaluator::do_apply(const property_update_operation 
                p.date_next_allocation = current_time + 60;
             }
 
-            // TODO: Permit updates to options during an approval?
-            p.options = op.new_options;
-        });
-        return void_result();
-    }
-    FC_CAPTURE_AND_RETHROW((op))
-}
+         });
+         return void_result();
+      }
+      FC_CAPTURE_AND_RETHROW((op))
+   }
 
 void_result property_delete_evaluator::do_evaluate(const property_delete_operation& o)
 { try {

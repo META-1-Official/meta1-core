@@ -106,6 +106,7 @@ namespace graphene { namespace protocol {
             htlc_refund_operation,            // VIRTUAL
             property_create_operation,
             property_update_operation,
+            property_approve_operation,
             property_delete_operation
 
          > operation;

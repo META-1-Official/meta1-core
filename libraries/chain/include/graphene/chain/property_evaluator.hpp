@@ -27,6 +27,17 @@ public:
     const property_object *property_to_update = nullptr;
 };
 
+class property_approve_evaluator : public evaluator<property_approve_evaluator>
+{
+public:
+    typedef property_approve_operation operation_type;
+
+    void_result do_evaluate(const property_approve_operation &o);
+    void_result do_apply(const property_approve_operation &o);
+
+    const property_object *property_to_approve = nullptr;
+};
+
 class property_delete_evaluator : public evaluator<property_delete_evaluator>
 {
    public:

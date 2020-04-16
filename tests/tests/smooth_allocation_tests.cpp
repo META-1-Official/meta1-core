@@ -445,13 +445,11 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
 
          // Approve the asset by using the update operation
-         // TODO: Create tests to check safe changing options
-         property_update_operation uop;
-         uop.issuer = meta1.id;
-         uop.property_to_update = property->id;
-         uop.new_options = property->options;
+         property_approve_operation aop;
+         aop.issuer = meta1.id;
+         aop.property_to_approve = property->id;
 
-         trx.operations.push_back(uop);
+         trx.operations.push_back(aop);
          sign(trx, meta1_private_key);
 
          PUSH_TX(db, trx);
@@ -696,14 +694,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          //////
          // Approve the asset by using the update operation
-         // TODO: Create tests to check safe changing options
          //////
-         property_update_operation uop;
-         uop.issuer = meta1.id;
-         uop.property_to_update = property->id;
-         uop.new_options = property->options;
+         property_approve_operation aop;
+         aop.issuer = meta1.id;
+         aop.property_to_approve = property->id;
 
-         trx.operations.push_back(uop);
+         trx.operations.push_back(aop);
          sign(trx, meta1_private_key);
 
          PUSH_TX(db, trx);
