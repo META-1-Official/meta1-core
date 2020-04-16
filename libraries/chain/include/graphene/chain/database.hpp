@@ -521,11 +521,20 @@ namespace graphene { namespace chain {
                                    const asset_bitasset_data_object* bitasset_ptr = nullptr );
          void clear_expired_htlcs();
 
+         //////////////////// db_smooth_allocation.cpp ////////////////////
+   private:
+         vector<chain::property_object> initial_smooth_backed_assets;
+         vector<chain::property_object> approve_smooth_backed_assets;
+         void update_smooth_allocation();
+
+   public:
+      const property_object* get_property(uint32_t property_id) const;
+
          ///Steps performed only at maintenance intervals
          ///@{
 
          //////////////////// db_maint.cpp ////////////////////
-
+   private:
          void initialize_budget_record( fc::time_point_sec now, budget_record& rec )const;
          void process_budget();
          void pay_workers( share_type& budget );
