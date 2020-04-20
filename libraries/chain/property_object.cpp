@@ -11,5 +11,8 @@ FC_REFLECT_DERIVED_NO_TYPENAME(graphene::chain::property_object, (graphene::db::
                    (property_id)
                    (issuer)
                    (options)
+                   (date_creation)
+                   (date_approval)
+                   (scaled_allocation_progress)
                   )
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::property_object )

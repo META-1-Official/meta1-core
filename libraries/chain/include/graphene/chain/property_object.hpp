@@ -22,6 +22,18 @@ public:
     account_id_type issuer;
     property_options options;
 
+    // Only some of the following fields need to be serialized over the wire when properties are queried over an API
+    time_point_sec date_creation;
+    optional<time_point_sec> date_approval;
+    uint64_t scaled_allocation_progress; // expressed in units where 10^12 units = 1.00
+
+    // Derived value for expediting frequent calculations
+    time_point_sec date_initial_end;
+    time_point_sec date_approval_deadline;
+    bool expired;
+    uint64_t scaled_allocation_per_minute; // Rate of allocation
+    time_point_sec date_next_allocation;
+
     property_id_type get_id() const { return id; }
     
 };

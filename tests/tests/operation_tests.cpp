@@ -2665,6 +2665,62 @@ BOOST_AUTO_TEST_CASE(update_property)
    }
 }
 
+BOOST_AUTO_TEST_CASE(approve_backing_asset)
+{
+   using namespace graphene;
+   try
+   {
+      // TODO: Move this block advancement to create_asset_limitation
+      // Advance to when the smooth allocation is activated
+      generate_blocks(HARDFORK_CORE_21_TIME);
+
+      INVOKE(create_property);
+
+      // Initialize for the current time
+      set_expiration(db, trx);
+
+      trx.clear();
+      const auto &test = get_property(PROPERTY_TEST_ID);
+
+      trx.clear();
+      const auto &nathan = create_account("nathan");
+
+      // Before approval, the date of approval should not be defined
+      BOOST_CHECK(!test.date_approval.valid());
+
+      // Nathan should not be able to approve the property; only meta1 should be the approver
+      property_approve_operation op;
+      op.property_to_approve = test.id;
+      op.issuer = nathan.get_id();
+
+      trx.clear();
+      trx.operations.push_back(op);
+      GRAPHENE_REQUIRE_THROW(PUSH_TX(db, trx, ~0), fc::exception);
+
+      // META1 should be able to approve the property
+      op.issuer = test.issuer;
+      trx.clear();
+      trx.operations.push_back(op);
+      PUSH_TX(db, trx, ~0);
+
+      // After approval, the date of approval should be defined
+      BOOST_CHECK(test.date_approval.valid());
+
+      // A backed asset can only be confirmed 1 time
+      generate_block();
+      set_expiration(db, trx);
+      trx.clear();
+      trx.operations.push_back(op);
+      GRAPHENE_REQUIRE_THROW(PUSH_TX(db, trx, ~0), fc::exception);
+
+   }
+   catch (fc::exception &e)
+   {
+      edump((e.to_detail_string()));
+      throw;
+   }
+}
+
 BOOST_AUTO_TEST_CASE(delete_property_test)
 {
    try

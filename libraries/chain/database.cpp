@@ -29,6 +29,7 @@
 #include "db_maint.cpp"
 #include "db_management.cpp"
 #include "db_market.cpp"
+#include "db_smooth_allocation.cpp"
 #include "db_update.cpp"
 #include "db_witness_schedule.cpp"
 #include "db_notify.cpp"
