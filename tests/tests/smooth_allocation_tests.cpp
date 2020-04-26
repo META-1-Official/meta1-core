@@ -42,9 +42,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
    }
 
    const int64_t get_asset_supply(asset_object asset) {
-      //calc supply for smooth allocation formula supply of coin / 10
-      // INCORRECT: return asset.options.max_supply.value / 10 / std::pow(10, asset.precision);
-      return asset.options.max_supply.value / std::pow(10, asset.precision); // CORRECT
+      //  Platform- and compiler-independent calculation
+      return asset.options.max_supply.value / asset::scaled_precision(asset.precision).value;
    }
 
    // TODO [7]: Use existing functions in database_api or elsewhere
@@ -795,5 +794,343 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
    // TODO: Test for late approval on the same block as the approval deadline
    // TODO: Test for approval on the block before the approval deadline
+
+   /**
+    * The initial parameters for an appreciation period of property with a given vesting duration
+    * will defined such that increments of the appreciation from 0% to 100% will occur at "standard one-minute intervals"
+    * which are defined as occurring on the "0 second" mark of a minute.
+    *
+    * This implies that the discrete quantity of increments (total_increments) can be pre-calculated,
+    * and thereafter all processing on the "0 second" mark will increment the appreciation (progress) by 1
+    * such that the fractional progress, at a conceptual level, can be calculated as
+    *
+    * fractional_progress = progress / total_increments.
+    *
+    * This fractional progress is a rational fraction (i.e. without any rounding or truncation).
+    *
+    * The general concept becomes more intricate given that another requirement of the smart contracts permits
+    * the appreciation to be paused at 25% if the property's valuation is not approved by 25% of the timeline
+    * (i.e. the entire vesting duration).  Subsequent approval may be granted at any time between 25% and 100%
+    * of the timeline at which time the appreciation restarts but at an accelerated rate
+    * such that the remaining 75% of appreciation should complete by 100% of the timeline (i.e. the approval deadline).
+    *
+    * To prevent any numerical loss for "late approvals", an additional discrete quantity of increments
+    * for the approval period shall be calculated (total_approval_increments)
+    * separate from the quantity required during the initial period (total_initial_increments).  Similarly, two separate
+    * progress variables will be during the initial period (progress_initial) and the approval period (progress_approval).
+    *
+    * With this arrangement, the fractional progress can be calculated at any time as a rational fraction according to
+    *
+    * fractional_progress = progress_initial / total_increments_initial + progress_approval / total_increments_approval
+    *
+    * If a "late approval" occurs, the total_increments_approval will be appropriate calculated
+    * for the time of the late approval.
+    */
+
+   /**
+    * Parameters for initializing an appreciation period for a property
+    *
+    * The parameters for the 100% initial period are valid if the appraisal approval is granted before the initial
+    * period completes.  In which case smooth appreciation can continue without any interruption.
+    */
+   struct appreciation_period_parameters {
+      time_point_sec time_to_25_percent;
+      uint32_t time_to_25_percent_intervals;
+
+      time_point_sec time_to_100_percent;
+      uint32_t time_to_100_percent_intervals;
+   };
+
+   /**
+    * Calculate the next start time based on intervals that are calculated relative to 1970-01-01T00:00:00Z
+    * @param current_time   Current time
+    * @param epoch  Epoch time
+    * @param interval_seconds   Interval that should be used relative to reference time
+    * @return   Next start time
+    */
+   static time_point_sec calc_next_start_time(const time_point_sec& current_time, const time_point_sec &epoch,
+                                              const uint32_t interval_seconds) {
+      const uint32_t duration_since_epoch_seconds =
+              current_time.sec_since_epoch() - epoch.sec_since_epoch();
+      const uint32_t intervals_since_epoch = duration_since_epoch_seconds / interval_seconds;
+      const uint32_t next_interval = intervals_since_epoch + 1;
+      const uint32_t duration_to_next_interval_seconds = next_interval * interval_seconds;
+
+      const time_point_sec next_start_time = epoch + duration_to_next_interval_seconds;
+
+      return next_start_time;
+   }
+
+   /**
+    * Calculate the preceding start time based on intervals that are calculated relative to 1970-01-01T00:00:00Z
+    * @param current_time   Current time
+    * @param epoch   Epoch time
+    * @param interval_seconds   Interval that should be used relative to reference time
+    * @return   Next start time
+    */
+   static time_point_sec calc_preceding_start_time(const time_point_sec& current_time, const time_point_sec &epoch,
+                                              const uint32_t interval_seconds) {
+      const uint32_t duration_since_epoch_seconds =
+              current_time.sec_since_epoch() - epoch.sec_since_epoch();
+      const uint32_t intervals_since_epoch = duration_since_epoch_seconds / interval_seconds;
+      const uint32_t duration_to_preceding_interval_seconds = intervals_since_epoch * interval_seconds;
+
+      const time_point_sec next_start_time = epoch + duration_to_preceding_interval_seconds;
+
+      return next_start_time;
+   }
+
+
+   static const time_point_sec META1_REFERENCE_TIME = time_point_sec(); // 1970-01-01T00:00:00Z
+   static const uint32_t META1_INTERVAL_BETWEEN_ALLOCATION_SECONDS = 60;
+
+   /**
+    * Calculate the standard META1 next start time
+    *
+    * @param current_time   Current time
+    * @return   Next standard start time
+    */
+   static time_point_sec calc_meta1_next_start_time(const time_point_sec current_time) {
+      return calc_next_start_time(current_time, META1_REFERENCE_TIME, META1_INTERVAL_BETWEEN_ALLOCATION_SECONDS);
+   }
+
+   /**
+    * Calculate the standard META1 preceding start time
+    *
+    * @param current_time   Current time
+    * @return   Preceding standard start time
+    */
+   static time_point_sec calc_meta1_preceding_start_time(const time_point_sec current_time) {
+      return calc_preceding_start_time(current_time, META1_REFERENCE_TIME, META1_INTERVAL_BETWEEN_ALLOCATION_SECONDS);
+   }
+
+   /**
+    * Calculate a start time based on intervals that are calculated relative to 1970-01-01T00:00:00Z
+    * @param current_time   Current time
+    * @param duration_seconds Duration of vesting
+    * @return
+    */
+   static appreciation_period_parameters
+   calc_meta1_allocation_initial_parameters(const time_point_sec &start_time, const uint32_t duration_seconds) {
+      // Check the start time
+      const uint32_t duration_since_reference_seconds =
+              start_time.sec_since_epoch() - META1_REFERENCE_TIME.sec_since_epoch();
+      const uint32_t remainder_of_intervals_since_reference_time =
+              duration_since_reference_seconds % META1_INTERVAL_BETWEEN_ALLOCATION_SECONDS;
+      FC_ASSERT(remainder_of_intervals_since_reference_time == 0);
+
+      // Check the duration
+      const uint32_t remainder_of_duration = duration_seconds % META1_INTERVAL_BETWEEN_ALLOCATION_SECONDS;
+      FC_ASSERT(remainder_of_duration == 0);
+
+      // Calculate the standard META1 parameters
+      appreciation_period_parameters p;
+
+      // Calculate parameters for the 100% time
+      const time_point_sec end_time = start_time + duration_seconds;
+      p.time_to_100_percent = end_time;
+      p.time_to_100_percent_intervals = duration_seconds / META1_INTERVAL_BETWEEN_ALLOCATION_SECONDS;
+
+      // Calculate parameters for the 25% time
+      const uint32_t duration_to_25_percent = duration_seconds / 4;
+      // TODO: ?Check if the duration is a multiple of the standard appreciation intervals?; test with a duration that is not evenly divisible by 4
+      p.time_to_25_percent = start_time + duration_to_25_percent;
+      p.time_to_25_percent_intervals = p.time_to_100_percent_intervals / 4;
+
+      return p;
+   }
+
+
+   /**
+    * Parameters for restarting appreciation after the 25% time for a property
+    */
+   struct appreciation_restart_parameters {
+      time_point_sec restart_time;
+      uint32_t intervals_to_end;
+   };
+
+
+   /**
+    * Calculate new parameters for restarting the allocation
+    * @param current_time   Current time
+    * @param end_time Scheduled end time
+    * @return Parameters that are appropriate between now and the scheduled end time
+    */
+   static appreciation_restart_parameters
+   calc_meta1_allocation_restart_parameters(const time_point_sec &current_time, const time_point_sec &end_time) {
+      // Check for invalid current times
+      FC_ASSERT(current_time.sec_since_epoch() < end_time.sec_since_epoch());
+
+      // Calculate the implied preceding "start" time
+      time_point_sec restart_time = calc_meta1_preceding_start_time(current_time);
+      const uint32_t duration_seconds = end_time.sec_since_epoch() - restart_time.sec_since_epoch();
+
+      // Calculate the intervals to the end
+      const uint32_t intervals_to_end = duration_seconds / META1_INTERVAL_BETWEEN_ALLOCATION_SECONDS;
+
+      // Package the parameters
+      appreciation_restart_parameters p;
+      p.restart_time = restart_time;
+      p.intervals_to_end = intervals_to_end;
+
+      return p;
+   }
+
+
+   /**
+    * Evaluates the appreciation parameters when initializing and restarting after the 25% time
+    * of a 52-week vesting duration
+    *
+    * Values can be checked with Linux commands similar to
+    * date -u --date='00:00:00 January 1, 2020' +%s
+    * date -u --date='@1577836800'
+    */
+   BOOST_AUTO_TEST_CASE(parameters_for_52_week_vesting) {
+      try {
+         time_point_sec calculation_time;
+         time_point_sec start_time;
+
+         const time_point_sec& _2019_12_31_23_59_57 = time_point_sec(1577836797); // 2019-12-31T23:59:57Z
+         const time_point_sec& _2020_01_01_00_00_00 = time_point_sec(1577836800); // 2020-01-01T00:00:00Z
+         const time_point_sec& _2020_01_01_00_00_03 = time_point_sec(1577836803); // 2020-01-01T00:00:03Z
+         const time_point_sec& _2020_01_01_00_01_00 = time_point_sec(1577836860); // 2020-01-01T00:01:00Z
+         const time_point_sec& _2020_04_01_00_00_00 = time_point_sec(1585699200); // 2020-04-01T00:00:00Z
+         const time_point_sec& _2020_12_30_00_00_00 = time_point_sec(1609286400); // 2020-12-30T00:00:00Z
+
+         /**
+          * Test the start times when initializing at different times around the :00 second mark
+          */
+         calculation_time = _2020_01_01_00_00_00;
+         const uint32_t duration_52_weeks_in_seconds = 52 * 7 * 24 * 60 * 60; // 31449600
+
+         time_point_sec calculated_time;
+         calculated_time = calc_meta1_next_start_time(_2019_12_31_23_59_57);
+         BOOST_CHECK_EQUAL(_2020_01_01_00_00_00.sec_since_epoch(), calculated_time.sec_since_epoch());
+
+         BOOST_CHECK_EQUAL(_2020_01_01_00_00_00.sec_since_epoch(),
+                           calc_meta1_next_start_time(_2019_12_31_23_59_57).sec_since_epoch());
+         BOOST_CHECK_EQUAL(_2020_01_01_00_01_00.sec_since_epoch(),
+                           calc_meta1_next_start_time(_2020_01_01_00_00_00).sec_since_epoch());
+         BOOST_CHECK_EQUAL(_2020_01_01_00_01_00.sec_since_epoch(),
+                           calc_meta1_next_start_time(_2020_01_01_00_00_03).sec_since_epoch());
+
+         start_time = calc_meta1_next_start_time(_2019_12_31_23_59_57);
+         BOOST_CHECK_EQUAL(_2020_01_01_00_00_00.sec_since_epoch(), calc_meta1_next_start_time(_2019_12_31_23_59_57).sec_since_epoch());
+
+
+         /**
+          * Test the initial parameters for the appreciation period
+          */
+         appreciation_period_parameters period = calc_meta1_allocation_initial_parameters(start_time,
+                                                                                          duration_52_weeks_in_seconds);
+         BOOST_CHECK_EQUAL(_2020_12_30_00_00_00.sec_since_epoch(), period.time_to_100_percent.sec_since_epoch());
+
+         uint32_t expected_intervals_to_100_percent = 524160; // = 52 * 7 * 24 * 60
+         BOOST_CHECK_EQUAL(expected_intervals_to_100_percent, period.time_to_100_percent_intervals);
+
+         uint32_t expected_intervals_to_25_percent = 131040; // = 52 * 7 * 24 * 60 / 4
+         BOOST_CHECK_EQUAL(expected_intervals_to_25_percent, period.time_to_25_percent_intervals);
+
+         BOOST_CHECK_EQUAL(_2020_04_01_00_00_00.sec_since_epoch(),period.time_to_25_percent.sec_since_epoch());
+
+
+         /**
+          * Test restarting the appreciation after the 25% time
+          */
+         appreciation_restart_parameters restart;
+
+         // Count the quantity of intervals to the 100% mark of a 52 week duration
+         // when starting at 0 seconds past the minute of 30% time
+         // 30% time = 1577836800 + 31449600*30/100 = 1577836800 + 9434880 = 1587271680 = 2020-04-19T04:48:00Z
+         const time_point_sec& time_30pct = time_point_sec(1587271680); // 2020-04-19T04:48:00Z
+         restart = calc_meta1_allocation_restart_parameters(time_30pct, period.time_to_100_percent);
+         BOOST_CHECK_EQUAL(time_30pct.sec_since_epoch(), restart.restart_time.sec_since_epoch());
+         BOOST_CHECK_EQUAL(366912, restart.intervals_to_end);
+
+         // Count the quantity of intervals to the 100% mark of a 52 week 100% duration
+         // when restarting at 0 seconds past the minute of 45% time
+         // 45% time = 1577836800 + 31449600*45/100 = 1577836800 + 14152320 = 1591989120 = 2020-04-19T04:48:00Z
+         const time_point_sec& time_45pct = time_point_sec(1591989120); // 2020-06-12T19:12:00Z
+         restart = calc_meta1_allocation_restart_parameters(time_45pct, period.time_to_100_percent);
+         BOOST_CHECK_EQUAL(time_45pct.sec_since_epoch(), restart.restart_time.sec_since_epoch());
+         BOOST_CHECK_EQUAL(288288, restart.intervals_to_end);
+
+         // Count the quantity of intervals to the 100% mark of a 52 week 100% duration
+         // when restarting at 0 seconds past the minute of 60% time
+         // 60% time = 1577836800 + 31449600*60/100 = 1577836800 + 18869760 = 1596706560 = 2020-08-06T09:36:00Z
+         const time_point_sec& time_60pct= time_point_sec(1596706560); // 2020-08-06T09:36:00Z
+         restart = calc_meta1_allocation_restart_parameters(time_60pct, period.time_to_100_percent);
+         BOOST_CHECK_EQUAL(time_60pct.sec_since_epoch(), restart.restart_time.sec_since_epoch());
+         BOOST_CHECK_EQUAL(209664, restart.intervals_to_end);
+
+         // Count the quantity of intervals to the 100% mark of a 52 week 100% duration
+         // when restarting at 0 seconds past the minute of 75% time
+         // 75% time = 1577836800 + 31449600*75/100 = 1577836800 + 23587200 = 1601424000 = 2020-09-30T00:00:00Z
+         const time_point_sec& time_75pct= time_point_sec(1601424000); // 2020-09-30T00:00:00Z
+         restart = calc_meta1_allocation_restart_parameters(time_75pct, period.time_to_100_percent);
+         BOOST_CHECK_EQUAL(time_75pct.sec_since_epoch(), restart.restart_time.sec_since_epoch());
+         BOOST_CHECK_EQUAL(131040, restart.intervals_to_end);
+
+         // Count the quantity of intervals to the 100% mark of a 52 week 100% duration
+         // when restarting at 0 seconds past the minute of 90% time
+         // 90% time = 1577836800 + 31449600*90/100 = 1577836800 + 28304640 = 1606141440 = 2020-11-23T14:24:00Z
+         const time_point_sec& time_90pct= time_point_sec(1606141440); // 2020-11-23T14:24:00Z
+         restart = calc_meta1_allocation_restart_parameters(time_90pct, period.time_to_100_percent);
+         BOOST_CHECK_EQUAL(time_90pct.sec_since_epoch(), restart.restart_time.sec_since_epoch());
+         BOOST_CHECK_EQUAL(52416, restart.intervals_to_end);
+
+         // Count the quantity of intervals to the 100% mark of a 52 week 100% duration
+         // when restarting at 0 seconds past the minute of 99% time
+         // 99% time = 1577836800 + 31449600*99/100 = 1577836800 + 31135104 = 1608971904 = 2020-12-26T08:38:24Z
+         const time_point_sec& time_99pct= time_point_sec(1608971904); // 2020-12-26T08:38:24Z
+         const time_point_sec& _2020_12_26_08_38_00= time_point_sec(1608971880); // 2020-12-26T08:38:00Z
+         restart = calc_meta1_allocation_restart_parameters(time_99pct, period.time_to_100_percent);
+         BOOST_CHECK_EQUAL(_2020_12_26_08_38_00.sec_since_epoch(), restart.restart_time.sec_since_epoch());
+         BOOST_CHECK_EQUAL(5242, restart.intervals_to_end);
+
+         // Count the quantity of intervals to the 100% mark of a 52 week 100% duration
+         // when restarting with 3 minutes remaining
+         const time_point_sec& time_3m_before = time_point_sec(1609286220); // 2020-12-29T23:57:00Z
+         restart = calc_meta1_allocation_restart_parameters(time_3m_before, period.time_to_100_percent);
+         BOOST_CHECK_EQUAL(time_3m_before.sec_since_epoch(), restart.restart_time.sec_since_epoch());
+         BOOST_CHECK_EQUAL(3, restart.intervals_to_end);
+
+         // Count the quantity of intervals to the 100% mark of a 52 week 100% duration
+         // when restarting with 2 minutes remaining
+         const time_point_sec& time_2m_before = time_point_sec(1609286280); // 2020-12-29T23:58:00Z
+         restart = calc_meta1_allocation_restart_parameters(time_2m_before, period.time_to_100_percent);
+         BOOST_CHECK_EQUAL(time_2m_before.sec_since_epoch(), restart.restart_time.sec_since_epoch());
+         BOOST_CHECK_EQUAL(2, restart.intervals_to_end);
+
+         // Count the quantity of intervals to the 100% mark of a 52 week 100% duration
+         // when restarting with 1 minutes remaining
+         const time_point_sec& time_1m_before = time_point_sec(1609286340); // 2020-12-29T23:59:00Z
+         restart = calc_meta1_allocation_restart_parameters(time_1m_before, period.time_to_100_percent);
+         BOOST_CHECK_EQUAL(time_1m_before.sec_since_epoch(), restart.restart_time.sec_since_epoch());
+         BOOST_CHECK_EQUAL(1, restart.intervals_to_end);
+
+         // Count the quantity of intervals to the 100% mark of a 52 week 100% duration
+         // when restarting with less than 1 minute remaining
+         const time_point_sec& time_3s_before = time_point_sec(1609286397); // 2020-12-29T23:59:57Z
+         restart = calc_meta1_allocation_restart_parameters(time_3s_before, period.time_to_100_percent);
+         BOOST_CHECK_EQUAL(time_1m_before.sec_since_epoch(), restart.restart_time.sec_since_epoch());
+         BOOST_CHECK_EQUAL(1, restart.intervals_to_end);
+
+         // Check the restart parameters for an invalid restart time (i.e. at the deadline)
+         BOOST_REQUIRE_THROW(
+                 calc_meta1_allocation_restart_parameters(period.time_to_100_percent, period.time_to_100_percent),
+                 fc::exception);
+
+         // Check the restart parameters for an invalid restart time (i.e. after deadline)
+         const time_point_sec &_2020_12_30_00_00_03 = time_point_sec(1609286403); // 2020-12-30T00:00:03Z
+         BOOST_REQUIRE_THROW(calc_meta1_allocation_restart_parameters(_2020_12_30_00_00_03, period.time_to_100_percent),
+                             fc::exception);
+
+      } FC_LOG_AND_RETHROW()
+   }
+
+
+   // TODO: Evaluates the appreciation parameters when initializing and restarting after the 25% time of a 365-day vesting duration
+   // TODO: Evaluates the appreciation parameters when initializing and restarting after the 25% time of a 100-week vesting duration
 
 BOOST_AUTO_TEST_SUITE_END()
