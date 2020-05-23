@@ -2686,7 +2686,7 @@ BOOST_AUTO_TEST_CASE(approve_backing_asset)
       const auto &nathan = create_account("nathan");
 
       // Before approval, the date of approval should not be defined
-      BOOST_CHECK(!test.date_approval.valid());
+      BOOST_CHECK(!test.approval_date.valid());
 
       // Nathan should not be able to approve the property; only meta1 should be the approver
       property_approve_operation op;
@@ -2704,7 +2704,7 @@ BOOST_AUTO_TEST_CASE(approve_backing_asset)
       PUSH_TX(db, trx, ~0);
 
       // After approval, the date of approval should be defined
-      BOOST_CHECK(test.date_approval.valid());
+      BOOST_CHECK(test.approval_date.valid());
 
       // A backed asset can only be confirmed 1 time
       generate_block();

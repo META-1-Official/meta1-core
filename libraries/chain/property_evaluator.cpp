@@ -7,6 +7,7 @@
 #include <graphene/chain/database.hpp>
 #include <graphene/chain/exceptions.hpp>
 #include <graphene/chain/is_authorized_asset.hpp>
+#include <graphene/chain/allocation.hpp>
 
 #include <functional>
 
@@ -51,49 +52,30 @@ object_id_type property_create_evaluator::do_apply(const property_create_operati
         auto next_property_id = d.get_index_type<property_index>().get_next_id();
         const property_object &new_property =
             d.create<property_object>([&op, next_property_id, &d](property_object &p) {
-                p.issuer = op.issuer;
-                p.options = op.common_options;
-                p.options.allocation_progress = "0.0000000000";
-                p.property_id = op.property_id;
+               p.issuer = op.issuer;
+               p.options = op.common_options;
+               p.options.allocation_progress = "0.0000000000";
+               p.property_id = op.property_id;
+               p.expired = false;
 
-                p.date_creation = d.head_block_time();
                 uint32_t qty_weeks = boost::lexical_cast<double_t>(p.options.smooth_allocation_time);
                 uint32_t full_duration_minutes = qty_weeks * 7 * 24 * 60;
                 uint32_t full_duration_seconds = full_duration_minutes * 60;
-                p.date_approval_deadline = d.head_block_time() + full_duration_seconds;
-                uint32_t initial_duration_seconds = full_duration_seconds / 4;
-                p.date_initial_end = d.head_block_time() + initial_duration_seconds; // 25% of full duration
 
-                uint32_t allocation_interval_seconds = 60; // Allocations every minute
-                p.date_next_allocation = p.date_creation + allocation_interval_seconds;
+               // Calculate the appreciation period parameters
+               const time_point_sec &start_time = calc_meta1_next_start_time(d.head_block_time());
+               const appreciation_period_parameters period =
+                       calc_meta1_allocation_initial_parameters(start_time, full_duration_seconds);
+               p.creation_date = start_time;
+               p.next_allocation_date = start_time + META1_INTERVAL_BETWEEN_ALLOCATION_SECONDS;
 
-                // Calculate allocation
-                string symbol = op.common_options.backed_by_asset_symbol;
-                // get_asset_supply()
-                const auto &idx = d.get_index_type<asset_index>().indices().get<by_symbol>();
-                auto itr_supply = idx.find(symbol);
-                assert(itr_supply != idx.end());
-                const asset_object& backing_asset = *itr_supply;
-                //calc supply for smooth allocation formula supply of coin / 10
-                int64_t backing_asset_supply = backing_asset.options.max_supply.value / std::pow(10, backing_asset.precision);
-                // TODO: Safely convert allocation to uint64_t representation
-                uint64_t full_allocation = 10 * p.options.appraised_property_value;
-                uint64_t full_allocation_cents = 100 * full_allocation;
-//                uint64_t full_allocation_cents_per_minute = floor(full_allocation_cents / full_duration_minutes);
-                double_t full_allocation_per_backing_asset = (10 * (double)p.options.appraised_property_value / backing_asset_supply);
+               p.initial_end_date = period.time_to_25_percent;
+               p.initial_counter = 0;
+               p.initial_counter_max = period.time_to_25_percent_intervals;
 
-                p.expired = false;
-                p.scaled_allocation_progress = 0;
-                p.scaled_allocation_per_minute = floor(META1_SCALED_ALLOCATION_PRECISION / full_duration_minutes);
-
-                ilog("Property create: p.options.appraised_property_value: ${x}", ("x", p.options.appraised_property_value));
-                ilog("Property create: backing_asset_supply: ${x}", ("x", backing_asset_supply));
-                ilog("Property create: full_allocation_per_backing_asset: ${x}", ("x", full_allocation_per_backing_asset));
-                ilog("Property create: full_duration_minutes: ${x}", ("x", full_duration_minutes));
-                ilog("Property create: allocation cents per minute: ${x}", ("x", ((double)full_allocation_cents) / full_duration_minutes));
-                ilog("Property create: allocation cents per minute (int): ${x}", ("x", p.scaled_allocation_per_minute));
-                ilog("Property create: fractional allocation per minute: ${x}", ("x", ((double)META1_SCALED_ALLOCATION_PRECISION) / full_duration_minutes ));
-                ilog("Property create: fractional allocation per minute (int): ${x}", ("x", p.scaled_allocation_per_minute));
+               p.approval_end_date = period.time_to_100_percent;
+               p.approval_counter = 0;
+               p.approval_counter_max = period.time_to_100_percent_intervals - period.time_to_25_percent_intervals;
 
             });
         FC_ASSERT(new_property.id == next_property_id, "Unexpected object database error, object id mismatch");
@@ -158,7 +140,15 @@ void_result property_update_evaluator::do_apply(const property_update_operation 
                    ("o.issuer", op.issuer)("a.issuer", property_ob.issuer));
          op.validate();
 
+         // Prohibit approvals after the approval deadline
+         FC_ASSERT(d.head_block_time() < property_ob.approval_end_date,
+                   "The approval deadline passed on ${deadline}", ("deadline", property_ob.approval_end_date) );
+         // TODO: Add test for approving after approval end date
+
+         // Prohibit multiple approvals
+         // TODO: [Low] Add test for multiple approval attempts
          FC_ASSERT(property_to_approve->options.status == "not approved", "Backing asset is already approved!");
+         FC_ASSERT(!property_ob.approval_date.valid(), "Backing asset is already approved!");
 
          return void_result();
       }
@@ -168,29 +158,31 @@ void_result property_update_evaluator::do_apply(const property_update_operation 
    void_result property_approve_evaluator::do_apply(const property_approve_operation &op) {
       try {
          database &d = db();
-         auto next_property_id = d.get_index_type<property_index>().get_next_id();
-         const time_point_sec current_time = d.head_block_time();
-         d.modify(*property_to_approve, [&current_time](property_object &p) {
-            // Set the approval date
-            p.date_approval = current_time;
-
+         // auto next_property_id = d.get_index_type<property_index>().get_next_id();
+         const time_point_sec& now = d.head_block_time();
+         d.modify(*property_to_approve, [&now](property_object &p) {
             // Set a new appreciation rate if the approval is after the initial allocation period
-            if (current_time > p.date_initial_end) {
-               ilog("Property Approving");
-               ilog("Property scaled rate before: ${x}", ("x", p.scaled_allocation_per_minute));
+            if (now < p.initial_end_date) {
+               ilog("Approving property during initial phase");
 
-               // Calculate the new allocation rate if the current time is after the initial end time
-               uint64_t remaining_scaled_allocation = floor(META1_SCALED_ALLOCATION_PRECISION * 3 / 4);
-               ilog("Remaining scaled allocation: ${x}", ("x", remaining_scaled_allocation));
+               // Approval is occurring during the initial phase
+               // The only field that needs to be updated is the approval date
+               // The remaining fields were sufficiently initialized when the property was created
+               p.approval_date = now;
 
-               uint64_t remaining_duration_seconds = (p.date_approval_deadline - current_time).to_seconds();
-               uint64_t remaining_duration_minutes = floor(remaining_duration_seconds / 60);
-               ilog("Remaining duration [min]: ${x}", ("x", remaining_duration_minutes));
+            } else {
+               ilog("Approving property during approval phase");
 
-               p.scaled_allocation_per_minute = floor(remaining_scaled_allocation / remaining_duration_minutes);
-               ilog("Property scaled rate after: ${x}", ("x", p.scaled_allocation_per_minute));
+               // Calculate the appreciation restart time
+               appreciation_restart_parameters restart =
+                       calc_meta1_allocation_restart_parameters(now, p.approval_end_date);
 
-               p.date_next_allocation = current_time + 60;
+               // Set the approval date
+               p.approval_date = restart.restart_time;
+               FC_ASSERT(p.approval_counter == 0, "The approval phase counter was not at zero as expected");
+               p.approval_counter_max = restart.intervals_to_end;
+
+               p.next_allocation_date = restart.restart_time + META1_INTERVAL_BETWEEN_ALLOCATION_SECONDS;
             }
 
          });

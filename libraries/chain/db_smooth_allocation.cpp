@@ -2,6 +2,7 @@
  * Copyright META1 (c) 2020
  */
 
+#include <graphene/chain/allocation.hpp>
 
 namespace graphene {
    namespace chain {
@@ -42,13 +43,14 @@ namespace graphene {
                }
 
                // If after the initial allocation and if not yet approved, expire
-               if (!p.expired && hbt >= p.date_approval_deadline) {
-                  if (!p.date_approval.valid()) {
+               if (!p.expired && hbt >= p.approval_end_date) {
+                  if (!p.approval_date.valid()) {
                      // The unapproved property has expired
                      // Eliminate the allocation
                      modify(p, [](property_object &p) {
                         p.expired = true;
-                        p.scaled_allocation_progress = 0;
+                        p.initial_counter = 0;
+                        p.approval_counter = 0;
                      });
 
                      ilog("Smooth allocation expiration in core ${blocknum} at ${blocktime} for ${property}",
@@ -58,7 +60,8 @@ namespace graphene {
                      // The approved property has matured
                      modify(p, [](property_object &p) {
                         p.expired = true;
-                        p.scaled_allocation_progress = META1_SCALED_ALLOCATION_PRECISION;
+                        p.initial_counter = p.initial_counter_max;
+                        p.approval_counter = p.approval_counter_max;
                      });
 
                      ilog("Smooth allocation completed in core ${blocknum} at ${blocktime} for ${property}",
@@ -71,16 +74,24 @@ namespace graphene {
                }
 
                // If after the initial allocation and if not yet approved, skip
-               if (hbt > p.date_initial_end && !p.date_approval.valid()) {
+               if (hbt > p.initial_end_date && !p.approval_date.valid()) {
                   continue;
                }
 
                // Increase the allocation
                // Use a while loop to correct for missed allocation due to missed blocks
-               while (hbt >= p.date_next_allocation) {
+               while (hbt >= p.next_allocation_date) {
                   modify(p, [](property_object &p) {
-                     p.date_next_allocation += 60; // Next allocation should occur in 60 seconds
-                     p.scaled_allocation_progress += p.scaled_allocation_per_minute;
+                     // Next allocation should occur at the next standard interval
+                     p.next_allocation_date += META1_INTERVAL_BETWEEN_ALLOCATION_SECONDS;
+                     if (p.initial_counter < p.initial_counter_max) {
+                        // If the initial phase counter has not reached maximum, increment the counter
+                        p.initial_counter++;
+
+                     } else if (p.approval_date.valid() && p.approval_counter < p.approval_counter_max) {
+                        // If the property is approved and if the counter has not reached maximum, increment the counter
+                        p.approval_counter++;
+                     }
                   });
 
                   result.push_back(p);
@@ -91,37 +102,66 @@ namespace graphene {
             // Calculate the asset limitation's cumulative_sell_limit
             // TODO: Optimize the calculation of the contribution to not re-calculate on every block
             for (const auto &p : properties_idx) {
-               fc::uint128_t contribution_numerator(p.options.appraised_property_value);
-               contribution_numerator *= p.scaled_allocation_progress;
+               // Multiply the property by 10 per the META1 valuation smart contract specification
+               fc::uint128_t c128 = fc::uint128_t(p.options.appraised_property_value) * 10;
 
-               mapSymbolToContribution[p.options.backed_by_asset_symbol] += contribution_numerator;
+               //////
+               // Discount the property's contribution per appreciation smart contract specification
+               //////
+               int64_t num = p.get_allocation_progress().numerator();
+               int64_t den =  p.get_allocation_progress().denominator();
+
+               // TODO: [Medium] Move to library function
+               //////
+               // Multiply the property value with its progress
+               // Multiplication is modeled after asset::multiply_and_round_up()
+               //
+               // NOTE: The effect of this rounding is that the error is constrained **to a maximum **
+               // of **1 satoshi per property** during the allocation period of that property
+               //////
+               fc::uint128_t multiplication_result = (c128 * num + den - 1) / den;
+
+               // TODO: [Low] Review this overflow check: should GRAPHENE_MAX_SHARE_SUPPLY be used?
+               // TODO: [Low] Create tests for exceeding the maximum satoshis
+               // TODO: [Low] Review how to handle exceeding the maximum satoshis
+               FC_ASSERT( multiplication_result <= GRAPHENE_MAX_SHARE_SUPPLY );
+
+               // Add contribution to symbol
+               uint64_t contribution = static_cast<int64_t>(multiplication_result);
+               mapSymbolToContribution[p.options.backed_by_asset_symbol] += contribution;
+
             }
 
             // Update the asset limitation's cumulative_sell_limit
             std::map<std::string, fc::int128_t>::iterator it2;
             for (it2 = mapSymbolToContribution.begin(); it2 != mapSymbolToContribution.end(); it2++) {
                const string symbol = it2->first;
-               const fc::int128_t contribution_numerator = it2->second;
+               const fc::int128_t contribution = it2->second;
 
-               const fc::int128_t contribution_128 = contribution_numerator * 10 / META1_SCALED_ALLOCATION_PRECISION;
-               const int64_t contribution = static_cast<int64_t>(contribution_128);
+               // TODO: [Low] Review this overflow check: should GRAPHENE_MAX_SHARE_SUPPLY be used?
+               // Check whether all contributions have already overflowed 64-bit before any arithmetic
+               FC_ASSERT( contribution <= GRAPHENE_MAX_SHARE_SUPPLY );
+
+               // TODO: [Medium] Check for arithmetic overflow
+               const fc::int128_t cumultative128 = contribution;
+               const int64_t cumulative = static_cast<int64_t>(cumultative128);
 
                auto itr = asset_limitation_idx.find(symbol);
                assert(itr != idx.end());
                const asset_limitation_object &alo = *itr;
 
-               modify(alo, [&contribution](asset_limitation_object &alo) {
-                  alo.cumulative_sell_limit = contribution;
+               modify(alo, [&cumulative](asset_limitation_object &alo) {
+                  alo.cumulative_sell_limit = cumulative;
                });
             } // end of looping through contributions
 
          }
          catch (const fc::exception &e) {
             // TODO: What should be done when an exception is encountered?
-//            smooth_allocation_condition::smooth_allocation_condition_enum result;
-//            result = smooth_allocation_condition::exception_allocation;
-//            capture("err", e.what());
-//            result_viewer(result, capture);
+            //  smooth_allocation_condition::smooth_allocation_condition_enum result;
+            //  result = smooth_allocation_condition::exception_allocation;
+            //  capture("err", e.what());
+            //  result_viewer(result, capture);
          }
 
 
