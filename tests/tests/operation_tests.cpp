@@ -2591,7 +2591,7 @@ BOOST_AUTO_TEST_CASE(create_property)
       creator.common_options.appraised_property_value = 324155872;
       creator.common_options.property_surety_bond_value = 1;
       creator.common_options.property_surety_bond_number = 33104;
-      creator.common_options.smooth_allocation_time = "1";
+      creator.common_options.allocation_duration_minutes = 7 * 24 * 60;
       creator.common_options.backed_by_asset_symbol = "META1";
       trx.operations.push_back(std::move(creator));
       PUSH_TX(db, trx, ~0);
@@ -2610,7 +2610,9 @@ BOOST_AUTO_TEST_CASE(create_property)
       BOOST_CHECK(test_property.options.appraised_property_value == 324155872);
       BOOST_CHECK(test_property.options.property_surety_bond_value == 1);
       BOOST_CHECK(test_property.options.property_surety_bond_number == 33104);
-      BOOST_CHECK(test_property.options.smooth_allocation_time == "1");
+      BOOST_CHECK_EQUAL((test_property.approval_end_date.sec_since_epoch()
+                         - test_property.creation_date.sec_since_epoch()) / 60,
+                        10080);
       BOOST_CHECK(test_property.options.backed_by_asset_symbol == "META1");
 
       //throw: property with PROPERTY_TEST_ID already exists

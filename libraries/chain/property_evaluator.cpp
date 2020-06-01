@@ -37,7 +37,8 @@ void_result property_create_evaluator::do_evaluate(const property_create_operati
         FC_ASSERT(itr != accounts_by_name.end(),"Unable to find meta1 account" );
         FC_ASSERT(itr->get_id() == op.issuer,"backed asset cannot create with this account , backed asset can be created only by meta1 account");
 
-        // TODO: Validate that the allocation duration is positive
+        // Validate that the allocation duration is positive
+        FC_ASSERT(op.common_options.allocation_duration_minutes >= 4); // Minimum requirement of 4 minutes
 
         return void_result();
     }
@@ -58,8 +59,8 @@ object_id_type property_create_evaluator::do_apply(const property_create_operati
                p.property_id = op.property_id;
                p.expired = false;
 
-                uint32_t qty_weeks = boost::lexical_cast<double_t>(p.options.smooth_allocation_time);
-                uint32_t full_duration_minutes = qty_weeks * 7 * 24 * 60;
+               uint32_t full_duration_minutes = op.common_options.allocation_duration_minutes;
+               // TODO: [Low] Overflow check
                 uint32_t full_duration_seconds = full_duration_minutes * 60;
 
                // Calculate the appreciation period parameters

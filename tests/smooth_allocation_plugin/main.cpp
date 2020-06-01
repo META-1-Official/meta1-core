@@ -441,7 +441,7 @@ BOOST_FIXTURE_TEST_CASE(in_time_test, production_cli_fixture)
           1000000000,
           1,
           33104,
-          "52",
+          52 * 10080,
           "0.000000000000",
           "META1",
       };
@@ -466,7 +466,7 @@ BOOST_FIXTURE_TEST_CASE(in_time_test, production_cli_fixture)
       BOOST_CHECK(fc::time_point::now().sec_since_epoch() - 60 * loop_counter == start_time.sec_since_epoch());
       ilog("Time:${t}", ("t", fc::time_point::now()));
       double_t price = ((double)backing_asset_create.common_options.appraised_property_value / get_asset_supply(con.wallet_api_ptr->get_asset("META1"))) * 0.25;
-      double_t timeline = boost::lexical_cast<double_t>(backing_asset_create.common_options.smooth_allocation_time) * 7 * 24 * 60 * 0.25;
+      double_t timeline = backing_asset_create.common_options.allocation_duration_minutes / 4;
       double_t increase_value = price / timeline;
       double_t progress = increase_value;
 
@@ -556,13 +556,13 @@ BOOST_FIXTURE_TEST_CASE(end_of_the_vesting_period_test, test_cli_fixture)
           1000000000,
           1,
           33104,
-          "1",
+          10080,
           "0.000000000000",
           "META1",
       };
       //Price to allocate
       double_t price = ((double)property_ops.appraised_property_value / get_asset_supply(con.wallet_api_ptr->get_asset("META1"))) * 0.25;
-      double_t timeline = boost::lexical_cast<double_t>(property_ops.smooth_allocation_time) * 7 * 24 * 60 * 0.25;
+      double_t timeline = property_ops.allocation_duration_minutes / 4;
       double_t increase_value = price / timeline;
       double_t progress = 0.0;
 
@@ -635,7 +635,7 @@ BOOST_FIXTURE_TEST_CASE(smooth_allocation_plugin, production_cli_fixture)
          1000000000,
          1,
          33104,
-         "1",
+         10080,
          "0.000000000000",
          "META1",
       };
@@ -649,7 +649,7 @@ BOOST_FIXTURE_TEST_CASE(smooth_allocation_plugin, production_cli_fixture)
       ilog("Waiting first minute");
       fc::usleep(fc::seconds(60));
       double_t price = ((double)backing_asset_create.common_options.appraised_property_value / get_asset_supply(con.wallet_api_ptr->get_asset("META1"))) * 0.25;
-      double_t timeline = boost::lexical_cast<double_t>(backing_asset_create.common_options.smooth_allocation_time) * 7 * 24 * 60 * 0.25;
+      double_t timeline = backing_asset_create.common_options.allocation_duration_minutes / 4;
       double_t increase_value = price / timeline;
       double_t progress = increase_value;
 
@@ -674,7 +674,7 @@ BOOST_FIXTURE_TEST_CASE(smooth_allocation_plugin, production_cli_fixture)
       ilog("test_progress for initial 3 min${b}", ("b", progress));
 
       price = ((double)backing_asset_create.common_options.appraised_property_value / get_asset_supply(con.wallet_api_ptr->get_asset("META1")));
-      timeline = boost::lexical_cast<double_t>(backing_asset_create.common_options.smooth_allocation_time) * 7 * 24 * 60 * 0.75;
+      timeline = backing_asset_create.common_options.allocation_duration_minutes * 3 / 4;
       progress+=  price / timeline;
 
       ilog("test_progress for initial && approve allocation 3 min:${b}", ("b", progress));
