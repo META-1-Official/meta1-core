@@ -94,5 +94,36 @@ namespace graphene {
          return p;
       }
 
+
+      uint64_t calc_meta1_contribution(const property_object& p) {
+         // Multiply the property by 10 per the META1 valuation smart contract specification
+         fc::uint128_t c128 = fc::uint128_t(p.options.appraised_property_value) * 10;
+
+         //////
+         // Discount the property's contribution per appreciation smart contract specification
+         //////
+         int64_t num = p.get_allocation_progress().numerator();
+         int64_t den =  p.get_allocation_progress().denominator();
+
+         //////
+         // Multiply the property value with its progress
+         // Multiplication is modeled after asset::multiply_and_round_up()
+         //
+         // NOTE: The effect of this rounding is that the error is constrained **to a maximum **
+         // of **1 satoshi per property** during the allocation period of that property
+         //////
+         fc::uint128_t multiplication_result = (c128 * num + den - 1) / den;
+
+         // TODO: [Low] Review this overflow check: should GRAPHENE_MAX_SHARE_SUPPLY be used?
+         // TODO: [Low] Create tests for exceeding the maximum satoshis
+         // TODO: [Low] Review how to handle exceeding the maximum satoshis
+         FC_ASSERT( multiplication_result <= GRAPHENE_MAX_SHARE_SUPPLY );
+
+         // Add contribution to symbol
+         uint64_t contribution = static_cast<int64_t>(multiplication_result);
+
+         return contribution;
+      }
+
    }
 }

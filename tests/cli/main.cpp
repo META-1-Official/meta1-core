@@ -1169,17 +1169,13 @@ BOOST_FIXTURE_TEST_CASE(backing_asset_tests,cli_fixture)
          "you",
          "https://fsf.com",
          "https://purepng.com/public/uploads/large/purepng.com-gold-bargoldatomic-number-79chemical-elementgroup-11-elementaurumgold-dustprecious-metal-1701528976849tkdsl.png",
-         "not approved",
          "222",
-         1000000000,
          1,
          33104,
-         10080,
-         "0.000000000000",
-         "META1",
       };
       //create_backing_asset test
-      signed_transaction create_backing_asset = con.wallet_api_ptr->create_property("meta1",property_ops,true);
+      signed_transaction create_backing_asset = con.wallet_api_ptr->create_property("meta1", 1000000000, 10080, "META1",
+                                                                                   property_ops, true);
       //get backing asset
       auto backing_asset_create = create_backing_asset.operations.back().get<property_create_operation>();
       BOOST_CHECK(backing_asset_create.issuer == con.wallet_api_ptr->get_account("meta1").get_id());
@@ -1189,20 +1185,18 @@ BOOST_FIXTURE_TEST_CASE(backing_asset_tests,cli_fixture)
       BOOST_CHECK(backing_asset_create.common_options.custodian ==  "you");
       BOOST_CHECK(backing_asset_create.common_options.detailed_document_link == "https://fsf.com");
       BOOST_CHECK(backing_asset_create.common_options.image_url == "https://purepng.com/public/uploads/large/purepng.com-gold-bargoldatomic-number-79chemical-elementgroup-11-elementaurumgold-dustprecious-metal-1701528976849tkdsl.png");
-      BOOST_CHECK(backing_asset_create.common_options.status == "not approved");
       BOOST_CHECK(backing_asset_create.common_options.property_assignee == "222");
-      BOOST_CHECK(backing_asset_create.common_options.appraised_property_value == 1000000000);
+      BOOST_CHECK(backing_asset_create.appraised_property_value == 1000000000);
       BOOST_CHECK(backing_asset_create.common_options.property_surety_bond_value == 1);
       BOOST_CHECK(backing_asset_create.common_options.property_surety_bond_number == 33104);
-      BOOST_CHECK_EQUAL(backing_asset_create.common_options.allocation_duration_minutes, 10080);
-      BOOST_CHECK(backing_asset_create.common_options.allocation_progress == "0.000000000000");
-      BOOST_CHECK(backing_asset_create.common_options.backed_by_asset_symbol == "META1");
+      BOOST_CHECK_EQUAL(backing_asset_create.allocation_duration_minutes, 10080);
+      BOOST_CHECK(backing_asset_create.backed_by_asset_symbol == "META1");
 
       //approve_backing_asset test
       signed_transaction approve_backing_asset = con.wallet_api_ptr->approve_property(backing_asset_create.property_id,true);
       //get backing asset
       auto backing_asset = con.wallet_api_ptr->get_property(backing_asset_create.property_id);
-      BOOST_CHECK(backing_asset.options.status == "approved");
+      BOOST_CHECK(backing_asset.approval_date.valid());
 
       //edit backing asset (update) test
       property_ops.title = "new title";
@@ -1217,17 +1211,17 @@ BOOST_FIXTURE_TEST_CASE(backing_asset_tests,cli_fixture)
       BOOST_CHECK(backing_asset.options.custodian ==  "you");
       BOOST_CHECK(backing_asset.options.detailed_document_link == "https://fsf.com");
       BOOST_CHECK(backing_asset.options.image_url == "https://purepng.com/public/uploads/large/purepng.com-gold-bargoldatomic-number-79chemical-elementgroup-11-elementaurumgold-dustprecious-metal-1701528976849tkdsl.png");
-      BOOST_CHECK(backing_asset.options.status == "not approved");
+      BOOST_CHECK(!backing_asset.approval_date.valid());
       BOOST_CHECK(backing_asset.options.property_assignee == "222");
-      BOOST_CHECK(backing_asset.options.appraised_property_value == 1000000000);
+      BOOST_CHECK(backing_asset.appraised_property_value == 1000000000);
       BOOST_CHECK(backing_asset.options.property_surety_bond_value == 1);
       BOOST_CHECK(backing_asset.options.property_surety_bond_number == 33104);
-      BOOST_CHECK_EQUAL(backing_asset_create.common_options.allocation_duration_minutes, 10080);
-      BOOST_CHECK(backing_asset.options.allocation_progress == "0.000000000000");
-      BOOST_CHECK(backing_asset.options.backed_by_asset_symbol == "META1");
+      BOOST_CHECK_EQUAL(backing_asset_create.allocation_duration_minutes, 10080);
+      BOOST_CHECK(backing_asset.backed_by_asset_symbol == "META1");
 
       //create second backing_asset 
-      signed_transaction create_backing_asset_second = con.wallet_api_ptr->create_property("meta1",property_ops,true);
+      signed_transaction create_backing_asset_second =
+              con.wallet_api_ptr->create_property("meta1", 1000000000, 10080, "META1", property_ops, true);
       auto backing_asset_create_second = create_backing_asset_second.operations.back().get<property_create_operation>();
 
       //get_all_backing_assets test

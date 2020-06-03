@@ -33,7 +33,6 @@
 #include <graphene/snapshot/snapshot.hpp>
 #include <graphene/es_objects/es_objects.hpp>
 #include <graphene/grouped_orders/grouped_orders_plugin.hpp>
-#include <graphene/smooth_allocation/smooth_allocation_plugin.hpp>
 #include <graphene/api_helper_indexes/api_helper_indexes.hpp>
 
 #include <fc/thread/thread.hpp>
@@ -71,7 +70,7 @@ int main(int argc, char** argv) {
                     "Directory containing databases, configuration file, etc.")
             ("version,v", "Display version information")
             ("plugins", bpo::value<std::string>()
-                            ->default_value("witness account_history market_history grouped_orders api_helper_indexes smooth_allocation"),
+                            ->default_value("witness account_history market_history grouped_orders api_helper_indexes"),
                     "Space-separated list of plugins to activate")
             ("ignore-api-helper-indexes-warning", "Do not exit if api_helper_indexes plugin is not enabled.");
 
@@ -83,7 +82,7 @@ int main(int argc, char** argv) {
 
       cfg_options.add_options()
               ("plugins", bpo::value<std::string>()
-	                      ->default_value("witness account_history market_history grouped_orders api_helper_indexes smooth_allocation"),
+	                      ->default_value("witness account_history market_history grouped_orders api_helper_indexes"),
                "Space-separated list of plugins to activate")
             ("ignore-api-helper-indexes-warning", "Do not exit if api_helper_indexes plugin is not enabled.");
 
@@ -96,7 +95,6 @@ int main(int argc, char** argv) {
       auto snapshot_plug = node->register_plugin<snapshot_plugin::snapshot_plugin>();
       auto es_objects_plug = node->register_plugin<es_objects::es_objects_plugin>();
       auto grouped_orders_plug = node->register_plugin<grouped_orders::grouped_orders_plugin>();
-      auto smooth_allocation_plug = node->register_plugin<smooth_allocation::smooth_allocation_plugin>();
       auto api_helper_indexes_plug = node->register_plugin<api_helper_indexes::api_helper_indexes>();
 
       // add plugin options to config

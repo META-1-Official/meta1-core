@@ -55,7 +55,6 @@ object_id_type property_create_evaluator::do_apply(const property_create_operati
             d.create<property_object>([&op, next_property_id, &d](property_object &p) {
                p.issuer = op.issuer;
                p.options = op.common_options;
-               p.options.allocation_progress = "0.0000000000";
                p.property_id = op.property_id;
                p.expired = false;
 
@@ -148,7 +147,6 @@ void_result property_update_evaluator::do_apply(const property_update_operation 
 
          // Prohibit multiple approvals
          // TODO: [Low] Add test for multiple approval attempts
-         FC_ASSERT(property_to_approve->options.status == "not approved", "Backing asset is already approved!");
          FC_ASSERT(!property_ob.approval_date.valid(), "Backing asset is already approved!");
 
          return void_result();
@@ -202,30 +200,31 @@ void_result property_delete_evaluator::do_evaluate(const property_delete_operati
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (o) ) }
 
-void_result property_delete_evaluator::do_apply(const property_delete_operation& o)
-{ try {
-    database &d = db();
+   void_result property_delete_evaluator::do_apply(const property_delete_operation &o) {
+      try {
+         database &d = db();
 
-    //Roll back asset_limitation value if we delete backed asset
-    const asset_limitation_object *asset_limitaion = nullptr;
-    const auto &idx = d.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
-    auto itr = idx.find(o.property(d).options.backed_by_asset_symbol);
-    if (itr != idx.end())
-    {
-        asset_limitaion = &*itr;
-        double_t sell_limit = boost::lexical_cast<double_t>(asset_limitaion->options.sell_limit);
-        double_t allocation_progress = boost::lexical_cast<double_t>(o.property(d).options.allocation_progress);
-        string new_sell_limit = boost::lexical_cast<string>(sell_limit - allocation_progress);
+         //Roll back asset_limitation value if we delete backed asset
+         const asset_limitation_object *asset_limitation = nullptr;
+         const auto &idx = d.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
+         auto itr = idx.find(_property->options.backed_by_asset_symbol);
+         if (itr != idx.end()) {
+            asset_limitation = &*itr;
 
-        d.modify(*asset_limitaion, [&new_sell_limit](asset_limitation_object &a) {
-            a.options.sell_limit = new_sell_limit;
-        });
-    }
+            // TODO: [High] Test property delete
+            const uint64_t contribution = calc_meta1_contribution(*_property);
+            const uint64_t new_sell_limit = asset_limitation->cumulative_sell_limit - contribution;
 
-    d.remove(*_property);
+            d.modify(*asset_limitation, [&new_sell_limit](asset_limitation_object &alo) {
+               alo.cumulative_sell_limit = new_sell_limit;
+            });
+         }
 
-    return void_result();
-} FC_CAPTURE_AND_RETHROW( (o) ) }
+         d.remove(*_property);
+
+         return void_result();
+      } FC_CAPTURE_AND_RETHROW((o))
+   }
 
 } // namespace chain
 } // namespace graphene 

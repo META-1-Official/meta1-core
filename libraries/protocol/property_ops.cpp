@@ -24,8 +24,6 @@ void property_options::validate() const
    FC_ASSERT(!custodian.empty());
    FC_ASSERT(!title.empty());
    FC_ASSERT(!detailed_document_link.empty());
-   FC_ASSERT(!status.empty());
-   FC_ASSERT(status == "not approved" || status == "approved");
    FC_ASSERT(!property_assignee.empty());
    FC_ASSERT(appraised_property_value    >= 0);
    FC_ASSERT(property_surety_bond_value  >= 0);
@@ -36,8 +34,6 @@ void property_options::validate() const
 void property_create_operation::validate() const
 {
    FC_ASSERT(fee.amount >= 0);
-   //all backing assets are not approved on creation
-   FC_ASSERT(common_options.status == "not approved");
    common_options.validate();
 }
 

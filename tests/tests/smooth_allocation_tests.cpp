@@ -177,13 +177,11 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
               "you",
               "https://fsf.com",
               "https://purepng.com/metal-1701528976849tkdsl.png",
-              "not approved",
               "222",
               1000000000,
               1,
               33104,
               10080,
-              "0.000000000000",
               "META1",
       };
       property_create_operation prop_op = create_property_operation(db, "meta1", property_ops);
@@ -362,13 +360,11 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  "you",
                  "https://fsf.com",
                  "https://purepng.com/metal-1701528976849tkdsl.png",
-                 "not approved",
                  "222",
                  1000000000,
                  1,
                  33104,
                  10080,
-                 "0.000000000000",
                  "META1",
          };
          property_create_operation prop_op = create_property_operation(db, "meta1", property_ops);
@@ -582,13 +578,11 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  "you",
                  "https://fsf.com",
                  "https://purepng.com/metal-1701528976849tkdsl.png",
-                 "not approved",
                  "222",
                  1000000000,
                  1,
                  33104,
                  10080,
-                 "0.000000000000",
                  "META1",
          };
          property_create_operation prop_op = create_property_operation(db, "meta1", property_ops);
@@ -774,13 +768,11 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  "you",
                  "https://fsf.com",
                  "https://purepng.com/metal-1701528976849tkdsl.png",
-                 "not approved",
                  "222",
                  1000000000,
                  1,
                  33104,
                  10080,
-                 "0.000000000000",
                  "META1",
          };
    
@@ -793,13 +785,11 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  "you",
                  "https://fsf.com",
                  "https://purepng.com/metal-1701528976849tkdsl.png",
-                 "not approved",
                  "222",
                  2000000000,
                  1,
                  33104,
                  10080,
-                 "0.000000000000",
                  "META1",
          };
    
@@ -1044,13 +1034,11 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                "you",
                "https://fsf.com",
                "https://purepng.com/metal-1701528976849tkdsl.png",
-               "not approved",
                "222",
                1000000000,
                1,
                33104,
                10080,
-               "0.000000000000",
                "META1",
        };
    
@@ -1063,13 +1051,11 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                "you",
                "https://fsf.com",
                "https://purepng.com/metal-1701528976849tkdsl.png",
-               "not approved",
                "222",
                2000000000,
                1,
                33104,
                10080,
-               "0.000000000000",
                "META1",
        };
  
@@ -1315,13 +1301,11 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  "you",
                  "https://fsf.com",
                  "https://purepng.com/metal-1701528976849tkdsl.png",
-                 "not approved",
                  "222",
                  2000000000,
                  1,
                  33104,
                  10080,
-                 "0.000000000000",
                  "META1",
          };
    
@@ -1334,13 +1318,11 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  "you",
                  "https://fsf.com",
                  "https://purepng.com/metal-1701528976849tkdsl.png",
-                 "not approved",
                  "222",
                  1000000000,
                  1,
                  33104,
                  10080,
-                 "0.000000000000",
                  "META1",
          };
          

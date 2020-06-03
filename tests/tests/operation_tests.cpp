@@ -2586,7 +2586,6 @@ BOOST_AUTO_TEST_CASE(create_property)
       creator.common_options.custodian = "you";
       creator.common_options.detailed_document_link = "https://fsf.com";
       creator.common_options.image_url = "https://media.licdn.com/dms/image/C5622AQE4-y8QiWwF4Q/feedshare-shrink_8192/0?e=1568851200&v=beta&t=2Pw-2SF4o4jxjhYQil3MaPqlwSjQ8QQsM5-G6Uhmntg";
-      creator.common_options.status = "not approved";
       creator.common_options.property_assignee = "222";
       creator.common_options.appraised_property_value = 324155872;
       creator.common_options.property_surety_bond_value = 1;
@@ -2605,7 +2604,6 @@ BOOST_AUTO_TEST_CASE(create_property)
       BOOST_CHECK(test_property.options.custodian == "you");
       BOOST_CHECK(test_property.options.detailed_document_link == "https://fsf.com");
       BOOST_CHECK(test_property.options.image_url == "https://media.licdn.com/dms/image/C5622AQE4-y8QiWwF4Q/feedshare-shrink_8192/0?e=1568851200&v=beta&t=2Pw-2SF4o4jxjhYQil3MaPqlwSjQ8QQsM5-G6Uhmntg");
-      BOOST_CHECK(test_property.options.status == "not approved");
       BOOST_CHECK(test_property.options.property_assignee == "222");
       BOOST_CHECK(test_property.options.appraised_property_value == 324155872);
       BOOST_CHECK(test_property.options.property_surety_bond_value == 1);

@@ -4,6 +4,7 @@
 #pragma once
 
 #include <graphene/protocol/types.hpp>
+#include <graphene/chain/property_object.hpp>
 
 using fc::time_point_sec;
 
@@ -120,5 +121,13 @@ namespace graphene {
        */
       appreciation_restart_parameters
       calc_meta1_allocation_restart_parameters(const time_point_sec &current_time, const time_point_sec &end_time);
+
+      /**
+       * Calculate the contribution of a property to META1 valuation
+       *
+       * @param p   Property
+       * @return Amount of valuation
+       */
+      uint64_t calc_meta1_contribution(const property_object& p);
    }
 }

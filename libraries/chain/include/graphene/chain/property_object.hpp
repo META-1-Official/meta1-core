@@ -43,7 +43,7 @@ public:
    /**
     * Get the allocation progress of this property as a rational fraction valued from [0,1]
     *
-    * @return
+    * @return Ratio of allocation progress
     */
    ratio_type get_allocation_progress() const;
 };
