@@ -28,6 +28,9 @@ namespace graphene {
 FC_REFLECT_DERIVED_NO_TYPENAME(graphene::chain::property_object, (graphene::db::object),
                    (property_id)
                    (issuer)
+                   (appraised_property_value)
+                   (allocation_duration_minutes)
+                   (backed_by_asset_symbol)
                    (options)
                    (creation_date)
                    (initial_end_date)

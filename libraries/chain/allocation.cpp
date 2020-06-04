@@ -2,8 +2,6 @@
  * Copyright META1 (c) 2020
  */
 
-#pragma once
-
 #include <graphene/chain/allocation.hpp>
 
 namespace graphene {
@@ -97,7 +95,7 @@ namespace graphene {
 
       uint64_t calc_meta1_contribution(const property_object& p) {
          // Multiply the property by 10 per the META1 valuation smart contract specification
-         fc::uint128_t c128 = fc::uint128_t(p.options.appraised_property_value) * 10;
+         fc::uint128_t c128 = fc::uint128_t(p.appraised_property_value) * 10;
 
          //////
          // Discount the property's contribution per appreciation smart contract specification

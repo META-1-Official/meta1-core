@@ -481,7 +481,7 @@ vector<property_object>  database_api_impl::get_properties_by_backed_asset_symbo
       const auto &properties_idx = _db.get_index_type<property_index>().indices().get<by_id>();
          for (const auto &p : properties_idx)
             {
-               if(p.options.backed_by_asset_symbol == symbol)
+               if(p.backed_by_asset_symbol == symbol)
                result.push_back(p);
             }
       return result;

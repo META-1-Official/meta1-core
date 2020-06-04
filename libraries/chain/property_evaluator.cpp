@@ -28,7 +28,7 @@ void_result property_create_evaluator::do_evaluate(const property_create_operati
 
         //verify that asset_limitation_object exists for backed_by_asset_symbol
         const auto &idx = d.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
-        auto asset_limitation_itr = idx.find(op.common_options.backed_by_asset_symbol);
+        auto asset_limitation_itr = idx.find(op.backed_by_asset_symbol);
         FC_ASSERT(asset_limitation_itr != idx.end(),"asset_limitation_object not exists for backed_by_asset_symbol");
 
         //verify that backed asset create only with meta1 account
@@ -37,8 +37,8 @@ void_result property_create_evaluator::do_evaluate(const property_create_operati
         FC_ASSERT(itr != accounts_by_name.end(),"Unable to find meta1 account" );
         FC_ASSERT(itr->get_id() == op.issuer,"backed asset cannot create with this account , backed asset can be created only by meta1 account");
 
-        // Validate that the allocation duration is positive
-        FC_ASSERT(op.common_options.allocation_duration_minutes >= 4); // Minimum requirement of 4 minutes
+        // Validate that the allocation duration is at least 4 minutes
+        FC_ASSERT(op.allocation_duration_minutes >= 4);
 
         return void_result();
     }
@@ -54,11 +54,14 @@ object_id_type property_create_evaluator::do_apply(const property_create_operati
         const property_object &new_property =
             d.create<property_object>([&op, next_property_id, &d](property_object &p) {
                p.issuer = op.issuer;
+               p.appraised_property_value = op.appraised_property_value;
+               p.allocation_duration_minutes = op.allocation_duration_minutes;
+               p.backed_by_asset_symbol = op.backed_by_asset_symbol;
                p.options = op.common_options;
                p.property_id = op.property_id;
                p.expired = false;
 
-               uint32_t full_duration_minutes = op.common_options.allocation_duration_minutes;
+               uint32_t full_duration_minutes = op.allocation_duration_minutes;
                // TODO: [Low] Overflow check
                 uint32_t full_duration_seconds = full_duration_minutes * 60;
 
@@ -101,7 +104,7 @@ void_result property_update_evaluator::do_evaluate(const property_update_operati
 
         //verify that asset_limitation_object exists for backed_by_asset_symbol
         const auto &idx = d.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
-        auto asset_limitation_itr = idx.find(property_ob.options.backed_by_asset_symbol);
+        auto asset_limitation_itr = idx.find(property_ob.backed_by_asset_symbol);
         FC_ASSERT(asset_limitation_itr != idx.end(),"asset_limitation_object not exists for backed_by_asset_symbol");
 
        // TODO: Verify that the backed by asset symbol is not changing!
@@ -207,7 +210,7 @@ void_result property_delete_evaluator::do_evaluate(const property_delete_operati
          //Roll back asset_limitation value if we delete backed asset
          const asset_limitation_object *asset_limitation = nullptr;
          const auto &idx = d.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
-         auto itr = idx.find(_property->options.backed_by_asset_symbol);
+         auto itr = idx.find(_property->backed_by_asset_symbol);
          if (itr != idx.end()) {
             asset_limitation = &*itr;
 

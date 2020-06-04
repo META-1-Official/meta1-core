@@ -104,7 +104,7 @@ namespace graphene {
             for (const auto &p : properties_idx) {
                // Add contribution to symbol
                uint64_t contribution = calc_meta1_contribution(p);
-               mapSymbolToContribution[p.options.backed_by_asset_symbol] += contribution;
+               mapSymbolToContribution[p.backed_by_asset_symbol] += contribution;
 
             }
 
