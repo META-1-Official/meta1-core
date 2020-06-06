@@ -53,6 +53,18 @@ struct asset_limitation_object_update_operation : public base_operation
     void validate() const;
 };
 
+
+   /**
+    * Price denominated in units of a monetary unit
+    */
+   struct price_ratio
+   {
+      uint32_t numerator;
+      uint32_t denominator;
+
+      void validate() const;
+   };
+
 } // namespace protocol
 } // namespace graphene
 
@@ -65,6 +77,9 @@ FC_REFLECT(graphene::protocol::asset_limitation_object_create_operation,
            (fee)(limit_symbol)(issuer)(common_options))
 FC_REFLECT(graphene::protocol::asset_limitation_object_update_operation,
            (fee)(issuer)(asset_limitation_object_to_update)(new_options))
+
+FC_REFLECT(graphene::protocol::price_ratio, (numerator)(denominator))
+
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_options)
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_create_operation::fee_parameters_type)
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_update_operation::fee_parameters_type)

@@ -31,6 +31,12 @@ void asset_limitation_object_update_operation::validate() const
     new_options.validate();
 }
 
+   void price_ratio::validate() const {
+      FC_ASSERT(numerator >= 0);
+      FC_ASSERT(denominator > 0);
+   }
+
+
 } // namespace protocol
 } // namespace graphene
 

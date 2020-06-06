@@ -223,6 +223,7 @@ void database::initialize_indexes()
    add_index< primary_index< htlc_index> >();
    add_index< primary_index<property_index> >();
    add_index< primary_index<asset_limitation_index> >();
+   add_index< primary_index<asset_price_index> >();
 
    //Implementation object indexes
    add_index< primary_index<transaction_index                             > >();
