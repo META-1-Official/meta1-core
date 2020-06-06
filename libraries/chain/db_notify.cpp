@@ -302,6 +302,10 @@ struct get_impacted_account_visitor
       _impacted.insert(op.fee_payer());
       _impacted.insert(op.issuer); // issuer
    }
+   void operator()(const asset_price_publish_operation &op)
+   {
+      _impacted.insert(op.fee_payer());
+   }
 
 };
 

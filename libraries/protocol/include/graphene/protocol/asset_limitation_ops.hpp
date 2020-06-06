@@ -62,6 +62,31 @@ struct asset_limitation_object_update_operation : public base_operation
       uint32_t numerator;
       uint32_t denominator;
 
+      price_ratio() : numerator(0), denominator(1) {}
+      price_ratio(uint32_t n, uint32_t d) : numerator(n), denominator(d) {}
+
+      void validate() const;
+   };
+
+
+   /**
+    * Publish the USD-denominated price of an external asset
+    */
+   struct asset_price_publish_operation : public base_operation
+   {
+      struct fee_parameters_type
+      {
+         uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION;
+      };
+
+      asset_price_publish_operation() {}
+
+      asset fee;
+      account_id_type fee_paying_account;
+      string symbol;
+      price_ratio usd_price;
+
+      account_id_type fee_payer() const { return fee_paying_account; }
       void validate() const;
    };
 
@@ -80,9 +105,16 @@ FC_REFLECT(graphene::protocol::asset_limitation_object_update_operation,
 
 FC_REFLECT(graphene::protocol::price_ratio, (numerator)(denominator))
 
+FC_REFLECT(graphene::protocol::asset_price_publish_operation::fee_parameters_type, (fee))
+FC_REFLECT(graphene::protocol::asset_price_publish_operation,
+           (fee)(fee_paying_account)(symbol)(usd_price))
+
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_options)
+
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_create_operation::fee_parameters_type)
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_update_operation::fee_parameters_type)
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_price_publish_operation::fee_parameters_type)
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_create_operation)
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_update_operation)
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_price_publish_operation)

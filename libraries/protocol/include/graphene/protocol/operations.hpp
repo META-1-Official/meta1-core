@@ -107,7 +107,8 @@ namespace graphene { namespace protocol {
             property_create_operation,
             property_update_operation,
             property_approve_operation,
-            property_delete_operation
+            property_delete_operation,
+            asset_price_publish_operation
 
          > operation;
 

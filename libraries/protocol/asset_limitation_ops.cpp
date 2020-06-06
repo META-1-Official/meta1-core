@@ -36,6 +36,11 @@ void asset_limitation_object_update_operation::validate() const
       FC_ASSERT(denominator > 0);
    }
 
+   void asset_price_publish_operation::validate() const {
+       FC_ASSERT(fee.amount >= 0);
+       FC_ASSERT(!symbol.empty());
+       usd_price.validate();
+   }
 
 } // namespace protocol
 } // namespace graphene
@@ -43,5 +48,8 @@ void asset_limitation_object_update_operation::validate() const
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_options)
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_create_operation::fee_parameters_type)
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_update_operation::fee_parameters_type)
+GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION(graphene::protocol::asset_price_publish_operation::fee_parameters_type)
+
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_create_operation)
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_update_operation)
+GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION(graphene::protocol::asset_price_publish_operation)
