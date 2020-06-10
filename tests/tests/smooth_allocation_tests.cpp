@@ -759,7 +759,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
       } FC_LOG_AND_RETHROW()
    }
     
-    
+
    /**
    * Case B
    * Two or more unverified assets, 
@@ -1033,6 +1033,279 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
       expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 0, 100) + 
                            calculate_meta1_valuation(second_property->options.appraised_property_value, 0, 100);
       BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
+
+      } FC_LOG_AND_RETHROW()
+   }
+   
+
+   /**
+   * Case D
+   * Two or more assets that have different appraisal values,
+   * are added at different times, and are verified at different times. 
+   * Demonstrate that the "Smooth Allocation Smart Contract" increases the value over time.
+   */
+   BOOST_AUTO_TEST_CASE(two_verified_assets_allocation) {
+      try {
+         // Initialize the actors
+         ACTORS((nathan)(meta1));
+         upgrade_to_lifetime_member(meta1_id);
+   
+         // Advance to when the smooth allocation is activated
+         generate_blocks(HARDFORK_CORE_21_TIME);
+         generate_blocks(6);
+   
+         // Create the asset limitation
+         const string limit_symbol = "META1";
+         const asset_limitation_options asset_limitation_ops = {
+               "0.00000000000000",
+               "0.0000000000000001",
+       };
+  
+         account_object issuer_account = get_account("meta1");
+   
+         asset_limitation_object_create_operation create_limitation_op;
+         create_limitation_op.limit_symbol = limit_symbol;
+         create_limitation_op.issuer = issuer_account.id;
+         create_limitation_op.common_options = asset_limitation_ops;
+         
+         trx.clear();
+         trx.operations.push_back(create_limitation_op);
+         set_expiration(db, trx);
+   
+         // TODO: Test that only signatures by meta1 are sufficient
+         sign(trx, meta1_private_key);
+   
+         PUSH_TX(db, trx);
+   
+         // appraisal value = 1000000000
+         // vesting period  = 1 week
+         const property_options first_property_ops = {
+               "some description 1",
+               "some title 1",
+               "my@email.com",
+               "you",
+               "https://fsf.com",
+               "https://purepng.com/metal-1701528976849tkdsl.png",
+               "not approved",
+               "222",
+               1000000000,
+               1,
+               33104,
+               "1",
+               "0.000000000000",
+               "META1",
+       };
+   
+         // appraisal value = 2000000000
+         // vesting period  = 1 week
+         const property_options second_property_ops = {
+               "some description 2",
+               "some title 2",
+               "my@email.com",
+               "you",
+               "https://fsf.com",
+               "https://purepng.com/metal-1701528976849tkdsl.png",
+               "not approved",
+               "222",
+               2000000000,
+               1,
+               33104,
+               "1",
+               "0.000000000000",
+               "META1",
+       };
+ 
+         //////
+         // Info:
+         // 1) create  first  backing asset 
+         // 2) create  second backing asset at 10% of first asset
+         // 3) approve first  backing asset at 10% of first asset
+         // 4) approve second backing asset at 75% of first asset or 65% of second asset
+         //////
+         
+         // 1)
+         property_create_operation first_prop_op = create_property_operation(db, "meta1", first_property_ops);
+         trx.clear();
+         trx.operations.push_back(first_prop_op);
+         set_expiration(db, trx);
+ 
+         // TODO: Test that only signatures by meta1 are sufficient
+         sign(trx, meta1_private_key);
+ 
+         PUSH_TX(db, trx);
+         generate_blocks(1);
+         generate_blocks(1);
+ 
+         // Check the initial allocation of the asset before any blocks advance
+         const graphene::chain::property_object *first_property = db.get_property(first_prop_op.property_id);
+ 
+         // Check the property's allocation
+         BOOST_CHECK_EQUAL(ratio_type(0, 4), first_property->get_allocation_progress());
+ 
+         asset_limitation_object alo;
+         const auto &asset_limitation_idx = db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
+         uint64_t expected_valuation;
+   
+   
+         //////
+         // Advance to the 10% moment of FIRST asset
+         //
+         // - Create second backing asset
+         // - Approve first  backing asset
+         //
+         // The appreciation of first asset  should be at 10%
+         // The appreciation of second asset should be at 0 %
+         // The appreciation of sell limit   should be at 10%
+         //////
+         time_point_sec time_to_10_percent = first_property->creation_date + 0.1 * (boost::lexical_cast<double_t>(
+                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);
+         generate_blocks(time_to_10_percent, false);
+         set_expiration(db, trx);
+         trx.clear();
+ 
+         // 2)
+         // Create second property
+         property_create_operation second_prop_op = create_property_operation(db, "meta1", second_property_ops);
+         trx.operations.push_back(second_prop_op);
+ 
+         // 3)
+         // Approve first backing asset by using the update operation
+         property_approve_operation first_aop;
+         first_aop.issuer = meta1.id;
+         first_aop.property_to_approve = first_property->id;
+         
+         trx.operations.push_back(first_aop);
+         
+         sign(trx, meta1_private_key);
+         PUSH_TX(db, trx);
+ 
+         generate_blocks(1);
+         generate_blocks(1);   
+ 
+         // Check the initial allocation of the first asset
+         first_property = db.get_property(first_prop_op.property_id);
+         BOOST_CHECK_EQUAL(ratio_type(1, 10), first_property->get_allocation_progress());
+         
+         // Check the initial allocation of the second before any blocks advance
+         const graphene::chain::property_object *second_property = db.get_property(second_prop_op.property_id);
+         BOOST_CHECK_EQUAL(ratio_type(0, 4), second_property->get_allocation_progress());
+ 
+         // Check the sell_limit
+         alo = *asset_limitation_idx.find(limit_symbol);
+         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 10, 100);
+         uint64_t tol = 1; // The error at any time during the appreciation should be <= 1 USD * (number of properties)
+         BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
+         
+ 
+         //////
+         // Advance to the 75% moment of FIRST asset
+         // The appreciation of first  asset should be at 75%
+         // The appreciation of second asset should be at 25%
+         // The appreciation of sell limit   should be at 100%
+         //////
+         time_point_sec time_to_75_percent = first_property->creation_date + 0.75 * (boost::lexical_cast<double_t>(
+                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         generate_blocks(time_to_75_percent, false);
+         set_expiration(db, trx);
+         trx.clear();  
+ 
+         first_property = db.get_property(first_prop_op.property_id);
+         second_property = db.get_property(second_prop_op.property_id);
+ 
+         BOOST_CHECK_EQUAL(ratio_type(3, 4), first_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 4), second_property->get_allocation_progress());
+ 
+         // Check the sell_limit
+         alo = *asset_limitation_idx.find(limit_symbol);
+         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 75, 100) + 
+                              calculate_meta1_valuation(second_property->options.appraised_property_value, 25, 100);
+         BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
+ 
+         //////
+         // 4)
+         // Approve the second asset by using the update operation
+         //////
+         property_approve_operation second_aop;
+         second_aop.issuer = meta1.id;
+         second_aop.property_to_approve = second_property->id;
+         trx.operations.push_back(second_aop);
+         sign(trx, meta1_private_key);
+         PUSH_TX(db, trx);
+ 
+ 
+         //////
+         // Advance to the 85% moment of FIRST asset
+         // The appreciation of first  asset should be at 85%
+         // The appreciation of second asset should be at 46.422499291%
+         // The appreciation of sell limit   should be at 131.4%
+         //////
+         time_point_sec time_to_85_percent = first_property->creation_date + 0.85 * (boost::lexical_cast<double_t>(
+                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         generate_blocks(time_to_85_percent, false);
+         set_expiration(db, trx);
+         trx.clear();  
+ 
+         first_property = db.get_property(first_prop_op.property_id);
+         second_property = db.get_property(second_prop_op.property_id);
+ 
+         BOOST_CHECK_EQUAL(ratio_type(17, 20), first_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(6553,14116), second_property->get_allocation_progress());
+ 
+         // Check the sell_limit
+         alo = *asset_limitation_idx.find(limit_symbol);
+         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 85, 100) + 
+                              calculate_meta1_valuation(second_property->options.appraised_property_value, ratio_type(6553,14116));
+         BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
+         
+ 
+         //////
+         // Advance to the 100% moment of SECOND asset
+         // The appreciation of first  asset should be at 100%
+         // The appreciation of second asset should be at 100%
+         // The appreciation of sell limit   should be at 200%
+         //////
+         time_point_sec time_to_100_percent = second_property->creation_date + 1.00 * (boost::lexical_cast<double_t>(
+                 second_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         generate_blocks(time_to_100_percent, false);
+         set_expiration(db, trx);
+         trx.clear();  
+ 
+         first_property = db.get_property(first_prop_op.property_id);
+         second_property = db.get_property(second_prop_op.property_id);
+ 
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), second_property->get_allocation_progress());
+ 
+         // Check the sell_limit
+         alo = *asset_limitation_idx.find(limit_symbol);
+         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 1, 1) + 
+                              calculate_meta1_valuation(second_property->options.appraised_property_value, ratio_type(1,1));
+         BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
+ 
+
+         //////
+         // Advance to the 135% moment of FIRST asset
+         // The appreciation of first  asset should be at 100%
+         // The appreciation of second asset should be at 100%
+         // The appreciation of sell limit   should be at 200%
+         //////
+         time_point_sec time_to_135_percent = first_property->creation_date + 1.35 * (boost::lexical_cast<double_t>(
+                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         generate_blocks(time_to_135_percent, false);
+         set_expiration(db, trx);
+         trx.clear();  
+ 
+         first_property = db.get_property(first_prop_op.property_id);
+         second_property = db.get_property(second_prop_op.property_id);
+ 
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), second_property->get_allocation_progress());
+ 
+         // Check the sell_limit
+         alo = *asset_limitation_idx.find(limit_symbol);
+         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 1, 1) + 
+                              calculate_meta1_valuation(second_property->options.appraised_property_value, ratio_type(1,1));
+         BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
       } FC_LOG_AND_RETHROW()
    }
