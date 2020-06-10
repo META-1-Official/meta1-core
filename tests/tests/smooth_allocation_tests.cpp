@@ -1310,6 +1310,239 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
       } FC_LOG_AND_RETHROW()
    }
 
+
+    /**
+    * Case E
+    * After Asset 1 vests to its full value, Asset 2 is asset as in Case A. 
+    * Demonstrate that the smooth allocation plug-in smoothly allocates.
+    */
+   BOOST_AUTO_TEST_CASE(case_e) {
+      try {
+         // Initialize the actors
+         ACTORS((nathan)(meta1));
+         upgrade_to_lifetime_member(meta1_id);
+
+         // Advance to when the smooth allocation is activated
+         // TODO: Switch to HF time for smooth allocation in CORE
+         generate_blocks(HARDFORK_CORE_21_TIME);
+         generate_blocks(6);
+   
+         // Create the asset limitation
+         const string limit_symbol = "META1";
+         const asset_limitation_options asset_limitation_ops = {
+                 "0.00000000000000",
+                 "0.0000000000000001",
+         };
+   
+         account_object issuer_account = get_account("meta1");
+   
+         asset_limitation_object_create_operation create_limitation_op;
+         create_limitation_op.limit_symbol = limit_symbol;
+         create_limitation_op.issuer = issuer_account.id;
+         create_limitation_op.common_options = asset_limitation_ops;
+
+         trx.operations.push_back(create_limitation_op);
+         set_expiration(db, trx);
+   
+         // TODO: Test that only signatures by meta1 are sufficient
+         sign(trx, meta1_private_key);
+   
+         PUSH_TX(db, trx);
+   
+         // appraisal value = 2000000000
+         // vesting period  = 1 week
+         const property_options first_property_ops = {
+                 "some description 1",
+                 "some title 1",
+                 "my@email.com",
+                 "you",
+                 "https://fsf.com",
+                 "https://purepng.com/metal-1701528976849tkdsl.png",
+                 "not approved",
+                 "222",
+                 2000000000,
+                 1,
+                 33104,
+                 "1",
+                 "0.000000000000",
+                 "META1",
+         };
+   
+         // appraisal value = 1000000000
+         // vesting period  = 1 week
+         const property_options second_property_ops = {
+                 "some description 2",
+                 "some title 2",
+                 "my@email.com",
+                 "you",
+                 "https://fsf.com",
+                 "https://purepng.com/metal-1701528976849tkdsl.png",
+                 "not approved",
+                 "222",
+                 1000000000,
+                 1,
+                 33104,
+                 "1",
+                 "0.000000000000",
+                 "META1",
+         };
+         
+         //////
+         // Info:
+         // 1) create  first  backing asset 
+         // 2) approve first  backing asset
+         // 3) first asset vests to its full value
+         // 4) create second backing asset & not approve it like in CASE A.
+         // 5) go to the end of second asset vesting period
+         //////
+         
+         // 1) create  FIRST  backing asset 
+         property_create_operation first_prop_op = create_property_operation(db, "meta1", first_property_ops);
+
+         trx.clear();
+         trx.operations.push_back(first_prop_op);
+         set_expiration(db, trx);
+   
+         // TODO: Test that only signatures by meta1 are sufficient
+         sign(trx, meta1_private_key);
+   
+         PUSH_TX(db, trx);
+         generate_blocks(1);
+         generate_blocks(1);
+            
+         // Check the initial allocation of the asset before any blocks advance
+         const graphene::chain::property_object *first_property = db.get_property(first_prop_op.property_id);
+ 
+         // Check the property's allocation
+         BOOST_CHECK_EQUAL(ratio_type(0, 4), first_property->get_allocation_progress());
+ 
+         asset_limitation_object alo;
+         const auto &asset_limitation_idx = db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
+         uint64_t expected_valuation;
+
+         // 2) approve first  backing asset
+         property_approve_operation first_aop;
+         first_aop.issuer = meta1.id;
+         first_aop.property_to_approve = first_property->id;
+
+         trx.clear();
+         trx.operations.push_back(first_aop);
+         
+         sign(trx, meta1_private_key);
+         PUSH_TX(db, trx);
+
+         generate_blocks(1);
+         generate_blocks(1);
+
+
+         //////
+         // 3) FIRST asset vests to its full value
+         // Advance to the 110% moment of FIRST asset
+         // The appreciation of first  asset should be at 100%
+         //////
+         time_point_sec time_to_100_percent = first_property->creation_date + 1.00 * (boost::lexical_cast<double_t>(
+                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);
+         generate_blocks(time_to_100_percent, false);
+         set_expiration(db, trx);
+         trx.clear();
+
+         // Check allocation value of the FIRST asset
+         first_property = db.get_property(first_prop_op.property_id);
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property->get_allocation_progress());
+
+         // Check the sell_limit
+         alo = *asset_limitation_idx.find(limit_symbol);
+         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 100, 100);
+         uint64_t tol = 1; // The error at any time during the appreciation should be <= 1 USD * (number of properties)
+         BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
+         
+         //4) create second backing asset & not approve it like in CASE A.
+         property_create_operation second_prop_op = create_property_operation(db, "meta1", second_property_ops);
+         trx.operations.push_back(second_prop_op);
+         sign(trx, meta1_private_key);
+         PUSH_TX(db, trx);
+
+         generate_blocks(1);
+         generate_blocks(1);
+
+         const graphene::chain::property_object *second_property = db.get_property(second_prop_op.property_id);
+
+
+         //////
+         // Advance to the 25% moment of SECOND asset
+         // The appreciation of first  asset should be at 100%
+         // The appreciation of second asset should be at 25%
+         //////
+         time_point_sec time_to_25_percent = second_property->creation_date + 0.25 * (boost::lexical_cast<double_t>(
+                 second_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         generate_blocks(time_to_25_percent, false);
+         set_expiration(db, trx);
+         trx.clear(); 
+
+         first_property = db.get_property(first_prop_op.property_id);
+         second_property = db.get_property(second_prop_op.property_id);
+ 
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 4), second_property->get_allocation_progress());
+
+         // Check the sell_limit
+         alo = *asset_limitation_idx.find(limit_symbol);
+         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 100, 100) + 
+                              calculate_meta1_valuation(second_property->options.appraised_property_value, 25, 100);
+         BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
+
+
+         //////
+         // Advance to the 75% moment of SECOND asset
+         // The appreciation of first  asset should be at 100%
+         // The appreciation of second asset should be at 25%
+         //////
+         time_point_sec time_to_75_percent = second_property->creation_date + 0.75 * (boost::lexical_cast<double_t>(
+                 second_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         generate_blocks(time_to_75_percent, false);
+         set_expiration(db, trx);
+         trx.clear(); 
+
+         first_property = db.get_property(first_prop_op.property_id);
+         second_property = db.get_property(second_prop_op.property_id);
+ 
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 4), second_property->get_allocation_progress());
+
+         // Check the sell_limit
+         alo = *asset_limitation_idx.find(limit_symbol);
+         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 100, 100) + 
+                              calculate_meta1_valuation(second_property->options.appraised_property_value, 25, 100);
+         BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
+
+
+         //////
+         // 5) go to the end of SECOND asset vesting period
+         // Advance to the 101% moment of second asset (expiration)
+         // The appreciation of first  asset should be at 100%
+         // The appreciation of second asset should be at 0%
+         //////
+         time_point_sec time_to_101_percent = second_property->creation_date + 1.01 * (boost::lexical_cast<double_t>(
+                 second_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         generate_blocks(time_to_101_percent, false);
+         set_expiration(db, trx);
+         trx.clear(); 
+
+         first_property = db.get_property(first_prop_op.property_id);
+         second_property = db.get_property(second_prop_op.property_id);
+ 
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(0, 1), second_property->get_allocation_progress());
+
+         // Check the sell_limit
+         alo = *asset_limitation_idx.find(limit_symbol);
+         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 100, 100) + 
+                              calculate_meta1_valuation(second_property->options.appraised_property_value, 0, 100);
+         BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
+         
+        } FC_LOG_AND_RETHROW()
+   }
+
    // TODO: Test for late approval on the same block as the approval deadline
    // TODO: Test for approval on the block before the approval deadline
 
