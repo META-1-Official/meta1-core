@@ -49,98 +49,207 @@ std::size_t callback(const char *in, std::size_t size, std::size_t num, std::str
    out->append(in, totalBytes);
    return totalBytes;
 }
-void_result limit_order_create_evaluator::do_evaluate(const limit_order_create_operation &op)
-{
-   try
-   {
-      const database &d = db();
 
-      FC_ASSERT(op.expiration >= d.head_block_time());
-
-      _seller = this->fee_paying_account;
-      _sell_asset = &op.amount_to_sell.asset_id(d);
-      _receive_asset = &op.min_to_receive.asset_id(d);
-
-   if( _sell_asset->options.whitelist_markets.size() )
-   {
-      GRAPHENE_ASSERT( _sell_asset->options.whitelist_markets.find(_receive_asset->id)
-                          != _sell_asset->options.whitelist_markets.end(),
-                       limit_order_create_market_not_whitelisted,
-                       "This market has not been whitelisted by the selling asset", );
-   }
-   if( _sell_asset->options.blacklist_markets.size() )
-   {
-      GRAPHENE_ASSERT( _sell_asset->options.blacklist_markets.find(_receive_asset->id)
-                          == _sell_asset->options.blacklist_markets.end(),
-                       limit_order_create_market_blacklisted,
-                       "This market has been blacklisted by the selling asset", );
-   }
-
-   GRAPHENE_ASSERT( is_authorized_asset( d, *_seller, *_sell_asset ),
-                    limit_order_create_selling_asset_unauthorized,
-                    "The account is not allowed to transact the selling asset", );
-
-   GRAPHENE_ASSERT( is_authorized_asset( d, *_seller, *_receive_asset ),
-                    limit_order_create_receiving_asset_unauthorized,
-                    "The account is not allowed to transact the receiving asset", );
-
-   GRAPHENE_ASSERT( d.get_balance( *_seller, *_sell_asset ) >= op.amount_to_sell,
-                    limit_order_create_insufficient_balance,
-                    "insufficient balance",
-                    ("balance",d.get_balance(*_seller,*_sell_asset))("amount_to_sell",op.amount_to_sell) );
-
-      //Sell Limitation on asset limit objects
-      const auto &asset_limit_by_symbol = d.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
-      auto asset_limit_itr = asset_limit_by_symbol.find(_sell_asset->symbol);
-      if (asset_limit_itr != asset_limit_by_symbol.end())
-      {
-         double sell_limit_price = std::stod(asset_limit_itr->options.sell_limit);
-         double sellAmount = std::stod(_sell_asset->amount_to_string(op.amount_to_sell.amount));
-         double receiveAmount = std::stod(_receive_asset->amount_to_string(op.min_to_receive.amount));
-         if (_receive_asset->symbol.find("USD") == std::string::npos)
-         { //COIN to usd  data from rest api
-            const std::string url = "https://api.binance.com/api/v3/avgPrice?symbol=" + _receive_asset->symbol + "USDT";
-            CURL *curl = curl_easy_init();
-            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-            // Don't bother trying IPv6, which would increase DNS resolution time.
-            curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
-            // Follow HTTP redirects if necessary.
-            curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-            std::unique_ptr<std::string> httpData(new std::string());
-            // Hook up data handling function.
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, callback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, httpData.get());
-            // Run our HTTP GET command, capture the HTTP response code, and clean up.
-            curl_easy_perform(curl);
-            curl_easy_cleanup(curl);
-            auto resp_body = fc::json::from_string(*httpData.get());
-            const auto &resp_obj = resp_body.get_object();
-            if (resp_obj.contains("price"))
-            {
-               double receiveCoinPrice = std::stod(resp_obj["price"].as_string());
-               // if user want to sell with less price than meta cost
-               FC_ASSERT(receiveAmount * receiveCoinPrice >= sellAmount * sell_limit_price,
-                         "minimum selling price  ${s} equivalent :${p}",
-                         ("p", sell_limit_price / receiveCoinPrice)("s", _sell_asset->symbol));
-            }
-            else
-            {
-               FC_ASSERT(false, "${body}", ("body", resp_body.as_string()));
-            }
-         }
-         else
+         void_result limit_order_create_evaluator::do_evaluate(const limit_order_create_operation &op)
          {
-            //if user want to sell with less price than meta cost
-            FC_ASSERT(receiveAmount >= sellAmount * sell_limit_price,
-                      "minimum selling price of META1 dollar equivalent :${p}",
-                      ("p", sell_limit_price));
+            try
+            {
+               const database &d = db();
+
+               FC_ASSERT(op.expiration >= d.head_block_time());
+
+               _seller = this->fee_paying_account;
+               _sell_asset = &op.amount_to_sell.asset_id(d);
+               _receive_asset = &op.min_to_receive.asset_id(d);
+
+               if( _sell_asset->options.whitelist_markets.size() )
+               {
+                  GRAPHENE_ASSERT( _sell_asset->options.whitelist_markets.find(_receive_asset->id)
+                                      != _sell_asset->options.whitelist_markets.end(),
+                                   limit_order_create_market_not_whitelisted,
+                                   "This market has not been whitelisted by the selling asset", );
+               }
+               if( _sell_asset->options.blacklist_markets.size() )
+               {
+                  GRAPHENE_ASSERT( _sell_asset->options.blacklist_markets.find(_receive_asset->id)
+                                      == _sell_asset->options.blacklist_markets.end(),
+                                   limit_order_create_market_blacklisted,
+                                   "This market has been blacklisted by the selling asset", );
+               }
+
+               GRAPHENE_ASSERT( is_authorized_asset( d, *_seller, *_sell_asset ),
+                                limit_order_create_selling_asset_unauthorized,
+                                "The account is not allowed to transact the selling asset", );
+
+               GRAPHENE_ASSERT( is_authorized_asset( d, *_seller, *_receive_asset ),
+                                limit_order_create_receiving_asset_unauthorized,
+                                "The account is not allowed to transact the receiving asset", );
+
+               GRAPHENE_ASSERT( d.get_balance( *_seller, *_sell_asset ) >= op.amount_to_sell,
+                                limit_order_create_insufficient_balance,
+                                "insufficient balance",
+                                ("balance",d.get_balance(*_seller,*_sell_asset))("amount_to_sell",op.amount_to_sell) );
+
+               // Check if selling or buy the META1 asset
+               const asset_object &META1 = d.get_core_asset();
+               const asset_id_type &meta1_id = META1.id;
+               const bool selling_meta1 = (op.amount_to_sell.asset_id == meta1_id);
+               const bool buying_meta1 = (op.min_to_receive.asset_id == meta1_id);
+               if (selling_meta1 || buying_meta1) {
+                  // Check the implied price of META1
+                  FC_ASSERT(selling_meta1 != buying_meta1, "The order must not sell and buy META1");
+
+                  // The non-META1 asset must be known
+                  const auto &asset_idx_by_id = d.get_index_type<asset_index>().indices().get<by_id>();
+                  asset_id_type other_id;
+                  if (selling_meta1) {
+                     other_id = op.min_to_receive.asset_id;
+                  } else {
+                     other_id = op.amount_to_sell.asset_id;
+                  }
+                  auto asset_itr = asset_idx_by_id.find(other_id);
+                  FC_ASSERT(asset_itr != asset_idx_by_id.end(), "Other asset is unknown");
+                  const asset_object &O = *asset_itr;
+
+                  // The minimum price check is only performed if an external price has been set
+                  const auto &asset_price_idx_by_symbol = d.get_index_type<asset_price_index>().indices().get<by_symbol>();
+                  auto asset_price_itr = asset_price_idx_by_symbol.find(O.symbol);
+                  if (asset_price_itr != asset_price_idx_by_symbol.end()) {
+                     const asset_price &asset_price = *asset_price_itr;
+                     // Check for recent price
+                     const uint32_t price_age_seconds = d.head_block_time().sec_since_epoch()
+                                                        - asset_price.publication_time.sec_since_epoch();
+                     // TODO: [Low] Customize the the maximum age of the asset price
+                     FC_ASSERT(price_age_seconds <= GRAPHENE_DEFAULT_PRICE_FEED_LIFETIME,
+                               "The most recent published price for ${symbol} is too old (${age} seconds)",
+                               ("symbol", O.symbol)("age", price_age_seconds));
+                     const uint32_t usd_price_num = asset_price.usd_price.numerator;
+                     const uint32_t usd_price_den = asset_price.usd_price.denominator;
+
+                     // Get the total valuation for all META1 tokens
+                     const auto &asset_limitation_idx = d.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
+                     const asset_limitation_object &alo = *asset_limitation_idx.find(META1.symbol);
+                     const uint64_t cumulative = alo.cumulative_sell_limit;
+
+                     // Check the implied price for META1
+                     /**
+                      * **Implied USD-Price for META1**
+                      *
+                      * The USD-price for a META1 token implied from a limit order,
+                      * which aims to buy or sell another token called Other (O),
+                      * should be greater than or equal to the derived valuation of all META1 tokens
+                      * based on 10x the appraisal value of the properties backing the META1 asset type.
+                      *
+                      * This can be expressed as
+                      *
+                      *  M1_Price_Order >= M1_Price_Backing                                             (1)
+                      *
+                      * where
+                      *
+                      *   M1_Price_Order = (O / M) * USD_Price_Of_O,
+                      *                O = Quantity of Other tokens,
+                      *                M = Quantity of META1 tokens,
+                      *   USD_Price_Of_O = USD-price of the other token
+                      *                  = USD-price Numerator / USD-price Denominator
+                      *                  = O_num / O_den
+                      *
+                      * and
+                      *
+                      * M1_Price_Backing = Cumulative / N
+                      *       Cumulative = 10 * Cumulate USD-valuation of all backing properties
+                      *                N = Quantity of META1 tokens
+                      *
+                      * Equation 1 can be re-expressed as
+                      *
+                      * (O / M) * O_num / O_den >= Cumulative / N                                       (2)
+                      */
+
+                     /**
+                      * **Implied USD-Price for META1 in Graphene terms**
+                      *
+                      * Equation (2) needs to be re-expressed to account for the fact that 1 whole of a token
+                      * is actually represented as multiples of satoshies of that token.
+                      * 1 token is represented by 10^X satoshi where the X is conventionally
+                      * called the asset type's precision, and is a non-negative integer.
+                      *
+                      * For example, the META1 token has a precision that will be called p_M1, has a value of 5,
+                      * so 10^5 = 10,000.
+                      *
+                      * For example, the "Other" token will have a precision called p_O.
+                      *
+                      * Similarly, quantities of the M token can be expressed as
+                      *
+                      * M = m / 10^p_M1
+                      *
+                      * where m is the quantity of satoshi META1.
+                      *
+                      * Similarly, quantities of the O token can be expressed as
+                      *
+                      * O = o / 10^p_O
+                      *
+                      * where o is the quantity of satoshi Other.
+                      *
+                      *
+                      * Therefore, Equation 2 cann be re-expressed as
+                      *
+                      * ((o / 10^p_O) / (m / 10^p_M1)) * O_num / O_den >= Cumulative / N            (3)
+                      */
+
+                     /**
+                      * **Implied USD-Price for META1 in Graphene terms to avoid rounding errors**
+                      *
+                      * Rounding errors can be eliminated by removing all arithmetic divisions from Equation 3.
+                      * This can be accomplished by re-arranging all items in the denominators of the equation.
+                      *
+                      * o * 10^p_M1 * O_num * N >= m * 10^p_O * O_den * Cumulative                  (4)
+                      */
+
+                     /**
+                      * **Implied USD-Price for META1 in Graphene terms to avoid rounding errors, reduce computations,
+                      * and reduce likelihood of overflow**
+                      *
+                      * Equation (3) can be re-expressed to reduce the likelihood of an overflow by combining
+                      * the terms 10^p_M1 and 10^p_O.
+                      *
+                      *
+                      * When p_M1 >= p_0, Equation 4 can be arranged as
+                      *
+                      * 10^(p_M1 - p_O) * o * O_num * N >= m * O_den * Cumulative                   (4a)
+                      *
+                      *
+                      * When p_M1 < p_0, Equation 4 can be arranged as
+                      *
+                      * o * O_num * N >= 10^(p_O - p_M1) * m * O_den * Cumulative                   (4b)
+                      *
+                      */
+                     // TODO: [Medium] Overflow check
+                     const int64_t o = selling_meta1 ? op.min_to_receive.amount.value : op.amount_to_sell.amount.value;
+                     const int64_t m = selling_meta1 ? op.amount_to_sell.amount.value : op.min_to_receive.amount.value;
+
+                     const int64_t META1_SUPPLY =
+                             META1.options.max_supply.value / asset::scaled_precision(META1.precision).value;
+                     fc::uint128_t LHS = fc::uint128_t(o) * usd_price_num * META1_SUPPLY;
+                     fc::uint128_t RHS = fc::uint128_t(m) * usd_price_den * cumulative;
+                     if (META1.precision >= O.precision) {
+                        const uint8_t precision_delta = META1.precision - O.precision;
+                        const int64_t ten_to_precision_delta = asset::scaled_precision(precision_delta).value;
+                        LHS *= ten_to_precision_delta;
+
+                     } else {
+                        const uint8_t precision_delta = O.precision - META1.precision;
+                        const int64_t ten_to_precision_delta = asset::scaled_precision(precision_delta).value;
+                        RHS *= ten_to_precision_delta;
+
+                     }
+                     FC_ASSERT(LHS >= RHS, "The implied valuation for the META1 token is too low: ${LHS} >= ${RHS}",
+                               ("LHS", LHS)("RHS", RHS));
+                  }
+               }
+
+               return void_result();
+            }
+            FC_CAPTURE_AND_RETHROW((op))
          }
-      }
-      return void_result();
-   }
-   FC_CAPTURE_AND_RETHROW((op))
-}
 
 void limit_order_create_evaluator::convert_fee()
 {
