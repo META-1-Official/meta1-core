@@ -21,8 +21,6 @@ public:
     // The cumulative sell limit for an asset that is backed by other properties
     uint64_t cumulative_sell_limit = 0;
 
-    asset_limitation_options options;
-
     asset_limitation_id_type get_id() const { return id; }
 };
 

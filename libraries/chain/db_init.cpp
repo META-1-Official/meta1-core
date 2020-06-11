@@ -192,6 +192,7 @@ void database::initialize_evaluators()
    register_evaluator<property_delete_evaluator>();
    register_evaluator<asset_limitation_create_evaluator>();
    register_evaluator<asset_limitation_update_evaluator>();
+   register_evaluator<asset_price_publish_evaluator>();
 }
 
 void database::initialize_indexes()

@@ -1475,7 +1475,6 @@ public:
 
    signed_transaction create_asset_limitation(string issuer,
                                               string limit_symbol,
-                                              asset_limitation_options common,
                                               bool broadcast = false)
    {
       try
@@ -1486,7 +1485,6 @@ public:
 
          create_op.limit_symbol = limit_symbol;
          create_op.issuer = issuer_account.id;
-         create_op.common_options = common;
          signed_transaction tx;
          tx.operations.push_back(create_op);
 
@@ -1496,51 +1494,7 @@ public:
          auto transaction_result = sign_transaction(tx, broadcast);
          return transaction_result;
       }
-      FC_CAPTURE_AND_RETHROW((issuer)(limit_symbol)(common)(broadcast))
-   }
-   
-   //smooth allocation assets price limitation 
-   signed_transaction update_asset_limitation(string limit_symbol,
-                                              asset_limitation_options new_options,
-                                              bool broadcast = false)
-   {
-      try
-      {
-         std::stringstream ss;
-         ss << std::setprecision(std::numeric_limits<double>::digits10+1);
-         double price_buf = 0.0;
-
-         optional<asset_limitation_object> asset_limitation_to_update = get_asset_limitaion_by_symbol(limit_symbol);
-         if (!asset_limitation_to_update)
-            FC_THROW("No asset limitation for asset with symbol not exis");
-         asset_limitation_object_update_operation update_op;
-         update_op.issuer = asset_limitation_to_update->issuer;
-         update_op.asset_limitation_object_to_update = asset_limitation_to_update->id;
-
-         asset_limitation_options asset_limitation_ops = asset_limitation_to_update->options;
-
-         //buy limit
-         price_buf = std::stod (asset_limitation_ops.buy_limit);
-         price_buf += std::stod (new_options.buy_limit);
-         ss << price_buf;
-         asset_limitation_ops.buy_limit = ss.str();
-         ss.str(std::string());
-         //sell limit
-         price_buf = std::stod (asset_limitation_ops.sell_limit);
-         price_buf += std::stod (new_options.sell_limit);
-         ss << price_buf;
-         asset_limitation_ops.sell_limit = ss.str();
-      
-         update_op.new_options = asset_limitation_ops ;
-
-         signed_transaction tx;
-         tx.operations.push_back(update_op);
-         set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
-         tx.validate();
-
-         return sign_transaction(tx, broadcast);
-      }
-      FC_CAPTURE_AND_RETHROW((limit_symbol)(new_options)(broadcast))
+      FC_CAPTURE_AND_RETHROW((issuer)(limit_symbol)(broadcast))
    }
 
    signed_transaction create_asset(string issuer,
@@ -4233,19 +4187,11 @@ signed_transaction wallet_api::delete_property(uint32_t property_id, bool broadc
 
 signed_transaction wallet_api::create_asset_limitation(string issuer,
                                                        string limit_symbol,
-                                                       asset_limitation_options common,
                                                        bool broadcast )
 {
-   return my->create_asset_limitation(issuer, limit_symbol,common, broadcast);
+   return my->create_asset_limitation(issuer, limit_symbol, broadcast);
 }
 
-//smooth allocation assets buy sell prices
-signed_transaction wallet_api::update_asset_limitation(string limit_symbol,
-                                                       asset_limitation_options new_options,
-                                                       bool broadcast )
-{
-   return my->update_asset_limitation(limit_symbol,new_options, broadcast);
-}
 
 signed_transaction wallet_api::create_asset(string issuer,
                                             string symbol,

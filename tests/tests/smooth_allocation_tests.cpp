@@ -16,7 +16,6 @@ using namespace graphene::chain::test;
 
 
 BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
-   // TODO: Remove asset_limitation_ops?
 
    const uint64_t abs64(const uint64_t v1, const uint64_t v2) {
       return (v1 >= v2) ? (v1 -v2) : (v2 - v1);
@@ -39,17 +38,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
 
       // Create the asset limitation
       const string limit_symbol = "META1";
-      const asset_limitation_options asset_limitation_ops = {
-              "0.00000000000000",
-              "0.0000000000000001",
-      };
 
       account_object issuer_account = get_account("meta1");
 
       asset_limitation_object_create_operation create_limitation_op;
       create_limitation_op.limit_symbol = limit_symbol;
       create_limitation_op.issuer = issuer_account.id;
-      create_limitation_op.common_options = asset_limitation_ops;
 
       signed_transaction tx;
       tx.operations.push_back(create_limitation_op);
@@ -221,17 +215,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
 
          // Create the asset limitation
          const string limit_symbol = "META1";
-         const asset_limitation_options asset_limitation_ops = {
-                 "0.00000000000000",
-                 "0.0000000000000001",
-         };
 
          account_object issuer_account = get_account("meta1");
 
          asset_limitation_object_create_operation create_limitation_op;
          create_limitation_op.limit_symbol = limit_symbol;
          create_limitation_op.issuer = issuer_account.id;
-         create_limitation_op.common_options = asset_limitation_ops;
 
          trx.operations.push_back(create_limitation_op);
          set_expiration(db, trx);
@@ -437,17 +426,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
 
          // Create the asset limitation
          const string limit_symbol = "META1";
-         const asset_limitation_options asset_limitation_ops = {
-                 "0.00000000000000",
-                 "0.0000000000000001",
-         };
 
          account_object issuer_account = get_account("meta1");
 
          asset_limitation_object_create_operation create_limitation_op;
          create_limitation_op.limit_symbol = limit_symbol;
          create_limitation_op.issuer = issuer_account.id;
-         create_limitation_op.common_options = asset_limitation_ops;
 
          trx.operations.push_back(create_limitation_op);
          set_expiration(db, trx);
@@ -624,18 +608,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
    
          // Create the asset limitation
          const string limit_symbol = "META1";
-         const asset_limitation_options asset_limitation_ops = {
-                 "0.00000000000000",
-                 "0.0000000000000001",
-         };
-   
          account_object issuer_account = get_account("meta1");
    
          asset_limitation_object_create_operation create_limitation_op;
          create_limitation_op.limit_symbol = limit_symbol;
          create_limitation_op.issuer = issuer_account.id;
-         create_limitation_op.common_options = asset_limitation_ops;
-         
+
          trx.clear();
          trx.operations.push_back(create_limitation_op);
          set_expiration(db, trx);
@@ -886,18 +864,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
    
          // Create the asset limitation
          const string limit_symbol = "META1";
-         const asset_limitation_options asset_limitation_ops = {
-               "0.00000000000000",
-               "0.0000000000000001",
-       };
-  
          account_object issuer_account = get_account("meta1");
    
          asset_limitation_object_create_operation create_limitation_op;
          create_limitation_op.limit_symbol = limit_symbol;
          create_limitation_op.issuer = issuer_account.id;
-         create_limitation_op.common_options = asset_limitation_ops;
-         
+
          trx.clear();
          trx.operations.push_back(create_limitation_op);
          set_expiration(db, trx);
@@ -1150,17 +1122,11 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
    
          // Create the asset limitation
          const string limit_symbol = "META1";
-         const asset_limitation_options asset_limitation_ops = {
-                 "0.00000000000000",
-                 "0.0000000000000001",
-         };
-   
          account_object issuer_account = get_account("meta1");
    
          asset_limitation_object_create_operation create_limitation_op;
          create_limitation_op.limit_symbol = limit_symbol;
          create_limitation_op.issuer = issuer_account.id;
-         create_limitation_op.common_options = asset_limitation_ops;
 
          trx.operations.push_back(create_limitation_op);
          set_expiration(db, trx);

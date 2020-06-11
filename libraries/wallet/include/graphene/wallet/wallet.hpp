@@ -1352,11 +1352,6 @@ class wallet_api
       //smart contracts for limitation assets buy/sell prices
       signed_transaction create_asset_limitation(string issuer,
                                                  string limit_symbol,
-                                                 asset_limitation_options common,
-                                                 bool broadcast = false);
-
-      signed_transaction update_asset_limitation(string limit_symbol,
-                                                 asset_limitation_options new_options,
                                                  bool broadcast = false);
 
       /** Creates a new user-issued or market-issued asset.
@@ -2174,7 +2169,6 @@ FC_API( graphene::wallet::wallet_api,
         (approve_property)
         (delete_property)
         (create_asset_limitation)
-        (update_asset_limitation)
         (create_asset)
         (update_asset)
         (update_asset_issuer)
