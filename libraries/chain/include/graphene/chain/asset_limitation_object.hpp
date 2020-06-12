@@ -19,7 +19,7 @@ public:
     account_id_type issuer;
 
     // The cumulative sell limit for an asset that is backed by other properties
-    uint64_t cumulative_sell_limit;
+    uint64_t cumulative_sell_limit = 0;
 
     asset_limitation_options options;
 
