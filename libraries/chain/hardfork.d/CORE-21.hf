@@ -1,5 +1,4 @@
 // Smooth allocation in Core
 #ifndef HARDFORK_CORE_21_TIME
-// Jan 1 2030, midnight this is a dummy date until a hardfork date is scheduled
-#define HARDFORK_CORE_21_TIME (fc::time_point_sec( 1893456000 ))
+#define HARDFORK_CORE_21_TIME (fc::time_point_sec( 1591275600 )) // 2020-06-04T13:00:00Z
 #endif
