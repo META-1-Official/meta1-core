@@ -2,36 +2,14 @@
  * Copyright META1 (c) 2020
  */
 
-#include <stdlib.h>
 #include <random>
 
 #include <boost/test/unit_test.hpp>
 
-#include <graphene/app/database_api.hpp>
-#include <graphene/chain/database.hpp>
 #include <graphene/chain/hardfork.hpp>
-
-#include <graphene/chain/balance_object.hpp>
-#include <graphene/chain/budget_record_object.hpp>
-#include <graphene/chain/committee_member_object.hpp>
-#include <graphene/chain/market_object.hpp>
-#include <graphene/chain/withdraw_permission_object.hpp>
-#include <graphene/chain/witness_object.hpp>
-#include <graphene/chain/worker_object.hpp>
-
 #include <graphene/chain/allocation.hpp>
 
-#include <graphene/witness/witness.hpp>
-#include <graphene/smooth_allocation/smooth_allocation_plugin.hpp>
-
-#include <graphene/utilities/tempdir.hpp>
-
-#include <fc/uint128.hpp>
-#include <fc/crypto/digest.hpp>
-
 #include "../common/database_fixture.hpp"
-
-#define META1_SCALED_ALLOCATION_TOLERANCE int64_t(100000000l)
 
 using namespace graphene::chain;
 using namespace graphene::chain::test;
@@ -204,7 +182,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
               1000000000,
               1,
               33104,
-              "1",
+              10080,
               "0.000000000000",
               "META1",
       };
@@ -241,10 +219,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
       // Advance to the 25% moment
       // The appreciation should be at 25%
       //////
-      // TODO: Change smooth_allocation_time to uint and rename to weeks
-      uint32_t initial_duration_seconds =
-              0.25 * (boost::lexical_cast<double_t>(property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);
-      time_point_sec time_to_25_percent = property->creation_date + initial_duration_seconds;
+      uint32_t allocation_duration_seconds = (property->approval_end_date.sec_since_epoch() -
+                                              property->creation_date.sec_since_epoch());
+      time_point_sec time_to_25_percent = property->creation_date + (allocation_duration_seconds * 1 / 4);
       generate_blocks(time_to_25_percent, false);
       set_expiration(db, trx);
       trx.operations.clear();
@@ -265,8 +242,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
       // Advance to the 50% moment
       // The appreciation should be at 25%
       //////
-      time_point_sec time_to_50_percent = property->creation_date + (0.5 * (boost::lexical_cast<double_t>(
-              property->options.smooth_allocation_time) * 7 * 24 * 60 * 60));
+      time_point_sec time_to_50_percent = property->creation_date + (allocation_duration_seconds / 2);
       generate_blocks(time_to_50_percent, false);
       set_expiration(db, trx);
       trx.operations.clear();
@@ -285,8 +261,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
       // Advance to the 75% moment
       // The appreciation should be at 25%
       //////
-      time_point_sec time_to_75_percent = property->creation_date + (0.75 * (boost::lexical_cast<double_t>(
-              property->options.smooth_allocation_time) * 7 * 24 * 60 * 60));
+      time_point_sec time_to_75_percent = property->creation_date + (allocation_duration_seconds * 3 / 4);
       generate_blocks(time_to_75_percent, false);
       set_expiration(db, trx);
       trx.operations.clear();
@@ -305,8 +280,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
       // Advance to the 100% moment
       // The appreciation should be at 0%
       //////
-      time_point_sec time_to_100_percent = property->creation_date + (1.00 * (boost::lexical_cast<double_t>(
-              property->options.smooth_allocation_time) * 7 * 24 * 60 * 60));
+      time_point_sec time_to_100_percent = property->creation_date +  (allocation_duration_seconds);
       generate_blocks(time_to_100_percent, false);
       set_expiration(db, trx);
       trx.operations.clear();
@@ -325,8 +299,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
       // Advance to the 125% moment
       // The appreciation should be at 0%
       //////
-      time_point_sec time_to_125_percent = property->creation_date + (1.25 * (boost::lexical_cast<double_t>(
-              property->options.smooth_allocation_time) * 7 * 24 * 60 * 60));
+      time_point_sec time_to_125_percent = property->creation_date + (allocation_duration_seconds * 5 / 4);
       generate_blocks(time_to_125_percent, false);
       set_expiration(db, trx);
       trx.clear();
@@ -394,7 +367,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  1000000000,
                  1,
                  33104,
-                 "1",
+                 10080,
                  "0.000000000000",
                  "META1",
          };
@@ -427,8 +400,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // Advance to the 10% moment
          // The appreciation should be at 10%
          //////
-         time_point_sec time_to_10_percent = property->creation_date + 0.1 * (boost::lexical_cast<double_t>(
-                 property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);
+         uint32_t allocation_duration_seconds = (property->approval_end_date.sec_since_epoch() -
+                                                 property->creation_date.sec_since_epoch());
+         time_point_sec time_to_10_percent = property->creation_date + (allocation_duration_seconds) / 10;
          generate_blocks(time_to_10_percent, false);
          set_expiration(db, trx);
          trx.clear();
@@ -466,10 +440,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // Advance to the 25% moment
          // The appreciation should be at 25%
          //////
-         // TODO: Change smooth_allocation_time to uint and rename to weeks
-         uint32_t initial_duration_seconds =
-                 0.25 * (boost::lexical_cast<double_t>(property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);
-         time_point_sec time_to_25_percent = property->creation_date + initial_duration_seconds;
+         time_point_sec time_to_25_percent = property->creation_date + (allocation_duration_seconds) / 4;
          generate_blocks(time_to_25_percent, false);
          set_expiration(db, trx);
          trx.clear();
@@ -488,8 +459,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // Advance to the 50% moment
          // The appreciation should be at 50%
          //////
-         time_point_sec time_to_50_percent = property->creation_date + (0.5 * (boost::lexical_cast<double_t>(
-                 property->options.smooth_allocation_time) * 7 * 24 * 60 * 60));
+         time_point_sec time_to_50_percent = property->creation_date + (allocation_duration_seconds) / 2;
          generate_blocks(time_to_50_percent, false);
          set_expiration(db, trx);
          trx.clear();
@@ -508,8 +478,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // Advance to the 75% moment
          // The appreciation should be at 75%
          //////
-         time_point_sec time_to_75_percent = property->creation_date + (0.75 * (boost::lexical_cast<double_t>(
-                 property->options.smooth_allocation_time) * 7 * 24 * 60 * 60));
+         time_point_sec time_to_75_percent = property->creation_date + (allocation_duration_seconds) * 3 / 4;
          generate_blocks(time_to_75_percent, false);
          set_expiration(db, trx);
          trx.clear();
@@ -528,8 +497,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // Advance to the 100% moment
          // The appreciation should be at 100%
          //////
-         time_point_sec time_to_100_percent = property->creation_date + (1.00 * (boost::lexical_cast<double_t>(
-                 property->options.smooth_allocation_time) * 7 * 24 * 60 * 60));
+         time_point_sec time_to_100_percent = property->creation_date + (allocation_duration_seconds);
          generate_blocks(time_to_100_percent, false);
          set_expiration(db, trx);
          trx.clear();
@@ -548,8 +516,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // Advance to the 125% moment
          // The appreciation should be at 100%
          //////
-         time_point_sec time_to_125_percent = property->creation_date + (1.25 * (boost::lexical_cast<double_t>(
-                 property->options.smooth_allocation_time) * 7 * 24 * 60 * 60));
+         time_point_sec time_to_125_percent = property->creation_date + (allocation_duration_seconds) * 5 / 4;
          generate_blocks(time_to_125_percent, false);
          set_expiration(db, trx);
          trx.clear();
@@ -620,7 +587,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  1000000000,
                  1,
                  33104,
-                 "1",
+                 10080,
                  "0.000000000000",
                  "META1",
          };
@@ -653,8 +620,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // Advance to the 65% moment
          // The appreciation should be at 25%
          //////
-         time_point_sec time_to_65_percent = property->creation_date + 0.65 * (boost::lexical_cast<double_t>(
-                 property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);
+         uint32_t allocation_duration_seconds = (property->approval_end_date.sec_since_epoch() -
+                                                 property->creation_date.sec_since_epoch());
+         time_point_sec time_to_65_percent = property->creation_date + (allocation_duration_seconds) * 65 / 100;
          // time_point_sec time_approval = time_to_65_percent;
          generate_blocks(time_to_65_percent, false);
          set_expiration(db, trx);
@@ -695,8 +663,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // Advance to the 75% moment
          // The appreciation should be at approximately 46.4%
          //////
-         time_point_sec time_to_75_percent = property->creation_date + (0.75 * (boost::lexical_cast<double_t>(
-                 property->options.smooth_allocation_time) * 7 * 24 * 60 * 60));
+         time_point_sec time_to_75_percent = property->creation_date + (allocation_duration_seconds) * 3 / 4;
          ilog(" Current time: ${time}", ("time", db.head_block_time()));
          generate_blocks(time_to_75_percent, false);
          set_expiration(db, trx);
@@ -721,8 +688,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // Advance to the 100% moment
          // The appreciation should be at 100%
          //////
-         time_point_sec time_to_100_percent = property->creation_date + (1.00 * (boost::lexical_cast<double_t>(
-                 property->options.smooth_allocation_time) * 7 * 24 * 60 * 60));
+         time_point_sec time_to_100_percent = property->creation_date + (allocation_duration_seconds);
          generate_blocks(time_to_100_percent, false);
          set_expiration(db, trx);
          trx.clear();
@@ -741,8 +707,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // Advance to the 125% moment
          // The appreciation should be at 100%
          //////
-         time_point_sec time_to_125_percent = property->creation_date + (1.25 * (boost::lexical_cast<double_t>(
-                 property->options.smooth_allocation_time) * 7 * 24 * 60 * 60));
+         time_point_sec time_to_125_percent = property->creation_date + (allocation_duration_seconds) * 5 / 4;
          generate_blocks(time_to_125_percent, false);
          set_expiration(db, trx);
          trx.clear();
@@ -814,7 +779,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  1000000000,
                  1,
                  33104,
-                 "1",
+                 10080,
                  "0.000000000000",
                  "META1",
          };
@@ -833,7 +798,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  2000000000,
                  1,
                  33104,
-                 "1",
+                 10080,
                  "0.000000000000",
                  "META1",
          };
@@ -876,9 +841,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // The appreciation of second asset should be at 0 %
          // The appreciation of sell limit   should be at 10%
          //////
-   
-         time_point_sec time_to_10_percent = first_property->creation_date + 0.1 * (boost::lexical_cast<double_t>(
-                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);
+         uint32_t allocation_duration_seconds = (first_property->approval_end_date.sec_since_epoch() -
+                                                 first_property->creation_date.sec_since_epoch());
+         time_point_sec time_to_10_percent = first_property->creation_date + (allocation_duration_seconds) * 10 / 100;
          generate_blocks(time_to_10_percent, false);
          set_expiration(db, trx);
          trx.clear();
@@ -902,6 +867,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          
          // Check the initial allocation of the SECOND before any blocks advance
          const graphene::chain::property_object *second_property = db.get_property(second_prop_op.property_id);
+         BOOST_REQUIRE_EQUAL(allocation_duration_seconds, (second_property->approval_end_date.sec_since_epoch() -
+                                                     second_property->creation_date.sec_since_epoch()));
          BOOST_CHECK_EQUAL(ratio_type(0, 4), second_property->get_allocation_progress());
    
          // Check the sell_limit
@@ -916,9 +883,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // The appreciation of second asset should be at 15%
          // The appreciation of sell_limit   should be at 40%
          //////
-   
-         time_point_sec time_to_15_percent = second_property->creation_date + 0.15 * (boost::lexical_cast<double_t>(
-                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         time_point_sec time_to_15_percent = second_property->creation_date + (allocation_duration_seconds) * 15 / 100;
          generate_blocks(time_to_15_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -941,9 +906,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // The appreciation of second asset should be at 25%
          // The appreciation of sell_limit   should be at 50%
          //////
-         
-         time_point_sec time_to_40_percent = second_property->creation_date + 0.4 * (boost::lexical_cast<double_t>(
-                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         time_point_sec time_to_40_percent = second_property->creation_date + (allocation_duration_seconds) * 40 / 100;
          generate_blocks(time_to_40_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -966,9 +929,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // The appreciation of second asset should be at 25%
          // The appreciation of sell_limit   should be at 50%
          //////
-   
-         time_point_sec time_to_65_percent = second_property->creation_date + 0.65 * (boost::lexical_cast<double_t>(
-                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         time_point_sec time_to_65_percent = second_property->creation_date + (allocation_duration_seconds) * 65 / 100;
          generate_blocks(time_to_65_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -991,9 +952,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // The appreciation of second asset should be at 25%
          // The appreciation of sell_limit   should be at 25%
          //////
-   
-         time_point_sec time_to_90_percent = second_property->creation_date + 0.9 * (boost::lexical_cast<double_t>(
-                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         time_point_sec time_to_90_percent = second_property->creation_date + (allocation_duration_seconds) * 90 / 100;
          generate_blocks(time_to_90_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -1016,8 +975,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // The appreciation of second asset should be at 0%
          // The appreciation of sell_limit   should be at 0%
          //////
-         time_point_sec time_to_100_percent = second_property->creation_date + 1.00 * (boost::lexical_cast<double_t>(
-                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         time_point_sec time_to_100_percent = second_property->creation_date + (allocation_duration_seconds) * 100 / 100;
          generate_blocks(time_to_100_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -1091,7 +1049,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                1000000000,
                1,
                33104,
-               "1",
+               10080,
                "0.000000000000",
                "META1",
        };
@@ -1110,7 +1068,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                2000000000,
                1,
                33104,
-               "1",
+               10080,
                "0.000000000000",
                "META1",
        };
@@ -1157,8 +1115,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // The appreciation of second asset should be at 0 %
          // The appreciation of sell limit   should be at 10%
          //////
-         time_point_sec time_to_10_percent = first_property->creation_date + 0.1 * (boost::lexical_cast<double_t>(
-                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);
+         uint32_t allocation_duration_seconds = (first_property->approval_end_date.sec_since_epoch() -
+                                                 first_property->creation_date.sec_since_epoch());
+         time_point_sec time_to_10_percent = first_property->creation_date + (allocation_duration_seconds) * 10 / 100;
          generate_blocks(time_to_10_percent, false);
          set_expiration(db, trx);
          trx.clear();
@@ -1188,6 +1147,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          
          // Check the initial allocation of the second before any blocks advance
          const graphene::chain::property_object *second_property = db.get_property(second_prop_op.property_id);
+         BOOST_REQUIRE_EQUAL(allocation_duration_seconds, (second_property->approval_end_date.sec_since_epoch() -
+                                                     second_property->creation_date.sec_since_epoch()));
          BOOST_CHECK_EQUAL(ratio_type(0, 4), second_property->get_allocation_progress());
  
          // Check the sell_limit
@@ -1203,8 +1164,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // The appreciation of second asset should be at 25%
          // The appreciation of sell limit   should be at 100%
          //////
-         time_point_sec time_to_75_percent = first_property->creation_date + 0.75 * (boost::lexical_cast<double_t>(
-                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         time_point_sec time_to_75_percent = first_property->creation_date + (allocation_duration_seconds) * 75 / 100;
          generate_blocks(time_to_75_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -1239,8 +1199,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // The appreciation of second asset should be at 46.422499291%
          // The appreciation of sell limit   should be at 131.4%
          //////
-         time_point_sec time_to_85_percent = first_property->creation_date + 0.85 * (boost::lexical_cast<double_t>(
-                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         time_point_sec time_to_85_percent = first_property->creation_date + (allocation_duration_seconds) * 85 / 100;
          generate_blocks(time_to_85_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -1264,8 +1223,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // The appreciation of second asset should be at 100%
          // The appreciation of sell limit   should be at 200%
          //////
-         time_point_sec time_to_100_percent = second_property->creation_date + 1.00 * (boost::lexical_cast<double_t>(
-                 second_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         time_point_sec time_to_100_percent = second_property->creation_date + (allocation_duration_seconds) * 100 / 100;
          generate_blocks(time_to_100_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -1289,8 +1247,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // The appreciation of second asset should be at 100%
          // The appreciation of sell limit   should be at 200%
          //////
-         time_point_sec time_to_135_percent = first_property->creation_date + 1.35 * (boost::lexical_cast<double_t>(
-                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         time_point_sec time_to_135_percent = first_property->creation_date + (allocation_duration_seconds) * 135 / 100;
          generate_blocks(time_to_135_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -1363,7 +1320,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  2000000000,
                  1,
                  33104,
-                 "1",
+                 10080,
                  "0.000000000000",
                  "META1",
          };
@@ -1382,7 +1339,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  1000000000,
                  1,
                  33104,
-                 "1",
+                 10080,
                  "0.000000000000",
                  "META1",
          };
@@ -1437,11 +1394,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          //////
          // 3) FIRST asset vests to its full value
-         // Advance to the 110% moment of FIRST asset
+         // Advance to the 100% moment of FIRST asset
          // The appreciation of first  asset should be at 100%
          //////
-         time_point_sec time_to_100_percent = first_property->creation_date + 1.00 * (boost::lexical_cast<double_t>(
-                 first_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);
+         uint32_t allocation_duration_seconds = (first_property->approval_end_date.sec_since_epoch() -
+                                                 first_property->creation_date.sec_since_epoch());
+         time_point_sec time_to_100_percent = first_property->creation_date + (allocation_duration_seconds) * 100 / 100;
          generate_blocks(time_to_100_percent, false);
          set_expiration(db, trx);
          trx.clear();
@@ -1466,6 +1424,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          generate_blocks(1);
 
          const graphene::chain::property_object *second_property = db.get_property(second_prop_op.property_id);
+         BOOST_REQUIRE_EQUAL(allocation_duration_seconds, (second_property->approval_end_date.sec_since_epoch() -
+                                                     second_property->creation_date.sec_since_epoch()));
 
 
          //////
@@ -1473,8 +1433,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // The appreciation of first  asset should be at 100%
          // The appreciation of second asset should be at 25%
          //////
-         time_point_sec time_to_25_percent = second_property->creation_date + 0.25 * (boost::lexical_cast<double_t>(
-                 second_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         time_point_sec time_to_25_percent = second_property->creation_date + (allocation_duration_seconds) * 25 / 100;
          generate_blocks(time_to_25_percent, false);
          set_expiration(db, trx);
          trx.clear(); 
@@ -1497,8 +1456,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // The appreciation of first  asset should be at 100%
          // The appreciation of second asset should be at 25%
          //////
-         time_point_sec time_to_75_percent = second_property->creation_date + 0.75 * (boost::lexical_cast<double_t>(
-                 second_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         time_point_sec time_to_75_percent = second_property->creation_date + (allocation_duration_seconds) * 75 / 100;
          generate_blocks(time_to_75_percent, false);
          set_expiration(db, trx);
          trx.clear(); 
@@ -1522,8 +1480,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          // The appreciation of first  asset should be at 100%
          // The appreciation of second asset should be at 0%
          //////
-         time_point_sec time_to_101_percent = second_property->creation_date + 1.01 * (boost::lexical_cast<double_t>(
-                 second_property->options.smooth_allocation_time) * 7 * 24 * 60 * 60);;
+         time_point_sec time_to_101_percent = second_property->creation_date + (allocation_duration_seconds) * 101 / 100;
          generate_blocks(time_to_101_percent, false);
          set_expiration(db, trx);
          trx.clear(); 

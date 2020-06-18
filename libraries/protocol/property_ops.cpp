@@ -30,8 +30,7 @@ void property_options::validate() const
    FC_ASSERT(appraised_property_value    >= 0);
    FC_ASSERT(property_surety_bond_value  >= 0);
    FC_ASSERT(property_surety_bond_number >= 0);
-   FC_ASSERT(!smooth_allocation_time.empty());
-   FC_ASSERT(std::stod(smooth_allocation_time)>=0);
+   FC_ASSERT(allocation_duration_minutes >= 4); // Minimum requirement of 4 minutes
 }
 
 void property_create_operation::validate() const

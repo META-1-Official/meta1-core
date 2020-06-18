@@ -394,7 +394,8 @@ smooth_allocation_condition::smooth_allocation_condition_enum smooth_allocation_
          price = ((double)backed_asset.options.appraised_property_value / get_asset_supply(database(), backed_asset.options.backed_by_asset_symbol)) * allocation_percent;
       else
          price = (double)backed_asset.options.appraised_property_value / get_asset_supply(database(), backed_asset.options.backed_by_asset_symbol);
-      const double_t timeline = boost::lexical_cast<double_t>(backed_asset.options.smooth_allocation_time) * 7 * 24 * 60 * allocation_percent;
+      double duration_minutes = (backed_asset.approval_end_date.sec_since_epoch() - backed_asset.creation_date.sec_since_epoch()) / 60.0;
+      const double_t timeline = duration_minutes * allocation_percent;
       double_t increase_value = price / timeline;
       dlog("Plugin price: ${p}",("p",price));
       capture("backed_asset", backed_asset.id);

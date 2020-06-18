@@ -1174,7 +1174,7 @@ BOOST_FIXTURE_TEST_CASE(backing_asset_tests,cli_fixture)
          1000000000,
          1,
          33104,
-         "1",
+         10080,
          "0.000000000000",
          "META1",
       };
@@ -1194,7 +1194,7 @@ BOOST_FIXTURE_TEST_CASE(backing_asset_tests,cli_fixture)
       BOOST_CHECK(backing_asset_create.common_options.appraised_property_value == 1000000000);
       BOOST_CHECK(backing_asset_create.common_options.property_surety_bond_value == 1);
       BOOST_CHECK(backing_asset_create.common_options.property_surety_bond_number == 33104);
-      BOOST_CHECK(backing_asset_create.common_options.smooth_allocation_time == "1");
+      BOOST_CHECK_EQUAL(backing_asset_create.common_options.allocation_duration_minutes, 10080);
       BOOST_CHECK(backing_asset_create.common_options.allocation_progress == "0.000000000000");
       BOOST_CHECK(backing_asset_create.common_options.backed_by_asset_symbol == "META1");
 
@@ -1222,7 +1222,7 @@ BOOST_FIXTURE_TEST_CASE(backing_asset_tests,cli_fixture)
       BOOST_CHECK(backing_asset.options.appraised_property_value == 1000000000);
       BOOST_CHECK(backing_asset.options.property_surety_bond_value == 1);
       BOOST_CHECK(backing_asset.options.property_surety_bond_number == 33104);
-      BOOST_CHECK(backing_asset.options.smooth_allocation_time == "1");
+      BOOST_CHECK_EQUAL(backing_asset_create.common_options.allocation_duration_minutes, 10080);
       BOOST_CHECK(backing_asset.options.allocation_progress == "0.000000000000");
       BOOST_CHECK(backing_asset.options.backed_by_asset_symbol == "META1");
 
