@@ -705,6 +705,13 @@ public:
       return result;
    }
 
+   pair<uint32_t,uint32_t>  get_property_allocation_progress(uint32_t property_id) const
+   {
+      auto property_progress = get_property(property_id).get_allocation_progress();
+      return std::make_pair(property_progress.numerator(),property_progress.denominator());
+   }
+
+
    bool is_asset_limitation_exists(string limit_symbol)const
    {
       bool flag = _remote_db->is_asset_limitation_exists(limit_symbol);
@@ -3922,6 +3929,12 @@ vector<property_object> wallet_api::get_properties_by_backed_asset_symbol(string
 {
    return my->get_properties_by_backed_asset_symbol(symbol);
 }
+
+pair<uint32_t,uint32_t>  wallet_api::get_property_allocation_progress(uint32_t property_id) const
+{
+      return my->get_property_allocation_progress(property_id);
+}
+
 
 bool wallet_api::is_asset_limitation_exists(string limit_symbol)const
 {

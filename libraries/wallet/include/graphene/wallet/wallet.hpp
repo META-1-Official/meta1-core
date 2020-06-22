@@ -556,6 +556,15 @@ class wallet_api
       property_object                   get_property(uint32_t id) const;
       vector<property_object>           get_all_properties()const;
       vector<property_object>           get_properties_by_backed_asset_symbol(string symbol) const;
+       
+      /**
+       * Get the allocation progress of this property as a rational fraction 
+       * @param property_id the id of the Property object.
+       * @returns pair<numerator,denominator>
+       */
+       //NOTE: temp realization
+       //TODO: adopt variant ratio_type, use property_id_type instead of property_id
+      pair<uint32_t,uint32_t>  get_property_allocation_progress(uint32_t property_id) const;
 
       // //Returns information about the given  limitation for assets.
       bool is_asset_limitation_exists(string limit_symbol)const;
@@ -2207,6 +2216,7 @@ FC_API( graphene::wallet::wallet_api,
         (get_property)
         (get_all_properties)
         (get_properties_by_backed_asset_symbol)
+        (get_property_allocation_progress)
         (is_asset_limitation_exists)
         (get_asset_limitaion_by_symbol)
         (get_account)
