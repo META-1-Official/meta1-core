@@ -377,6 +377,13 @@ class database_api
 
       bool is_asset_limitation_exists(string limit_symbol)const;
       optional<asset_limitation_object> get_asset_limitaion_by_symbol( string limit_symbol )const;
+      /**
+       * @brief Get the cumulative asset limitation of a backed asset
+       * @param asset_symbol symbol names or IDs of the assets to retrieve
+       * @return USD-denominated value if the asset is recognized and if it is recognized backed asset,
+       * otherwise throws an exception
+       */
+      uint64_t get_asset_limitation_value( const string symbol_or_id )const;
 
       ////////////
       // Assets //
@@ -976,6 +983,7 @@ FC_API(graphene::app::database_api,
    //asset limitation
    (is_asset_limitation_exists)
    (get_asset_limitaion_by_symbol)
+   (get_asset_limitation_value)
 
    // Markets / feeds
    (get_order_book)

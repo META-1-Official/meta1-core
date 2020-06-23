@@ -526,6 +526,30 @@ optional<asset_limitation_object> database_api_impl::get_asset_limitaion_by_symb
    return *asset_limitaion;
 }
 
+uint64_t database_api::get_asset_limitation_value( string symbol_or_id )const
+{
+   return my->get_asset_limitation_value(symbol_or_id);
+}
+uint64_t database_api_impl::get_asset_limitation_value( string symbol_or_id )const
+{
+   // Identify the asset
+   const asset_object* asset = get_asset_from_string(symbol_or_id);
+
+   // Identify the asset limitation object
+   const std::string& symbol = asset->symbol;
+   const asset_limitation_object *asset_limitation = nullptr;
+   const auto &idx = _db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
+   auto itr = idx.find(symbol);
+   if (itr != idx.end()) {
+      asset_limitation = &*itr;
+   }
+   FC_ASSERT(asset_limitation, "no such asset limitation");
+
+   // Obtain the cumulative USD value
+   uint64_t value = asset_limitation->cumulative_sell_limit;
+   return value;
+}
+
 //////////////////////////////////////////////////////////////////////
 //                                                                  //
 // Accounts                                                         //

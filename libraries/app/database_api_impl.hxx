@@ -204,6 +204,7 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
       // Asset limitation
       bool is_asset_limitation_exists(string limit_symbol)const;
       optional<asset_limitation_object> get_asset_limitaion_by_symbol( string limit_symbol )const;
+      uint64_t get_asset_limitation_value( const string symbol_or_id )const;
 
    //private:
 
