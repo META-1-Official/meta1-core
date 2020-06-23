@@ -725,6 +725,13 @@ public:
       return result;
    }
 
+   uint64_t get_asset_limitation_value(const string symbol_or_id)const
+   {
+      uint64_t result = _remote_db->get_asset_limitation_value(symbol_or_id);
+
+      return result;
+   }
+
    std::string account_id_to_string(account_id_type id) const
    {
       std::string account_id = fc::to_string(id.space_id)
@@ -3945,6 +3952,11 @@ bool wallet_api::is_asset_limitation_exists(string limit_symbol)const
 optional<asset_limitation_object> wallet_api::get_asset_limitaion_by_symbol( string limit_symbol )const
 {
    return my->get_asset_limitaion_by_symbol(limit_symbol);
+}
+
+uint64_t wallet_api::get_asset_limitation_value(const string symbol_or_id) const
+{
+   return my->get_asset_limitation_value(symbol_or_id);
 }
 
 account_object wallet_api::get_account(string account_name_or_id) const

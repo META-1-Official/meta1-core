@@ -569,6 +569,7 @@ class wallet_api
       // //Returns information about the given  limitation for assets.
       bool is_asset_limitation_exists(string limit_symbol)const;
       optional<asset_limitation_object> get_asset_limitaion_by_symbol( string limit_symbol )const;
+      uint64_t get_asset_limitation_value(const string symbol_or_id) const;
 
       /** Returns information about the given asset.
        * @param asset_name_or_id the symbol or id of the asset in question
@@ -2219,6 +2220,7 @@ FC_API( graphene::wallet::wallet_api,
         (get_property_allocation_progress)
         (is_asset_limitation_exists)
         (get_asset_limitaion_by_symbol)
+        (get_asset_limitation_value)
         (get_account)
         (get_account_id)
         (get_block)
