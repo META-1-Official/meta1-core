@@ -1450,6 +1450,7 @@ public:
 
          property_approve_operation approve_op;
          approve_op.issuer = property_to_update->issuer;
+         approve_op.property_to_approve = property_to_update->get_id();
 
          signed_transaction tx;
          tx.operations.push_back(approve_op);
@@ -1459,8 +1460,8 @@ public:
          return sign_transaction(tx, broadcast);
       }
       FC_CAPTURE_AND_RETHROW((id)(broadcast))
-   }                                    
-  
+   }
+
    signed_transaction delete_property(uint32_t property_id, bool broadcast = false)
    {
       try
