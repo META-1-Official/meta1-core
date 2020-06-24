@@ -1538,6 +1538,11 @@ public:
 
    }
 
+   price_ratio get_published_asset_price(const std::string &symbol) const {
+      price_ratio pr = _remote_db->get_published_asset_price(symbol);
+
+      return pr;
+   }
 
    signed_transaction create_asset(string issuer,
                                    string symbol,
@@ -4252,6 +4257,12 @@ signed_transaction wallet_api::publish_asset_price(string publishing_account,
                                                    bool broadcast)
 {
    return my->publish_asset_price(publishing_account, symbol, usd_price, broadcast);
+}
+
+
+price_ratio wallet_api::get_published_asset_price(const std::string &symbol) const
+{
+   return my->get_published_asset_price(symbol);
 }
 
 

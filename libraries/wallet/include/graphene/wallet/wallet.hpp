@@ -1381,6 +1381,12 @@ class wallet_api
                                           price_ratio usd_price,
                                           bool broadcast = false);
 
+   /**
+    * Get published asset price of an asset
+    */
+   price_ratio get_published_asset_price(const std::string &symbol) const;
+
+
       /** Creates a new user-issued or market-issued asset.
        *
        * Many options can be changed later using \c update_asset()
@@ -2239,6 +2245,7 @@ FC_API( graphene::wallet::wallet_api,
         (get_asset_limitaion_by_symbol)
         (get_asset_limitation_value)
         (publish_asset_price)
+        (get_published_asset_price)
         (get_account)
         (get_account_id)
         (get_block)
