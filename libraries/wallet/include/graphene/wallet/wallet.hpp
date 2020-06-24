@@ -1364,6 +1364,23 @@ class wallet_api
                                                  string limit_symbol,
                                                  bool broadcast = false);
 
+   /**
+    * Publish a USD-price for a user-issued asset (UIA).
+    *
+    * Published prices are used to ensure minimum USD-prices of backed asset
+    * which are assets that have been defined to have asset limitations.
+    *
+    * @param publishing_account the account publishing the price feed
+    * @param symbol the name or id of the asset whose feed we're publishing
+    * @param price the USD_price of the asset
+    * @param broadcast true to broadcast the transaction on the network
+    * @returns the signed transaction updating the price for the UIA
+    */
+   signed_transaction publish_asset_price(string publishing_account,
+                                          string symbol,
+                                          price_ratio usd_price,
+                                          bool broadcast = false);
+
       /** Creates a new user-issued or market-issued asset.
        *
        * Many options can be changed later using \c update_asset()
@@ -2221,6 +2238,7 @@ FC_API( graphene::wallet::wallet_api,
         (is_asset_limitation_exists)
         (get_asset_limitaion_by_symbol)
         (get_asset_limitation_value)
+        (publish_asset_price)
         (get_account)
         (get_account_id)
         (get_block)

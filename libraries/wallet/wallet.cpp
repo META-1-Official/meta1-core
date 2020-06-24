@@ -1512,6 +1512,33 @@ public:
       FC_CAPTURE_AND_RETHROW((issuer)(limit_symbol)(broadcast))
    }
 
+
+   signed_transaction publish_asset_price(string publishing_account,
+                                          string symbol,
+                                          price_ratio usd_price,
+                                          bool broadcast = false) {
+      try {
+         account_object publishing_account_obj = get_account(publishing_account);
+
+         asset_price_publish_operation publish_op;
+         publish_op.symbol = symbol;
+         publish_op.usd_price = usd_price;
+         publish_op.fee_paying_account = publishing_account_obj.id;
+
+         signed_transaction tx;
+         tx.operations.push_back(publish_op);
+
+         set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
+
+         tx.validate();
+         signed_transaction transaction_result = sign_transaction(tx, broadcast);
+         return transaction_result;
+      }
+      FC_CAPTURE_AND_RETHROW((publishing_account)(symbol)(usd_price)(broadcast))
+
+   }
+
+
    signed_transaction create_asset(string issuer,
                                    string symbol,
                                    uint8_t precision,
@@ -4216,6 +4243,15 @@ signed_transaction wallet_api::create_asset_limitation(string issuer,
                                                        bool broadcast )
 {
    return my->create_asset_limitation(issuer, limit_symbol, broadcast);
+}
+
+
+signed_transaction wallet_api::publish_asset_price(string publishing_account,
+                                                   string symbol,
+                                                   price_ratio usd_price,
+                                                   bool broadcast)
+{
+   return my->publish_asset_price(publishing_account, symbol, usd_price, broadcast);
 }
 
 
