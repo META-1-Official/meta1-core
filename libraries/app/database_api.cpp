@@ -1104,6 +1104,21 @@ vector<optional<extended_asset_object>> database_api_impl::lookup_asset_symbols(
    return result;
 }
 
+price_ratio database_api::get_published_asset_price(const std::string &symbol) const {
+   return my->get_published_asset_price(symbol);
+}
+
+price_ratio database_api_impl::get_published_asset_price(const std::string &symbol) const {
+   const auto &idx = _db.get_index_type<asset_price_index>().indices().get<by_symbol>();
+   auto itr = idx.find(symbol);
+   FC_ASSERT(itr != idx.end());
+
+   asset_price price_of_symbol = *itr;
+   price_ratio pr = price_of_symbol.usd_price;
+
+   return pr;
+}
+
 //////////////////////////////////////////////////////////////////////
 //                                                                  //
 // Markets / feeds                                                  //

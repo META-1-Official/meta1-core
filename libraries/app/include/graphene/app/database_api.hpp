@@ -442,6 +442,14 @@ class database_api
       vector<extended_asset_object> get_assets_by_issuer(const std::string& issuer_name_or_id,
                                                          asset_id_type start, uint32_t limit)const;
 
+   /**
+    * @brief Get the published USD-price for a user-issued asset (UIA)
+    * @param symbol UIA symbol
+    * @return USD-price
+    */
+   price_ratio get_published_asset_price(const std::string &symbol) const;
+
+
       /////////////////////
       // Markets / feeds //
       /////////////////////
@@ -972,6 +980,7 @@ FC_API(graphene::app::database_api,
    (get_asset_count)
    (get_assets_by_issuer)
    (get_asset_id_from_string)
+   (get_published_asset_price)
 
     //backed asset
    (get_properties)
