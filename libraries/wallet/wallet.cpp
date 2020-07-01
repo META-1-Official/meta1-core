@@ -1363,12 +1363,15 @@ public:
    } FC_CAPTURE_AND_RETHROW( (account_name)(registrar_account)(referrer_account) ) }
 
     signed_transaction create_property(string issuer,
-                                      property_options common,
-                                      bool broadcast = false)
+                                       uint64_t appraised_property_value,
+                                       uint32_t allocation_duration_minutes,
+                                       string backed_by_asset_symbol,
+                                       property_options common,
+                                       bool broadcast = false)
    {
       try
       {
-         FC_ASSERT(find_asset(common.backed_by_asset_symbol).valid(), "Asset with that symbol not exists!");
+         FC_ASSERT(find_asset(backed_by_asset_symbol).valid(), "Asset with that symbol not exists!");
          std::random_device rd;
          std::mt19937 mersenne(rd());
          uint32_t rand_id;
@@ -1387,6 +1390,9 @@ public:
 
          create_op.property_id = rand_id;
          create_op.issuer = issuer_account.id;
+         create_op.appraised_property_value = appraised_property_value;
+         create_op.allocation_duration_minutes = allocation_duration_minutes;
+         create_op.backed_by_asset_symbol = backed_by_asset_symbol;
          create_op.common_options = common;
          signed_transaction tx;
          tx.operations.push_back(create_op);
@@ -4196,9 +4202,14 @@ signed_transaction wallet_api::transfer(string from, string to, string amount,
    return my->transfer(from, to, amount, asset_symbol, memo, broadcast);
 }
 
-signed_transaction wallet_api::create_property(string issuer, property_options common, bool broadcast)
+signed_transaction wallet_api::create_property(string issuer,
+                                               uint64_t appraised_property_value,
+                                               uint32_t allocation_duration_minutes,
+                                               string backed_by_asset_symbol,
+                                               property_options common, bool broadcast)
 {
-   return my->create_property(issuer, common, broadcast);
+   return my->create_property(issuer, appraised_property_value, allocation_duration_minutes, backed_by_asset_symbol,
+                              common, broadcast);
 }
 
 signed_transaction wallet_api::update_property(uint32_t id,

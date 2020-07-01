@@ -18,16 +18,10 @@ struct property_options
     string custodian;
     string detailed_document_link;
     string image_url;
-    string status;
     string property_assignee;
 
-    uint64_t appraised_property_value;
     uint64_t property_surety_bond_value;
     uint64_t property_surety_bond_number;
-    uint32_t allocation_duration_minutes;
-    string allocation_progress;
-
-    string backed_by_asset_symbol;
 
     void validate() const;
 };
@@ -43,6 +37,9 @@ struct property_create_operation : public base_operation
 
     uint32_t property_id;
     account_id_type issuer;
+    uint64_t appraised_property_value;
+    uint32_t allocation_duration_minutes;
+    string backed_by_asset_symbol;
     property_options common_options;
 
     account_id_type fee_payer() const { return issuer; }
@@ -107,14 +104,9 @@ FC_REFLECT(graphene::protocol::property_options,
            (custodian)
            (detailed_document_link)
            (image_url)
-           (status)
            (property_assignee)
-           (appraised_property_value)
            (property_surety_bond_value)
            (property_surety_bond_number)
-           (allocation_duration_minutes)
-           (allocation_progress)
-           (backed_by_asset_symbol)
            )
 
 
@@ -127,6 +119,9 @@ FC_REFLECT(graphene::protocol::property_create_operation,
            (fee)
            (property_id)
            (issuer)
+           (appraised_property_value)
+           (allocation_duration_minutes)
+           (backed_by_asset_symbol)
            (common_options)
            )
 

@@ -1327,7 +1327,12 @@ class wallet_api
       signed_transaction cancel_order(object_id_type order_id, bool broadcast = false);
 
       //backed asset smart contracts
-      signed_transaction create_property(string issuer,property_options common,bool broadcast = false);
+      signed_transaction create_property(string issuer,
+                                         uint64_t appraised_property_value,
+                                         uint32_t allocation_duration_minutes,
+                                         string backed_by_asset_symbol,
+                                         property_options common,
+                                         bool broadcast = false);
 
       signed_transaction update_property(uint32_t id,
                                          property_options new_options,

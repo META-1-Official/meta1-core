@@ -101,11 +101,14 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
 
    property_create_operation create_property_operation(database &db, string issuer,
+                                                       uint64_t appraised_property_value,
+                                                       uint32_t allocation_duration_minutes,
+                                                       string backed_by_asset_symbol,
                                                        property_options common) {
       try {
          // const asset_object& backing_asset = get_asset(db, common.backed_by_asset_symbol);
-         get_asset(db,
-                   common.backed_by_asset_symbol); // Invoke for the function call to check the existence of the backed_by_asset_symbol
+         // Invoke get_asset to check the existence of the backed_by_asset_symbol
+         get_asset(db, backed_by_asset_symbol);
          // FC_ASSERT(*backing_asset == nullptr, "Asset with that symbol not exists!");
          std::random_device rd;
          std::mt19937 mersenne(rd());
@@ -122,6 +125,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          create_op.property_id = rand_id;
          create_op.issuer = issuer_account.id;
+         create_op.appraised_property_value = appraised_property_value;
+         create_op.allocation_duration_minutes = allocation_duration_minutes;
+         create_op.backed_by_asset_symbol = backed_by_asset_symbol;
          create_op.common_options = common;
 
          return create_op;
@@ -177,16 +183,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
               "you",
               "https://fsf.com",
               "https://purepng.com/metal-1701528976849tkdsl.png",
-              "not approved",
               "222",
-              1000000000,
               1,
               33104,
-              10080,
-              "0.000000000000",
-              "META1",
       };
-      property_create_operation prop_op = create_property_operation(db, "meta1", property_ops);
+      property_create_operation prop_op = create_property_operation(db, "meta1", 1000000000, 10080, "META1",
+                                                                    property_ops);
 
       tx.clear();
       tx.operations.push_back(prop_op);
@@ -233,7 +235,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
       // Check the sell_limit
       alo = *asset_limitation_idx.find(limit_symbol);
-      expected_valuation = calculate_meta1_valuation(property->options.appraised_property_value, 25, 100);
+      expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 25, 100);
       uint64_t tol = 1; // The error at any time during the appreciation should be <= 1 USD * (number of properties)
       BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
@@ -253,7 +255,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
       // Check the sell_limit
       alo = *asset_limitation_idx.find(limit_symbol);
-      expected_valuation = calculate_meta1_valuation(property->options.appraised_property_value, 25, 100);
+      expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 25, 100);
       BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -272,7 +274,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
       // Check the sell_limit
       alo = *asset_limitation_idx.find(limit_symbol);
-      expected_valuation = calculate_meta1_valuation(property->options.appraised_property_value, 25, 100);
+      expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 25, 100);
       BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -291,7 +293,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
       // Check the sell_limit
       alo = *asset_limitation_idx.find(limit_symbol);
-      expected_valuation = calculate_meta1_valuation(property->options.appraised_property_value, 0, 100);
+      expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 0, 100);
       BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -310,7 +312,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
       // Check the sell_limit
       alo = *asset_limitation_idx.find(limit_symbol);
-      expected_valuation = calculate_meta1_valuation(property->options.appraised_property_value, 0, 100);
+      expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 0, 100);
       BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
    }
 
@@ -362,16 +364,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  "you",
                  "https://fsf.com",
                  "https://purepng.com/metal-1701528976849tkdsl.png",
-                 "not approved",
                  "222",
-                 1000000000,
                  1,
                  33104,
-                 10080,
-                 "0.000000000000",
-                 "META1",
          };
-         property_create_operation prop_op = create_property_operation(db, "meta1", property_ops);
+         property_create_operation prop_op = create_property_operation(db, "meta1", 1000000000, 10080, "META1",
+                                                                       property_ops);
 
          trx.clear();
          trx.operations.push_back(prop_op);
@@ -413,7 +411,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->options.appraised_property_value, 10, 100);
+         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 10, 100);
          // The error in the cumulative sell limit at any time during the appreciation
          // should be <= 1 USD * (number of properties)
          uint64_t tol = 1;
@@ -451,7 +449,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->options.appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 25, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -470,7 +468,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->options.appraised_property_value, 50, 100);
+         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 50, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -489,7 +487,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->options.appraised_property_value, 75, 100);
+         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 75, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -508,7 +506,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->options.appraised_property_value, 100, 100);
+         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 100, 100);
          BOOST_CHECK_EQUAL(expected_valuation, alo.cumulative_sell_limit);
 
 
@@ -527,7 +525,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->options.appraised_property_value, 100, 100);
+         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 100, 100);
          BOOST_CHECK_EQUAL(expected_valuation, alo.cumulative_sell_limit);
 
       } FC_LOG_AND_RETHROW()
@@ -582,16 +580,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  "you",
                  "https://fsf.com",
                  "https://purepng.com/metal-1701528976849tkdsl.png",
-                 "not approved",
                  "222",
-                 1000000000,
                  1,
                  33104,
-                 10080,
-                 "0.000000000000",
-                 "META1",
          };
-         property_create_operation prop_op = create_property_operation(db, "meta1", property_ops);
+         property_create_operation prop_op = create_property_operation(db, "meta1", 1000000000, 10080, "META1",
+                                                                       property_ops);
 
          trx.clear();
          trx.operations.push_back(prop_op);
@@ -634,7 +628,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->options.appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 25, 100);
          uint64_t tol = 1; // The error at any time during the appreciation should be <= 1 USD * (number of properties)
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
@@ -679,7 +673,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->options.appraised_property_value,
+         expected_valuation = calculate_meta1_valuation(property->appraised_property_value,
                                                         property->get_allocation_progress());
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
@@ -699,7 +693,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->options.appraised_property_value, 100, 100);
+         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 100, 100);
          BOOST_CHECK_EQUAL(expected_valuation, alo.cumulative_sell_limit);
 
 
@@ -718,7 +712,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->options.appraised_property_value, 100, 100);
+         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 100, 100);
          BOOST_CHECK_EQUAL(expected_valuation, alo.cumulative_sell_limit);
 
       } FC_LOG_AND_RETHROW()
@@ -774,14 +768,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  "you",
                  "https://fsf.com",
                  "https://purepng.com/metal-1701528976849tkdsl.png",
-                 "not approved",
                  "222",
-                 1000000000,
                  1,
                  33104,
-                 10080,
-                 "0.000000000000",
-                 "META1",
          };
    
          // appraisal value = 2000000000
@@ -793,14 +782,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  "you",
                  "https://fsf.com",
                  "https://purepng.com/metal-1701528976849tkdsl.png",
-                 "not approved",
                  "222",
-                 2000000000,
                  1,
                  33104,
-                 10080,
-                 "0.000000000000",
-                 "META1",
          };
    
          //////
@@ -810,7 +794,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          //////
    
          // 1)
-         property_create_operation first_prop_op = create_property_operation(db, "meta1", first_property_ops);
+         property_create_operation first_prop_op = create_property_operation(db, "meta1", 1000000000, 10080, "META1",
+                                                                             first_property_ops);
    
          trx.clear();
          trx.operations.push_back(first_prop_op);
@@ -849,7 +834,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          trx.clear();
    
          // Create second property
-         property_create_operation second_prop_op = create_property_operation(db, "meta1", second_property_ops);
+         property_create_operation second_prop_op = create_property_operation(db, "meta1", 2000000000, 10080, "META1",
+                                                                              second_property_ops);
    
          trx.operations.push_back(second_prop_op);
          set_expiration(db, trx);
@@ -873,7 +859,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
    
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 10, 100);
+         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 10, 100);
          uint64_t tol = 1; // The error at any time during the appreciation should be <= 1 USD * (number of properties)
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
    
@@ -896,8 +882,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
        
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 25, 100) + 
-                              calculate_meta1_valuation(second_property->options.appraised_property_value, 15, 100);
+         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 25, 100) +
+                              calculate_meta1_valuation(second_property->appraised_property_value, 15, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
      
          //////
@@ -919,8 +905,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
        
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 25, 100) + 
-                              calculate_meta1_valuation(second_property->options.appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 25, 100) +
+                              calculate_meta1_valuation(second_property->appraised_property_value, 25, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
    
          //////
@@ -942,8 +928,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
        
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 25, 100) + 
-                              calculate_meta1_valuation(second_property->options.appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 25, 100) +
+                              calculate_meta1_valuation(second_property->appraised_property_value, 25, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
    
          //////
@@ -965,8 +951,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
        
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 0, 100) + 
-                              calculate_meta1_valuation(second_property->options.appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 0, 100) +
+                              calculate_meta1_valuation(second_property->appraised_property_value, 25, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
    
          //////
@@ -988,8 +974,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
        
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 0, 100) + 
-                              calculate_meta1_valuation(second_property->options.appraised_property_value, 0, 100);
+         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 0, 100) +
+                              calculate_meta1_valuation(second_property->appraised_property_value, 0, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
       } FC_LOG_AND_RETHROW()
@@ -1044,14 +1030,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                "you",
                "https://fsf.com",
                "https://purepng.com/metal-1701528976849tkdsl.png",
-               "not approved",
                "222",
-               1000000000,
                1,
                33104,
-               10080,
-               "0.000000000000",
-               "META1",
        };
    
          // appraisal value = 2000000000
@@ -1063,14 +1044,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                "you",
                "https://fsf.com",
                "https://purepng.com/metal-1701528976849tkdsl.png",
-               "not approved",
                "222",
-               2000000000,
                1,
                33104,
-               10080,
-               "0.000000000000",
-               "META1",
        };
  
          //////
@@ -1082,7 +1058,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          //////
          
          // 1)
-         property_create_operation first_prop_op = create_property_operation(db, "meta1", first_property_ops);
+         property_create_operation first_prop_op = create_property_operation(db, "meta1", 1000000000, 10080, "META1",
+                                                                             first_property_ops);
          trx.clear();
          trx.operations.push_back(first_prop_op);
          set_expiration(db, trx);
@@ -1124,7 +1101,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
  
          // 2)
          // Create second property
-         property_create_operation second_prop_op = create_property_operation(db, "meta1", second_property_ops);
+         property_create_operation second_prop_op = create_property_operation(db, "meta1", 2000000000, 10080, "META1",
+                                                                              second_property_ops);
          trx.operations.push_back(second_prop_op);
  
          // 3)
@@ -1153,7 +1131,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
  
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 10, 100);
+         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 10, 100);
          uint64_t tol = 1; // The error at any time during the appreciation should be <= 1 USD * (number of properties)
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
          
@@ -1177,8 +1155,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
  
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 75, 100) + 
-                              calculate_meta1_valuation(second_property->options.appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 75, 100) +
+                              calculate_meta1_valuation(second_property->appraised_property_value, 25, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
  
          //////
@@ -1212,8 +1190,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
  
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 85, 100) + 
-                              calculate_meta1_valuation(second_property->options.appraised_property_value, ratio_type(6553,14116));
+         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 85, 100) +
+                              calculate_meta1_valuation(second_property->appraised_property_value, ratio_type(6553,14116));
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
          
  
@@ -1236,8 +1214,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
  
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 1, 1) + 
-                              calculate_meta1_valuation(second_property->options.appraised_property_value, ratio_type(1,1));
+         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 1, 1) +
+                              calculate_meta1_valuation(second_property->appraised_property_value, ratio_type(1,1));
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
  
 
@@ -1260,8 +1238,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
  
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 1, 1) + 
-                              calculate_meta1_valuation(second_property->options.appraised_property_value, ratio_type(1,1));
+         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 1, 1) +
+                              calculate_meta1_valuation(second_property->appraised_property_value, ratio_type(1,1));
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
       } FC_LOG_AND_RETHROW()
@@ -1315,14 +1293,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  "you",
                  "https://fsf.com",
                  "https://purepng.com/metal-1701528976849tkdsl.png",
-                 "not approved",
                  "222",
-                 2000000000,
                  1,
                  33104,
-                 10080,
-                 "0.000000000000",
-                 "META1",
          };
    
          // appraisal value = 1000000000
@@ -1334,14 +1307,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  "you",
                  "https://fsf.com",
                  "https://purepng.com/metal-1701528976849tkdsl.png",
-                 "not approved",
                  "222",
-                 1000000000,
                  1,
                  33104,
-                 10080,
-                 "0.000000000000",
-                 "META1",
          };
          
          //////
@@ -1354,7 +1322,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          //////
          
          // 1) create  FIRST  backing asset 
-         property_create_operation first_prop_op = create_property_operation(db, "meta1", first_property_ops);
+         property_create_operation first_prop_op = create_property_operation(db, "meta1", 2000000000, 10080, "META1",
+                                                                             first_property_ops);
 
          trx.clear();
          trx.operations.push_back(first_prop_op);
@@ -1410,12 +1379,13 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 100, 100);
+         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 100, 100);
          uint64_t tol = 1; // The error at any time during the appreciation should be <= 1 USD * (number of properties)
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
          
          //4) create second backing asset & not approve it like in CASE A.
-         property_create_operation second_prop_op = create_property_operation(db, "meta1", second_property_ops);
+         property_create_operation second_prop_op = create_property_operation(db, "meta1", 1000000000, 10080, "META1",
+                                                                       second_property_ops);
          trx.operations.push_back(second_prop_op);
          sign(trx, meta1_private_key);
          PUSH_TX(db, trx);
@@ -1446,8 +1416,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 100, 100) + 
-                              calculate_meta1_valuation(second_property->options.appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 100, 100) +
+                              calculate_meta1_valuation(second_property->appraised_property_value, 25, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -1469,8 +1439,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 100, 100) + 
-                              calculate_meta1_valuation(second_property->options.appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 100, 100) +
+                              calculate_meta1_valuation(second_property->appraised_property_value, 25, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -1493,8 +1463,8 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->options.appraised_property_value, 100, 100) + 
-                              calculate_meta1_valuation(second_property->options.appraised_property_value, 0, 100);
+         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 100, 100) +
+                              calculate_meta1_valuation(second_property->appraised_property_value, 0, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
          
         } FC_LOG_AND_RETHROW()

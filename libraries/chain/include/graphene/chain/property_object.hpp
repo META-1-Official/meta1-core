@@ -20,6 +20,9 @@ public:
 
     uint32_t property_id;
     account_id_type issuer;
+    uint64_t appraised_property_value;
+    uint32_t allocation_duration_minutes;
+    string backed_by_asset_symbol;
     property_options options;
 
     // Only some of the following fields need to be serialized over the wire when properties are queried over an API
@@ -43,7 +46,7 @@ public:
    /**
     * Get the allocation progress of this property as a rational fraction valued from [0,1]
     *
-    * @return
+    * @return Ratio of allocation progress
     */
    ratio_type get_allocation_progress() const;
 };
