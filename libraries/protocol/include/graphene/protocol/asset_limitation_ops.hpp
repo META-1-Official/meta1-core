@@ -9,14 +9,6 @@ namespace graphene
 namespace protocol
 {
 
-struct asset_limitation_options
-{
-    string sell_limit = "0.0000000000000";
-    string buy_limit  = "0.0000000000000";
-
-    void validate() const;
-};
-
 //backed asset create smart contract
 struct asset_limitation_object_create_operation : public base_operation
 {
@@ -28,7 +20,6 @@ struct asset_limitation_object_create_operation : public base_operation
 
     string limit_symbol;
     account_id_type issuer;
-    asset_limitation_options common_options;
 
     account_id_type fee_payer() const { return issuer; }
     void validate() const;
@@ -46,28 +37,69 @@ struct asset_limitation_object_update_operation : public base_operation
     asset fee;
     account_id_type issuer;
     asset_limitation_id_type asset_limitation_object_to_update;
-    asset_limitation_options new_options;
 
-    asset_limitation_options common_options;
     account_id_type fee_payer() const { return issuer; }
     void validate() const;
 };
 
+
+   /**
+    * Price denominated in units of a monetary unit
+    */
+   struct price_ratio
+   {
+      uint32_t numerator;
+      uint32_t denominator;
+
+      price_ratio() : numerator(0), denominator(1) {}
+      price_ratio(uint32_t n, uint32_t d) : numerator(n), denominator(d) {}
+
+      void validate() const;
+   };
+
+
+   /**
+    * Publish the USD-denominated price of an external asset
+    */
+   struct asset_price_publish_operation : public base_operation
+   {
+      struct fee_parameters_type
+      {
+         uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION;
+      };
+
+      asset_price_publish_operation() {}
+
+      asset fee;
+      account_id_type fee_paying_account;
+      string symbol;
+      price_ratio usd_price;
+
+      account_id_type fee_payer() const { return fee_paying_account; }
+      void validate() const;
+   };
+
 } // namespace protocol
 } // namespace graphene
 
-FC_REFLECT(graphene::protocol::asset_limitation_options,
-           (sell_limit)(buy_limit))
 FC_REFLECT(graphene::protocol::asset_limitation_object_create_operation::fee_parameters_type, (fee))
 FC_REFLECT(graphene::protocol::asset_limitation_object_update_operation::fee_parameters_type, (fee))
 
 FC_REFLECT(graphene::protocol::asset_limitation_object_create_operation,
-           (fee)(limit_symbol)(issuer)(common_options))
+           (fee)(limit_symbol)(issuer))
 FC_REFLECT(graphene::protocol::asset_limitation_object_update_operation,
-           (fee)(issuer)(asset_limitation_object_to_update)(new_options))
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_options)
+           (fee)(issuer)(asset_limitation_object_to_update))
+
+FC_REFLECT(graphene::protocol::price_ratio, (numerator)(denominator))
+
+FC_REFLECT(graphene::protocol::asset_price_publish_operation::fee_parameters_type, (fee))
+FC_REFLECT(graphene::protocol::asset_price_publish_operation,
+           (fee)(fee_paying_account)(symbol)(usd_price))
+
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_create_operation::fee_parameters_type)
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_update_operation::fee_parameters_type)
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_price_publish_operation::fee_parameters_type)
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_create_operation)
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_update_operation)
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_price_publish_operation)

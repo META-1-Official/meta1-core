@@ -1113,17 +1113,11 @@ BOOST_FIXTURE_TEST_CASE(create_asset_limitation, cli_fixture)
 
       }
       // create_asset_limitation for META1 asset
-      asset_limitation_options asset_limitation_ops = {
-          "0.0000000000000000",
-          "0.0000000000000001",
-      };
-      signed_transaction asset_limitation_trx = con.wallet_api_ptr->create_asset_limitation("meta1", "META1", asset_limitation_ops, true);
+      signed_transaction asset_limitation_trx = con.wallet_api_ptr->create_asset_limitation("meta1", "META1", true);
       //get asset_limitation for META1 asset
       auto asset_limitation_meta1 = con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1");
       BOOST_CHECK(asset_limitation_meta1->limit_symbol == "META1");
       BOOST_CHECK(asset_limitation_meta1->issuer == con.wallet_api_ptr->get_account("meta1").get_id());
-      BOOST_CHECK(asset_limitation_meta1->options.sell_limit == "0.0000000000000000");
-      BOOST_CHECK(asset_limitation_meta1->options.buy_limit == "0.0000000000000001");
    }
    catch (fc::exception &e)
    {
@@ -1132,30 +1126,6 @@ BOOST_FIXTURE_TEST_CASE(create_asset_limitation, cli_fixture)
    }
 }
 
-BOOST_FIXTURE_TEST_CASE(update_asset_limitation, cli_fixture)
-{
-   try
-   {
-      INVOKE(create_asset_limitation);
-      // create_asset_limitation for META1 asset
-      asset_limitation_options new_asset_limitation_ops = {
-          "1.000000000123457",
-          "0.00000012",
-      };
-      signed_transaction asset_limitation_trx = con.wallet_api_ptr->update_asset_limitation("META1", new_asset_limitation_ops, true);
-      //get asset_limitation for META1 asset
-      auto asset_limitation_meta1 = con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1");
-      BOOST_CHECK(asset_limitation_meta1->limit_symbol == "META1");
-      BOOST_CHECK(asset_limitation_meta1->issuer == con.wallet_api_ptr->get_account("meta1").get_id());
-      BOOST_CHECK(asset_limitation_meta1->options.sell_limit == "1.000000000123457");
-      BOOST_CHECK(asset_limitation_meta1->options.buy_limit == "1.200000001e-07");
-   }
-   catch (fc::exception &e)
-   {
-      edump((e.to_detail_string()));
-      throw;
-   }
-}
 
 BOOST_FIXTURE_TEST_CASE(backing_asset_tests,cli_fixture)
 {

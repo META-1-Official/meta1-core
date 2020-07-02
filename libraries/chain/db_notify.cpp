@@ -302,6 +302,10 @@ struct get_impacted_account_visitor
       _impacted.insert(op.fee_payer());
       _impacted.insert(op.issuer); // issuer
    }
+   void operator()(const asset_price_publish_operation &op)
+   {
+      _impacted.insert(op.fee_payer());
+   }
 
 };
 
@@ -467,6 +471,8 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
               const auto& aobj = dynamic_cast<const collateral_bid_object*>(obj);
               FC_ASSERT( aobj != nullptr );
               accounts.insert( aobj->bidder );
+              break;
+           } case impl_asset_price_object_type:{
               break;
            }
       }

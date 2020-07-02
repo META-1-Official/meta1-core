@@ -9,132 +9,17 @@
 #include <graphene/chain/hardfork.hpp>
 #include <graphene/chain/allocation.hpp>
 
-#include "../common/database_fixture.hpp"
+#include "../common/meta1_fixture.hpp"
 
 using namespace graphene::chain;
 using namespace graphene::chain::test;
 
 
-BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
-   // TODO: Remove asset_limitation_ops?
+BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
 
    const uint64_t abs64(const uint64_t v1, const uint64_t v2) {
       return (v1 >= v2) ? (v1 -v2) : (v2 - v1);
    }
-
-   const void check_close(const double v1, const double v2, const double tol) {
-      BOOST_CHECK_LE(abs(v1 - v2), tol);
-   }
-
-   const int64_t get_asset_supply(asset_object asset) {
-      //  Platform- and compiler-independent calculation
-      return asset.options.max_supply.value / asset::scaled_precision(asset.precision).value;
-   }
-
-   // TODO [7]: Use existing functions in database_api or elsewhere
-   const asset_object &get_asset(database &db, const string &symbol) {
-      const auto &idx = db.get_index_type<asset_index>().indices().get<by_symbol>();
-      const auto itr = idx.find(symbol);
-      assert(itr != idx.end());
-      return *itr;
-   }
-
-   const account_object &get_account(database &db, const string &name) {
-      const auto &idx = db.get_index_type<account_index>().indices().get<by_name>();
-      const auto itr = idx.find(name);
-      assert(itr != idx.end());
-      return *itr;
-   }
-
-   bool is_property_exists(database &db, uint32_t property_id) {
-      // const property_object *property = nullptr;
-      const auto &idx = db.get_index_type<property_index>().indices().get<by_property_id>();
-      auto itr = idx.find(property_id);
-      if (itr != idx.end())
-         return true;
-      else
-         return false;
-   }
-
-   /**
-    * Calcuate the META1 valuation derived from a single property's appraised value and current allocation progress
-    * @param appraised_value    Appraised value in some monetary unit
-    * @param progress_numerator  Numerator of the allocation progress
-    * @param progress_denominator  Denominator of the allocation progress
-    * @return   Valuation in the same monetary unit
-    */
-   const uint64_t calculate_meta1_valuation(uint64_t appraised_value, const uint64_t progress_numerator,
-                                            const uint64_t progress_denominator) {
-      BOOST_CHECK_LE(progress_numerator, progress_denominator);
-      // The arithmetic will be sequenced to reduce loss of precision errors
-      // Note: Precision is lost during division
-      // Note: Multiplication can result in an overflow of the numerical type
-      // Therefore the following arithmetic rules will be followed:
-      // - variables that will be multiplied will expressed within a higher precision numerical type before multiplication
-      // - after multiplication, check for overflow
-      // - division is to be minimized, to the extent possible
-      // - division is to be delayed, to the extent possible, until after all multiplications are completed
-
-      // The total appraisal sums the appraisal of every property
-      // This test contains only one property
-
-      fc::uint128_t appraised_value_128(appraised_value);
-
-      // TODO: [Low] Check for overflow
-      fc::uint128_t meta1_valuation_128 = appraised_value_128 * 10 * progress_numerator;
-      meta1_valuation_128 /= progress_denominator;
-
-      uint64_t meta1_valuation = static_cast<uint64_t>(meta1_valuation_128);
-
-      return meta1_valuation;
-   }
-
-   /**
-    * Calcuate the META1 valuation derived from a single property's appraised value and current allocation progress
-    * @param appraised_value    Appraised value in some monetary unit
-    * @param progress  Allocation progress as a rational value
-    * @return   Valuation in the same monetary unit
-    */
-   const uint64_t calculate_meta1_valuation(uint64_t appraised_value, const ratio_type progress) {
-      return calculate_meta1_valuation(appraised_value, progress.numerator(), progress.denominator());
-   }
-
-
-   property_create_operation create_property_operation(database &db, string issuer,
-                                                       uint64_t appraised_property_value,
-                                                       uint32_t allocation_duration_minutes,
-                                                       string backed_by_asset_symbol,
-                                                       property_options common) {
-      try {
-         // const asset_object& backing_asset = get_asset(db, common.backed_by_asset_symbol);
-         // Invoke get_asset to check the existence of the backed_by_asset_symbol
-         get_asset(db, backed_by_asset_symbol);
-         // FC_ASSERT(*backing_asset == nullptr, "Asset with that symbol not exists!");
-         std::random_device rd;
-         std::mt19937 mersenne(rd());
-         uint32_t rand_id;
-         const account_object &issuer_account = get_account(db, issuer);
-         property_create_operation create_op;
-
-         //generating new property id and regenerate if such id is exists
-         while (true) {
-            rand_id = mersenne();
-            bool flag = is_property_exists(db, rand_id);
-            if (!flag) { break; }
-         }
-
-         create_op.property_id = rand_id;
-         create_op.issuer = issuer_account.id;
-         create_op.appraised_property_value = appraised_property_value;
-         create_op.allocation_duration_minutes = allocation_duration_minutes;
-         create_op.backed_by_asset_symbol = backed_by_asset_symbol;
-         create_op.common_options = common;
-
-         return create_op;
-      }
-      FC_CAPTURE_AND_RETHROW()
-   }
-
 
    /**
     * Case A / Case C4
@@ -153,17 +38,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
       // Create the asset limitation
       const string limit_symbol = "META1";
-      const asset_limitation_options asset_limitation_ops = {
-              "0.00000000000000",
-              "0.0000000000000001",
-      };
 
       account_object issuer_account = get_account("meta1");
 
       asset_limitation_object_create_operation create_limitation_op;
       create_limitation_op.limit_symbol = limit_symbol;
       create_limitation_op.issuer = issuer_account.id;
-      create_limitation_op.common_options = asset_limitation_ops;
 
       signed_transaction tx;
       tx.operations.push_back(create_limitation_op);
@@ -187,7 +67,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
               1,
               33104,
       };
-      property_create_operation prop_op = create_property_operation(db, "meta1", 1000000000, 10080, "META1",
+      property_create_operation prop_op = create_property_operation("meta1", 1000000000, 10080, "META1",
                                                                     property_ops);
 
       tx.clear();
@@ -335,17 +215,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Create the asset limitation
          const string limit_symbol = "META1";
-         const asset_limitation_options asset_limitation_ops = {
-                 "0.00000000000000",
-                 "0.0000000000000001",
-         };
 
          account_object issuer_account = get_account("meta1");
 
          asset_limitation_object_create_operation create_limitation_op;
          create_limitation_op.limit_symbol = limit_symbol;
          create_limitation_op.issuer = issuer_account.id;
-         create_limitation_op.common_options = asset_limitation_ops;
 
          trx.operations.push_back(create_limitation_op);
          set_expiration(db, trx);
@@ -368,7 +243,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  1,
                  33104,
          };
-         property_create_operation prop_op = create_property_operation(db, "meta1", 1000000000, 10080, "META1",
+         property_create_operation prop_op = create_property_operation("meta1", 1000000000, 10080, "META1",
                                                                        property_ops);
 
          trx.clear();
@@ -551,17 +426,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
 
          // Create the asset limitation
          const string limit_symbol = "META1";
-         const asset_limitation_options asset_limitation_ops = {
-                 "0.00000000000000",
-                 "0.0000000000000001",
-         };
 
          account_object issuer_account = get_account("meta1");
 
          asset_limitation_object_create_operation create_limitation_op;
          create_limitation_op.limit_symbol = limit_symbol;
          create_limitation_op.issuer = issuer_account.id;
-         create_limitation_op.common_options = asset_limitation_ops;
 
          trx.operations.push_back(create_limitation_op);
          set_expiration(db, trx);
@@ -584,7 +454,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
                  1,
                  33104,
          };
-         property_create_operation prop_op = create_property_operation(db, "meta1", 1000000000, 10080, "META1",
+         property_create_operation prop_op = create_property_operation("meta1", 1000000000, 10080, "META1",
                                                                        property_ops);
 
          trx.clear();
@@ -738,18 +608,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
    
          // Create the asset limitation
          const string limit_symbol = "META1";
-         const asset_limitation_options asset_limitation_ops = {
-                 "0.00000000000000",
-                 "0.0000000000000001",
-         };
-   
          account_object issuer_account = get_account("meta1");
    
          asset_limitation_object_create_operation create_limitation_op;
          create_limitation_op.limit_symbol = limit_symbol;
          create_limitation_op.issuer = issuer_account.id;
-         create_limitation_op.common_options = asset_limitation_ops;
-         
+
          trx.clear();
          trx.operations.push_back(create_limitation_op);
          set_expiration(db, trx);
@@ -794,7 +658,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          //////
    
          // 1)
-         property_create_operation first_prop_op = create_property_operation(db, "meta1", 1000000000, 10080, "META1",
+         property_create_operation first_prop_op = create_property_operation("meta1", 1000000000, 10080, "META1",
                                                                              first_property_ops);
    
          trx.clear();
@@ -834,7 +698,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          trx.clear();
    
          // Create second property
-         property_create_operation second_prop_op = create_property_operation(db, "meta1", 2000000000, 10080, "META1",
+         property_create_operation second_prop_op = create_property_operation("meta1", 2000000000, 10080, "META1",
                                                                               second_property_ops);
    
          trx.operations.push_back(second_prop_op);
@@ -1000,18 +864,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
    
          // Create the asset limitation
          const string limit_symbol = "META1";
-         const asset_limitation_options asset_limitation_ops = {
-               "0.00000000000000",
-               "0.0000000000000001",
-       };
-  
          account_object issuer_account = get_account("meta1");
    
          asset_limitation_object_create_operation create_limitation_op;
          create_limitation_op.limit_symbol = limit_symbol;
          create_limitation_op.issuer = issuer_account.id;
-         create_limitation_op.common_options = asset_limitation_ops;
-         
+
          trx.clear();
          trx.operations.push_back(create_limitation_op);
          set_expiration(db, trx);
@@ -1058,7 +916,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          //////
          
          // 1)
-         property_create_operation first_prop_op = create_property_operation(db, "meta1", 1000000000, 10080, "META1",
+         property_create_operation first_prop_op = create_property_operation("meta1", 1000000000, 10080, "META1",
                                                                              first_property_ops);
          trx.clear();
          trx.operations.push_back(first_prop_op);
@@ -1101,7 +959,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
  
          // 2)
          // Create second property
-         property_create_operation second_prop_op = create_property_operation(db, "meta1", 2000000000, 10080, "META1",
+         property_create_operation second_prop_op = create_property_operation("meta1", 2000000000, 10080, "META1",
                                                                               second_property_ops);
          trx.operations.push_back(second_prop_op);
  
@@ -1264,17 +1122,11 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
    
          // Create the asset limitation
          const string limit_symbol = "META1";
-         const asset_limitation_options asset_limitation_ops = {
-                 "0.00000000000000",
-                 "0.0000000000000001",
-         };
-   
          account_object issuer_account = get_account("meta1");
    
          asset_limitation_object_create_operation create_limitation_op;
          create_limitation_op.limit_symbol = limit_symbol;
          create_limitation_op.issuer = issuer_account.id;
-         create_limitation_op.common_options = asset_limitation_ops;
 
          trx.operations.push_back(create_limitation_op);
          set_expiration(db, trx);
@@ -1322,7 +1174,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          //////
          
          // 1) create  FIRST  backing asset 
-         property_create_operation first_prop_op = create_property_operation(db, "meta1", 2000000000, 10080, "META1",
+         property_create_operation first_prop_op = create_property_operation("meta1", 2000000000, 10080, "META1",
                                                                              first_property_ops);
 
          trx.clear();
@@ -1384,7 +1236,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, database_fixture)
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
          
          //4) create second backing asset & not approve it like in CASE A.
-         property_create_operation second_prop_op = create_property_operation(db, "meta1", 1000000000, 10080, "META1",
+         property_create_operation second_prop_op = create_property_operation("meta1", 1000000000, 10080, "META1",
                                                                        second_property_ops);
          trx.operations.push_back(second_prop_op);
          sign(trx, meta1_private_key);

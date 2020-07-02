@@ -15,6 +15,7 @@ target_link_libraries( chain_test
 if(MSVC)
   set_source_files_properties( tests/serialization_tests.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )
   set_source_files_properties( tests/common/database_fixture.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )
+  set_source_files_properties( tests/common/meta1_fixture.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )
 endif(MSVC)
 
 file(GLOB PERFORMANCE_TESTS "performance/*.cpp")

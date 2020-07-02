@@ -26,5 +26,15 @@ public:
 
     const asset_limitation_object *asset_limitation_object_to_update = nullptr;
 };
+
+   class asset_price_publish_evaluator : public evaluator<asset_price_publish_evaluator> {
+   public:
+      typedef asset_price_publish_operation operation_type;
+
+      void_result do_evaluate(const asset_price_publish_operation &o);
+
+      void_result do_apply(const asset_price_publish_operation &o);
+   };
+
 } // namespace chain
 } // namespace graphene

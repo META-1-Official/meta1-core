@@ -21,8 +21,6 @@ public:
     // The cumulative sell limit for an asset that is backed by other properties
     uint64_t cumulative_sell_limit = 0;
 
-    asset_limitation_options options;
-
     asset_limitation_id_type get_id() const { return id; }
 };
 
@@ -34,10 +32,38 @@ typedef multi_index_container<asset_limitation_object,
     asset_limitation_index_type;
 typedef generic_index<asset_limitation_object, asset_limitation_index_type> asset_limitation_index;
 
+
+   /**
+    * Price of an external asset
+    */
+   class asset_price : public graphene::db::abstract_object<asset_price> {
+   public:
+      static const uint8_t space_id = implementation_ids;
+      static const uint8_t type_id = impl_asset_price_object_type;
+
+      /// Ticker symbol for this asset
+      string symbol;
+      /// USD-price expressed as a ratio
+      price_ratio usd_price;
+      /// Block time of publication
+      time_point_sec publication_time;
+   };
+
+   struct by_symbol;
+   typedef multi_index_container<asset_price,
+           indexed_by<
+                   ordered_unique<tag<by_id>, member<object, object_id_type, &object::id>>,
+                   ordered_unique<tag<by_symbol>, member<asset_price, string, &asset_price::symbol>>>>
+           asset_price_index_type;
+   typedef generic_index<asset_price, asset_price_index_type> asset_price_index;
+
 } // namespace chain
 } // namespace graphene
 MAP_OBJECT_ID_TO_TYPE(graphene::chain::asset_limitation_object)
+MAP_OBJECT_ID_TO_TYPE(graphene::chain::asset_price)
 
 FC_REFLECT_TYPENAME(graphene::chain::asset_limitation_object)
+FC_REFLECT_TYPENAME(graphene::chain::asset_price)
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::chain::asset_limitation_object)
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::chain::asset_price)
