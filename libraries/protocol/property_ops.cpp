@@ -34,6 +34,10 @@ void property_create_operation::validate() const
    FC_ASSERT(fee.amount >= 0);
    FC_ASSERT(appraised_property_value >= 0);
    FC_ASSERT(allocation_duration_minutes >= 4); // Minimum requirement of 4 minutes
+
+   // Multiple of 4 minutes to eliminate rounding errors for allocation
+   FC_ASSERT((allocation_duration_minutes % 4) == 0, "The allocation duration should be a multiple of 4 minutes");
+
    common_options.validate();
 }
 
