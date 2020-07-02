@@ -21,6 +21,9 @@ struct asset_limitation_object_create_operation : public base_operation
     string limit_symbol;
     account_id_type issuer;
 
+    // For future expansion
+    extensions_type extensions;
+
     account_id_type fee_payer() const { return issuer; }
     void validate() const;
 };
@@ -37,6 +40,9 @@ struct asset_limitation_object_update_operation : public base_operation
     asset fee;
     account_id_type issuer;
     asset_limitation_id_type asset_limitation_object_to_update;
+
+    // For future expansion
+    extensions_type extensions;
 
     account_id_type fee_payer() const { return issuer; }
     void validate() const;
@@ -75,6 +81,9 @@ struct asset_limitation_object_update_operation : public base_operation
       string symbol;
       price_ratio usd_price;
 
+      // For future expansion
+      extensions_type extensions;
+
       account_id_type fee_payer() const { return fee_paying_account; }
       void validate() const;
    };
@@ -86,15 +95,15 @@ FC_REFLECT(graphene::protocol::asset_limitation_object_create_operation::fee_par
 FC_REFLECT(graphene::protocol::asset_limitation_object_update_operation::fee_parameters_type, (fee))
 
 FC_REFLECT(graphene::protocol::asset_limitation_object_create_operation,
-           (fee)(limit_symbol)(issuer))
+           (fee)(limit_symbol)(issuer)(extensions))
 FC_REFLECT(graphene::protocol::asset_limitation_object_update_operation,
-           (fee)(issuer)(asset_limitation_object_to_update))
+           (fee)(issuer)(asset_limitation_object_to_update)(extensions))
 
 FC_REFLECT(graphene::protocol::price_ratio, (numerator)(denominator))
 
 FC_REFLECT(graphene::protocol::asset_price_publish_operation::fee_parameters_type, (fee))
 FC_REFLECT(graphene::protocol::asset_price_publish_operation,
-           (fee)(fee_paying_account)(symbol)(usd_price))
+           (fee)(fee_paying_account)(symbol)(usd_price)(extensions))
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_create_operation::fee_parameters_type)
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_update_operation::fee_parameters_type)
