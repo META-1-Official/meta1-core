@@ -22,6 +22,83 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
    }
 
    /**
+    * Test valid allocation durations
+    */
+   BOOST_AUTO_TEST_CASE(allocation_durations) {
+      // Create the property
+      const property_options property_ops = {
+              "some description",
+              "some title",
+              "my@email.com",
+              "you",
+              "https://fsf.com",
+              "https://purepng.com/metal-1701528976849tkdsl.png",
+              "222",
+              1,
+              33104,
+      };
+      property_create_operation prop_op;
+
+
+      //////
+      // Test the shortest duration
+      // This should succeed
+      //////
+      prop_op = create_property_operation("meta1", 1000000000, 4, "META1",
+                                          property_ops);
+      prop_op.validate();
+
+      //////
+      // Test a duration that is too short
+      // This should fail
+      //////
+      prop_op = create_property_operation("meta1", 1000000000, 3, "META1",
+                                          property_ops);
+      REQUIRE_EXCEPTION_WITH_TEXT(prop_op.validate(), "allocation_duration_minutes >= 4");
+
+
+      //////
+      // Test a duration that is a multiple of 4 minutes
+      // This should succeed
+      //////
+      prop_op = create_property_operation("meta1", 1000000000, 10080, "META1",
+                                          property_ops);
+      prop_op.validate();
+
+      //////
+      // Test a duration that is NOT a multiple of 4 minutes
+      // This should fail
+      //////
+      prop_op = create_property_operation("meta1", 1000000000, 10080 + 1, "META1",
+                                          property_ops);
+      REQUIRE_EXCEPTION_WITH_TEXT(prop_op.validate(), "a multiple of 4");
+
+      //////
+      // Test a duration that is NOT a multiple of 4 minutes
+      // This should fail
+      //////
+      prop_op = create_property_operation("meta1", 1000000000, 10080 + 2, "META1",
+                                          property_ops);
+      REQUIRE_EXCEPTION_WITH_TEXT(prop_op.validate(), "a multiple of 4");
+
+      //////
+      // Test a duration that is NOT a multiple of 4 minutes
+      // This should fail
+      //////
+      prop_op = create_property_operation("meta1", 1000000000, 10080 + 3, "META1",
+                                          property_ops);
+      REQUIRE_EXCEPTION_WITH_TEXT(prop_op.validate(), "a multiple of 4");
+
+      //////
+      // Test a multiple that is a multiple of 4 minutes
+      // This should succeed
+      //////
+      prop_op = create_property_operation("meta1", 1000000000, 10080 + 4, "META1",
+                                          property_ops);
+      prop_op.validate();
+   }
+
+   /**
     * Case A / Case C4
     * A property is created but never approved
     * Its progress should increase to 25%,
@@ -1116,7 +1193,6 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          upgrade_to_lifetime_member(meta1_id);
 
          // Advance to when the smooth allocation is activated
-         // TODO: Switch to HF time for smooth allocation in CORE
          generate_blocks(HARDFORK_CORE_21_TIME);
          generate_blocks(6);
    
