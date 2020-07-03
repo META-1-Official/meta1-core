@@ -526,6 +526,30 @@ optional<asset_limitation_object> database_api_impl::get_asset_limitaion_by_symb
    return *asset_limitaion;
 }
 
+uint64_t database_api::get_asset_limitation_value( string symbol_or_id )const
+{
+   return my->get_asset_limitation_value(symbol_or_id);
+}
+uint64_t database_api_impl::get_asset_limitation_value( string symbol_or_id )const
+{
+   // Identify the asset
+   const asset_object* asset = get_asset_from_string(symbol_or_id);
+
+   // Identify the asset limitation object
+   const std::string& symbol = asset->symbol;
+   const asset_limitation_object *asset_limitation = nullptr;
+   const auto &idx = _db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
+   auto itr = idx.find(symbol);
+   if (itr != idx.end()) {
+      asset_limitation = &*itr;
+   }
+   FC_ASSERT(asset_limitation, "no such asset limitation");
+
+   // Obtain the cumulative USD value
+   uint64_t value = asset_limitation->cumulative_sell_limit;
+   return value;
+}
+
 //////////////////////////////////////////////////////////////////////
 //                                                                  //
 // Accounts                                                         //
@@ -1078,6 +1102,21 @@ vector<optional<extended_asset_object>> database_api_impl::lookup_asset_symbols(
       return itr == assets_by_symbol.end()? optional<extended_asset_object>() : extend_asset( *itr );
    });
    return result;
+}
+
+price_ratio database_api::get_published_asset_price(const std::string &symbol) const {
+   return my->get_published_asset_price(symbol);
+}
+
+price_ratio database_api_impl::get_published_asset_price(const std::string &symbol) const {
+   const auto &idx = _db.get_index_type<asset_price_index>().indices().get<by_symbol>();
+   auto itr = idx.find(symbol);
+   FC_ASSERT(itr != idx.end());
+
+   asset_price price_of_symbol = *itr;
+   price_ratio pr = price_of_symbol.usd_price;
+
+   return pr;
 }
 
 //////////////////////////////////////////////////////////////////////

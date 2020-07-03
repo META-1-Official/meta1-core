@@ -705,6 +705,13 @@ public:
       return result;
    }
 
+   pair<uint32_t,uint32_t>  get_property_allocation_progress(uint32_t property_id) const
+   {
+      auto property_progress = get_property(property_id).get_allocation_progress();
+      return std::make_pair(property_progress.numerator(),property_progress.denominator());
+   }
+
+
    bool is_asset_limitation_exists(string limit_symbol)const
    {
       bool flag = _remote_db->is_asset_limitation_exists(limit_symbol);
@@ -714,6 +721,13 @@ public:
    optional<asset_limitation_object> get_asset_limitaion_by_symbol( string limit_symbol )const
    {
       auto result = _remote_db->get_asset_limitaion_by_symbol(limit_symbol);
+
+      return result;
+   }
+
+   uint64_t get_asset_limitation_value(const string symbol_or_id)const
+   {
+      uint64_t result = _remote_db->get_asset_limitation_value(symbol_or_id);
 
       return result;
    }
@@ -1443,6 +1457,7 @@ public:
 
          property_approve_operation approve_op;
          approve_op.issuer = property_to_update->issuer;
+         approve_op.property_to_approve = property_to_update->get_id();
 
          signed_transaction tx;
          tx.operations.push_back(approve_op);
@@ -1452,8 +1467,8 @@ public:
          return sign_transaction(tx, broadcast);
       }
       FC_CAPTURE_AND_RETHROW((id)(broadcast))
-   }                                    
-  
+   }
+
    signed_transaction delete_property(uint32_t property_id, bool broadcast = false)
    {
       try
@@ -1495,6 +1510,38 @@ public:
          return transaction_result;
       }
       FC_CAPTURE_AND_RETHROW((issuer)(limit_symbol)(broadcast))
+   }
+
+
+   signed_transaction publish_asset_price(string publishing_account,
+                                          string symbol,
+                                          price_ratio usd_price,
+                                          bool broadcast = false) {
+      try {
+         account_object publishing_account_obj = get_account(publishing_account);
+
+         asset_price_publish_operation publish_op;
+         publish_op.symbol = symbol;
+         publish_op.usd_price = usd_price;
+         publish_op.fee_paying_account = publishing_account_obj.id;
+
+         signed_transaction tx;
+         tx.operations.push_back(publish_op);
+
+         set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
+
+         tx.validate();
+         signed_transaction transaction_result = sign_transaction(tx, broadcast);
+         return transaction_result;
+      }
+      FC_CAPTURE_AND_RETHROW((publishing_account)(symbol)(usd_price)(broadcast))
+
+   }
+
+   price_ratio get_published_asset_price(const std::string &symbol) const {
+      price_ratio pr = _remote_db->get_published_asset_price(symbol);
+
+      return pr;
    }
 
    signed_transaction create_asset(string issuer,
@@ -3923,6 +3970,12 @@ vector<property_object> wallet_api::get_properties_by_backed_asset_symbol(string
    return my->get_properties_by_backed_asset_symbol(symbol);
 }
 
+pair<uint32_t,uint32_t>  wallet_api::get_property_allocation_progress(uint32_t property_id) const
+{
+      return my->get_property_allocation_progress(property_id);
+}
+
+
 bool wallet_api::is_asset_limitation_exists(string limit_symbol)const
 {
    return my->is_asset_limitation_exists(limit_symbol);
@@ -3931,6 +3984,11 @@ bool wallet_api::is_asset_limitation_exists(string limit_symbol)const
 optional<asset_limitation_object> wallet_api::get_asset_limitaion_by_symbol( string limit_symbol )const
 {
    return my->get_asset_limitaion_by_symbol(limit_symbol);
+}
+
+uint64_t wallet_api::get_asset_limitation_value(const string symbol_or_id) const
+{
+   return my->get_asset_limitation_value(symbol_or_id);
 }
 
 account_object wallet_api::get_account(string account_name_or_id) const
@@ -4190,6 +4248,21 @@ signed_transaction wallet_api::create_asset_limitation(string issuer,
                                                        bool broadcast )
 {
    return my->create_asset_limitation(issuer, limit_symbol, broadcast);
+}
+
+
+signed_transaction wallet_api::publish_asset_price(string publishing_account,
+                                                   string symbol,
+                                                   price_ratio usd_price,
+                                                   bool broadcast)
+{
+   return my->publish_asset_price(publishing_account, symbol, usd_price, broadcast);
+}
+
+
+price_ratio wallet_api::get_published_asset_price(const std::string &symbol) const
+{
+   return my->get_published_asset_price(symbol);
 }
 
 

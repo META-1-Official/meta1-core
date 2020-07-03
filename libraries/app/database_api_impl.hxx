@@ -97,6 +97,7 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
       vector<optional<extended_asset_object>> lookup_asset_symbols(const vector<string>& symbols_or_ids)const;
       vector<extended_asset_object>           get_assets_by_issuer(const std::string& issuer_name_or_id,
                                                                    asset_id_type start, uint32_t limit)const;
+      price_ratio get_published_asset_price(const std::string &symbol) const;
 
       // Markets / feeds
       vector<limit_order_object>         get_limit_orders( const std::string& a, const std::string& b,
@@ -204,6 +205,7 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
       // Asset limitation
       bool is_asset_limitation_exists(string limit_symbol)const;
       optional<asset_limitation_object> get_asset_limitaion_by_symbol( string limit_symbol )const;
+      uint64_t get_asset_limitation_value( const string symbol_or_id )const;
 
    //private:
 

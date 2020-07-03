@@ -556,10 +556,20 @@ class wallet_api
       property_object                   get_property(uint32_t id) const;
       vector<property_object>           get_all_properties()const;
       vector<property_object>           get_properties_by_backed_asset_symbol(string symbol) const;
+       
+      /**
+       * Get the allocation progress of this property as a rational fraction 
+       * @param property_id the id of the Property object.
+       * @returns pair<numerator,denominator>
+       */
+       //NOTE: temp realization
+       //TODO: adopt variant ratio_type, use property_id_type instead of property_id
+      pair<uint32_t,uint32_t>  get_property_allocation_progress(uint32_t property_id) const;
 
       // //Returns information about the given  limitation for assets.
       bool is_asset_limitation_exists(string limit_symbol)const;
       optional<asset_limitation_object> get_asset_limitaion_by_symbol( string limit_symbol )const;
+      uint64_t get_asset_limitation_value(const string symbol_or_id) const;
 
       /** Returns information about the given asset.
        * @param asset_name_or_id the symbol or id of the asset in question
@@ -1353,6 +1363,29 @@ class wallet_api
       signed_transaction create_asset_limitation(string issuer,
                                                  string limit_symbol,
                                                  bool broadcast = false);
+
+   /**
+    * Publish a USD-price for a user-issued asset (UIA).
+    *
+    * Published prices are used to ensure minimum USD-prices of backed asset
+    * which are assets that have been defined to have asset limitations.
+    *
+    * @param publishing_account the account publishing the price feed
+    * @param symbol the name or id of the asset whose feed we're publishing
+    * @param price the USD_price of the asset
+    * @param broadcast true to broadcast the transaction on the network
+    * @returns the signed transaction updating the price for the UIA
+    */
+   signed_transaction publish_asset_price(string publishing_account,
+                                          string symbol,
+                                          price_ratio usd_price,
+                                          bool broadcast = false);
+
+   /**
+    * Get published asset price of an asset
+    */
+   price_ratio get_published_asset_price(const std::string &symbol) const;
+
 
       /** Creates a new user-issued or market-issued asset.
        *
@@ -2207,8 +2240,12 @@ FC_API( graphene::wallet::wallet_api,
         (get_property)
         (get_all_properties)
         (get_properties_by_backed_asset_symbol)
+        (get_property_allocation_progress)
         (is_asset_limitation_exists)
         (get_asset_limitaion_by_symbol)
+        (get_asset_limitation_value)
+        (publish_asset_price)
+        (get_published_asset_price)
         (get_account)
         (get_account_id)
         (get_block)
