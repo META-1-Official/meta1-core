@@ -222,55 +222,27 @@ BOOST_AUTO_TEST_CASE( price_test )
     price less_than_max = price_max(0,1);
     less_than_max.quote.amount = 11;
     BOOST_CHECK( less_than_max * ratio_type(7,1) == price(asset(less_than_max.base.amount*7/11),asset(1,asset_id_type(1))) );
+
+   /**
+    * The particular inputs of
+    *
+    * (a) 100000000000000 satoshi META1 / X satoshi ASSET 1
+    * (b) a multiplying fraction of of 7/1
+    * (c) GRAPHENE_MAX_SHARE_SUPPLY = 100000000000000
+    *
+    * is provided to the price operator *.
+    *
+    * 1. price operator * performs the multiplication of the fraction
+    *    while protecting against overflows of GRAPHENE_MAX_SHARE_SUPPLY with bitshifting to the right (>>>)
+    *
+    * 2. The overflow protection loop also uses fc::rational class which, when possible,
+    *    further reduces the fraction by dividing by a greatest common denominator (GCD).
+    */
     less_than_max.quote.amount = 92131419;
-    BOOST_CHECK( less_than_max * ratio_type(7,1) == price(asset(less_than_max.base.amount*7/92131419),asset(1,asset_id_type(1))) );
+    BOOST_CHECK( less_than_max * ratio_type(7,1) == price(asset(less_than_max.base.amount.value*7>>3),asset(92131419>>3,asset_id_type(1))) );
 
-    /**
-     * The following check was originally created when GRAPHENE_MAX_SHARE_SUPPLY was 1000000000000000ll
-     * and is dependent on the particular implementation of overflow protection and fraction reduction
-     * that is present in the price operator *
-     */
     less_than_max.quote.amount = 192131419;
-    // BOOST_CHECK( less_than_max * ratio_type(7,1) == price(asset(less_than_max.base.amount.value*7>>3),asset(192131419>>3,asset_id_type(1))) );
-
-    /**
-     * The particular inputs of
-     *
-     * (a) 45000000000000 satoshi META1 / 192131419 satoshi ASSET 1
-     * (b) a multiplying fraction of of 7/1
-     * (c) GRAPHENE_MAX_SHARE_SUPPLY = 45000000000000
-     *
-     * is provided to the price operator *.
-     *
-     * 1. price operator * performs the multiplication of the fraction
-     *    while protecting against overflows of GRAPHENE_MAX_SHARE_SUPPLY with bitshifting to the right (>>>)
-     *
-     * 2. The overflow protection loop also uses fc::rational class which, when possible,
-     *    further reduces the fraction by dividing by a greatest common denominator (GCD).
-     *
-     * The result of this algorithm on these inputs can be summarized as consisting of:
-     *
-     * 1. a bitshift to the right of the numerator and denominator
-     * 2. a division of the numerator and denominator by a GCD of 3
-     * 3. another bitshift to the right of the numerator and denominator
-     *
-     * The result for the numerator is
-     *
-     * 0. 45000000000000 * 7 = 315000000000000
-     * 1. 157500000000000
-     * 2. 52500000000000
-     * 3. 26250000000000
-     *
-     * The result for the denominator is
-     *
-     * 0. 192131419 * 1 = 192131419
-     * 1. 96065709
-     * 2. 32021903
-     * 3. 16010951
-     */
-    BOOST_CHECK(less_than_max * ratio_type(7,1)
-                == price(asset((less_than_max.base.amount.value*7>>1)/3>>1),
-                         asset((192131419>>1)/3>>1,asset_id_type(1))) );
+    BOOST_CHECK( less_than_max * ratio_type(7,1) == price(asset(less_than_max.base.amount.value*7>>3),asset(192131419>>3,asset_id_type(1))) );
 
     price more_than_min = price_min(0,1);
     more_than_min.base.amount = 11;

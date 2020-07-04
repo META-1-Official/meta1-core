@@ -316,19 +316,19 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
 
          /**
           * The current valuation of all META1 tokens is 10 x 900,000,000 USD = 9,000,000,000 USD
-          * There are 450,000,000 META1 tokens = 45,000,000,000,000 satoshi META1 tokens
-          * Therefore, each META1 token is valued at 20 USD per META1 token.
+          * There are 1,000,000,000 META1 tokens = 100,000,000,000,000 satoshi META1 tokens
+          * Therefore, each META1 token is valued at 9 USD per META1 token.
           *
           * BTC is priced at 2000 USD per BTC
           *
-          * Therefore, any limit order should price 1 META1 token greater than or equal to 20 USD per META1 token.
-          * This is equivalent to greater than or equal to 1/100 BTC per META1 token = 1 BTC per 100 META1 token
+          * Therefore, any limit order should price 1 META1 token greater than or equal to 9 USD per META1 token.
+          * This is equivalent to greater than or equal to 1/222.222 BTC per META1 token = 1 BTC per 222.222 META1 token
           */
          limit_order_id_type order_id;
          limit_order_object loo;
 
          // Attempt to sell META1 for too low of a price; it should fail
-         asset meta1_to_sell = META1_ID(db).amount(101 * asset::scaled_precision(META1.precision).value);
+         asset meta1_to_sell = META1_ID(db).amount(223 * asset::scaled_precision(META1.precision).value);
          asset btc_to_buy = BTC_ID(db).amount(1 * asset::scaled_precision(BTC.precision).value);
          REQUIRE_EXCEPTION_WITH_TEXT(create_sell_order(alice, meta1_to_sell, btc_to_buy),
                                      "valuation for the META1 token is too low");
@@ -340,7 +340,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
                                      "valuation for the META1 token is too low");
 
          // Attempt to sell META1 for high-enough of a price; it should succeed
-         meta1_to_sell = META1_ID(db).amount(100 * asset::scaled_precision(META1.precision).value);
+         meta1_to_sell = META1_ID(db).amount(222 * asset::scaled_precision(META1.precision).value);
          btc_to_buy = BTC_ID(db).amount(1 * asset::scaled_precision(BTC.precision).value);
          loo = *create_sell_order(alice, meta1_to_sell, btc_to_buy);
          order_id = loo.id;
@@ -397,16 +397,16 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
 
          /**
           * The current valuation of all META1 tokens is 10 x 900,000,000 USD = 9,000,000,000 USD
-          * There are 450,000,000 META1 tokens = 45,000,000,000,000 satoshi META1 tokens
-          * Therefore, each META1 token is valued at 20 USD per META1 token.
+          * There are 1,000,000,000 META1 tokens = 100,000,000,000,000 satoshi META1 tokens
+          * Therefore, each META1 token is valued at 9 USD per META1 token.
           *
           * BTC is priced at 3000 USD per BTC
           *
-          * Therefore, any limit order should price 1 META1 token greater than or equal to 20 USD per META1 token.
-          * This is equivalent to greater than or equal to 1/150 BTC per META1 token = 1 BTC per 150 META1 token
+          * Therefore, any limit order should price 1 META1 token greater than or equal to 9 USD per META1 token.
+          * This is equivalent to greater than or equal to 1/333.333 BTC per META1 token = 1 BTC per 333.333 META1 token
           */
          // Attempt to sell META1 for too low of a price; it should fail
-         meta1_to_sell = META1_ID(db).amount(151 * asset::scaled_precision(META1.precision).value);
+         meta1_to_sell = META1_ID(db).amount(334 * asset::scaled_precision(META1.precision).value);
          btc_to_buy = BTC_ID(db).amount(1 * asset::scaled_precision(BTC.precision).value);
          REQUIRE_EXCEPTION_WITH_TEXT(create_sell_order(alice, meta1_to_sell, btc_to_buy),
                                      "valuation for the META1 token is too low");
@@ -418,7 +418,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
                                      "valuation for the META1 token is too low");
 
          // Attempt to sell META1 for high-enough of a price; it should succeed
-         meta1_to_sell = META1_ID(db).amount(150 * asset::scaled_precision(META1.precision).value);
+         meta1_to_sell = META1_ID(db).amount(333 * asset::scaled_precision(META1.precision).value);
          btc_to_buy = BTC_ID(db).amount(1 * asset::scaled_precision(BTC.precision).value);
          loo = *create_sell_order(alice, meta1_to_sell, btc_to_buy);
          order_id = loo.id;
@@ -642,19 +642,19 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
 
          /**
           * The current valuation of all META1 tokens is 10 x 1,000,000,000 USD = 10,000,000,000 USD
-          * There are 450,000,000 META1 tokens = 45,000,000,000,000 satoshi META1 tokens
-          * Therefore, each META1 token is valued at 22.22222 USD per META1 token.
+          * There are 1,000,000,000 META1 tokens = 100,000,000,000,000 satoshi META1 tokens
+          * Therefore, each META1 token is valued at 10 USD per META1 token.
           *
           * BTC is priced at 2000 USD per BTC
           *
-          * Therefore, any limit order should price 1 META1 token greater than or equal to 22.2222 USD per META1 token.
-          * This is equivalent to greater than or equal to 1/90 BTC per META1 token = 1 BTC per 90 META1 token
+          * Therefore, any limit order should price 1 META1 token greater than or equal to 10 USD per META1 token.
+          * This is equivalent to greater than or equal to 1/200 BTC per META1 token = 1 BTC per 200 META1 token
           */
          limit_order_id_type order_id;
          limit_order_object loo;
 
          // Attempt to sell META1 for too low of a price; it should fail
-         meta1_to_sell = META1_ID(db).amount(91 * asset::scaled_precision(META1.precision).value);
+         meta1_to_sell = META1_ID(db).amount(201 * asset::scaled_precision(META1.precision).value);
          btc_to_buy = BTC_ID(db).amount(1 * asset::scaled_precision(BTC.precision).value);
          REQUIRE_EXCEPTION_WITH_TEXT(create_sell_order(alice, meta1_to_sell, btc_to_buy),
                                      "valuation for the META1 token is too low");
@@ -666,7 +666,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
                                      "valuation for the META1 token is too low");
 
          // Attempt to sell META1 for high-enough of a price; it should succeed
-         meta1_to_sell = META1_ID(db).amount(89 * asset::scaled_precision(META1.precision).value);
+         meta1_to_sell = META1_ID(db).amount(199 * asset::scaled_precision(META1.precision).value);
          btc_to_buy = BTC_ID(db).amount(1 * asset::scaled_precision(BTC.precision).value);
          loo = *create_sell_order(alice, meta1_to_sell, btc_to_buy);
          order_id = loo.id;
