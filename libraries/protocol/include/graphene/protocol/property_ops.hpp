@@ -42,6 +42,9 @@ struct property_create_operation : public base_operation
     string backed_by_asset_symbol;
     property_options common_options;
 
+    // For future expansion
+    extensions_type extensions;
+
     account_id_type fee_payer() const { return issuer; }
     void validate() const;
 };
@@ -60,6 +63,9 @@ struct property_update_operation : public base_operation
     property_id_type property_to_update;
     property_options new_options;
 
+    // For future expansion
+    extensions_type extensions;
+
     account_id_type fee_payer() const { return issuer; }
     void validate() const;
 };
@@ -76,6 +82,9 @@ struct property_update_operation : public base_operation
       account_id_type issuer;
       property_id_type property_to_approve;
 
+      // For future expansion
+      extensions_type extensions;
+
       account_id_type fee_payer() const { return issuer; }
 
       void validate() const;
@@ -88,6 +97,9 @@ struct property_delete_operation : public base_operation
     asset fee;
     property_id_type property;
     account_id_type fee_paying_account;
+
+    // For future expansion
+    extensions_type extensions;
 
     account_id_type fee_payer() const { return fee_paying_account; }
     void            validate() const;
@@ -123,6 +135,7 @@ FC_REFLECT(graphene::protocol::property_create_operation,
            (allocation_duration_minutes)
            (backed_by_asset_symbol)
            (common_options)
+           (extensions)
            )
 
 FC_REFLECT(graphene::protocol::property_update_operation,
@@ -130,18 +143,21 @@ FC_REFLECT(graphene::protocol::property_update_operation,
            (issuer)
            (property_to_update)
            (new_options)
+           (extensions)
            )
 
 FC_REFLECT(graphene::protocol::property_approve_operation,
            (fee)
            (issuer)
            (property_to_approve)
+           (extensions)
            )
 
 FC_REFLECT(graphene::protocol::property_delete_operation,
             (fee)
             (property)
             (fee_paying_account)
+            (extensions)
             )
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_options )
@@ -151,6 +167,6 @@ GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_approve_op
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_delete_operation::fee_parameters_type )
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_create_operation )
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_update_operation ) 
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_update_operation )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_approve_operation )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_delete_operation )
