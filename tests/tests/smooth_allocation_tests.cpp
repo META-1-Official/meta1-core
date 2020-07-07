@@ -159,10 +159,10 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
       generate_blocks(1);
 
       // Check the initial allocation of the asset before any blocks advance
-      const graphene::chain::property_object *property = db.get_property(prop_op.property_id);
+      graphene::chain::property_object property = db.get_property(prop_op.property_id);
 
       // Check the property's allocation
-      BOOST_CHECK_EQUAL(ratio_type(0, 4), property->get_allocation_progress());
+      BOOST_CHECK_EQUAL(ratio_type(0, 4), property.get_allocation_progress());
 
       asset_limitation_object alo;
       const auto &asset_limitation_idx = db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
@@ -178,9 +178,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
       // Advance to the 25% moment
       // The appreciation should be at 25%
       //////
-      uint32_t allocation_duration_seconds = (property->approval_end_date.sec_since_epoch() -
-                                              property->creation_date.sec_since_epoch());
-      time_point_sec time_to_25_percent = property->creation_date + (allocation_duration_seconds * 1 / 4);
+      uint32_t allocation_duration_seconds = (property.approval_end_date.sec_since_epoch() -
+                                              property.creation_date.sec_since_epoch());
+      time_point_sec time_to_25_percent = property.creation_date + (allocation_duration_seconds * 1 / 4);
       generate_blocks(time_to_25_percent, false);
       set_expiration(db, trx);
       trx.operations.clear();
@@ -188,11 +188,11 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
       property = db.get_property(prop_op.property_id);
 
       // Check the property's allocation
-      BOOST_CHECK_EQUAL(ratio_type(1, 4), property->get_allocation_progress());
+      BOOST_CHECK_EQUAL(ratio_type(1, 4), property.get_allocation_progress());
 
       // Check the sell_limit
       alo = *asset_limitation_idx.find(limit_symbol);
-      expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 25, 100);
+      expected_valuation = calculate_meta1_valuation(property.appraised_property_value, 25, 100);
       uint64_t tol = 1; // The error at any time during the appreciation should be <= 1 USD * (number of properties)
       BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
@@ -201,18 +201,18 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
       // Advance to the 50% moment
       // The appreciation should be at 25%
       //////
-      time_point_sec time_to_50_percent = property->creation_date + (allocation_duration_seconds / 2);
+      time_point_sec time_to_50_percent = property.creation_date + (allocation_duration_seconds / 2);
       generate_blocks(time_to_50_percent, false);
       set_expiration(db, trx);
       trx.operations.clear();
 
       property = db.get_property(prop_op.property_id);
 
-      BOOST_CHECK_EQUAL(ratio_type(1, 4), property->get_allocation_progress());
+      BOOST_CHECK_EQUAL(ratio_type(1, 4), property.get_allocation_progress());
 
       // Check the sell_limit
       alo = *asset_limitation_idx.find(limit_symbol);
-      expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 25, 100);
+      expected_valuation = calculate_meta1_valuation(property.appraised_property_value, 25, 100);
       BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -220,18 +220,18 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
       // Advance to the 75% moment
       // The appreciation should be at 25%
       //////
-      time_point_sec time_to_75_percent = property->creation_date + (allocation_duration_seconds * 3 / 4);
+      time_point_sec time_to_75_percent = property.creation_date + (allocation_duration_seconds * 3 / 4);
       generate_blocks(time_to_75_percent, false);
       set_expiration(db, trx);
       trx.operations.clear();
 
       property = db.get_property(prop_op.property_id);
 
-      BOOST_CHECK_EQUAL(ratio_type(1, 4), property->get_allocation_progress());
+      BOOST_CHECK_EQUAL(ratio_type(1, 4), property.get_allocation_progress());
 
       // Check the sell_limit
       alo = *asset_limitation_idx.find(limit_symbol);
-      expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 25, 100);
+      expected_valuation = calculate_meta1_valuation(property.appraised_property_value, 25, 100);
       BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -239,18 +239,18 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
       // Advance to the 100% moment
       // The appreciation should be at 0%
       //////
-      time_point_sec time_to_100_percent = property->creation_date +  (allocation_duration_seconds);
+      time_point_sec time_to_100_percent = property.creation_date +  (allocation_duration_seconds);
       generate_blocks(time_to_100_percent, false);
       set_expiration(db, trx);
       trx.operations.clear();
 
       property = db.get_property(prop_op.property_id);
 
-      BOOST_CHECK_EQUAL(ratio_type(0, 4), property->get_allocation_progress());
+      BOOST_CHECK_EQUAL(ratio_type(0, 4), property.get_allocation_progress());
 
       // Check the sell_limit
       alo = *asset_limitation_idx.find(limit_symbol);
-      expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 0, 100);
+      expected_valuation = calculate_meta1_valuation(property.appraised_property_value, 0, 100);
       BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -258,18 +258,18 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
       // Advance to the 125% moment
       // The appreciation should be at 0%
       //////
-      time_point_sec time_to_125_percent = property->creation_date + (allocation_duration_seconds * 5 / 4);
+      time_point_sec time_to_125_percent = property.creation_date + (allocation_duration_seconds * 5 / 4);
       generate_blocks(time_to_125_percent, false);
       set_expiration(db, trx);
       trx.clear();
 
       property = db.get_property(prop_op.property_id);
 
-      BOOST_CHECK_EQUAL(ratio_type(0, 4), property->get_allocation_progress());
+      BOOST_CHECK_EQUAL(ratio_type(0, 4), property.get_allocation_progress());
 
       // Check the sell_limit
       alo = *asset_limitation_idx.find(limit_symbol);
-      expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 0, 100);
+      expected_valuation = calculate_meta1_valuation(property.appraised_property_value, 0, 100);
       BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
    }
 
@@ -336,10 +336,10 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
 
 
          // Check the initial allocation of the asset before any blocks advance
-         const graphene::chain::property_object *property = db.get_property(prop_op.property_id);
+         graphene::chain::property_object property = db.get_property(prop_op.property_id);
 
          // Check the property's allocation
-         BOOST_CHECK_EQUAL(ratio_type(0, 4), property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(0, 4), property.get_allocation_progress());
 
          asset_limitation_object alo;
          const auto &asset_limitation_idx = db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
@@ -350,20 +350,20 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // Advance to the 10% moment
          // The appreciation should be at 10%
          //////
-         uint32_t allocation_duration_seconds = (property->approval_end_date.sec_since_epoch() -
-                                                 property->creation_date.sec_since_epoch());
-         time_point_sec time_to_10_percent = property->creation_date + (allocation_duration_seconds) / 10;
+         uint32_t allocation_duration_seconds = (property.approval_end_date.sec_since_epoch() -
+                                                 property.creation_date.sec_since_epoch());
+         time_point_sec time_to_10_percent = property.creation_date + (allocation_duration_seconds) / 10;
          generate_blocks(time_to_10_percent, false);
          set_expiration(db, trx);
          trx.clear();
 
          property = db.get_property(prop_op.property_id);
 
-         BOOST_CHECK_EQUAL(ratio_type(1, 10), property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 10), property.get_allocation_progress());
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 10, 100);
+         expected_valuation = calculate_meta1_valuation(property.appraised_property_value, 10, 100);
          // The error in the cumulative sell limit at any time during the appreciation
          // should be <= 1 USD * (number of properties)
          uint64_t tol = 1;
@@ -373,7 +373,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // Approve the asset by using the update operation
          property_approve_operation aop;
          aop.issuer = meta1.id;
-         aop.property_to_approve = property->id;
+         aop.property_to_approve = property.id;
 
          trx.operations.push_back(aop);
          sign(trx, meta1_private_key);
@@ -390,18 +390,18 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // Advance to the 25% moment
          // The appreciation should be at 25%
          //////
-         time_point_sec time_to_25_percent = property->creation_date + (allocation_duration_seconds) / 4;
+         time_point_sec time_to_25_percent = property.creation_date + (allocation_duration_seconds) / 4;
          generate_blocks(time_to_25_percent, false);
          set_expiration(db, trx);
          trx.clear();
 
          property = db.get_property(prop_op.property_id);
 
-         BOOST_CHECK_EQUAL(ratio_type(1, 4), property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 4), property.get_allocation_progress());
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(property.appraised_property_value, 25, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -409,18 +409,18 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // Advance to the 50% moment
          // The appreciation should be at 50%
          //////
-         time_point_sec time_to_50_percent = property->creation_date + (allocation_duration_seconds) / 2;
+         time_point_sec time_to_50_percent = property.creation_date + (allocation_duration_seconds) / 2;
          generate_blocks(time_to_50_percent, false);
          set_expiration(db, trx);
          trx.clear();
 
          property = db.get_property(prop_op.property_id);
 
-         BOOST_CHECK_EQUAL(ratio_type(1, 2), property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 2), property.get_allocation_progress());
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 50, 100);
+         expected_valuation = calculate_meta1_valuation(property.appraised_property_value, 50, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -428,18 +428,18 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // Advance to the 75% moment
          // The appreciation should be at 75%
          //////
-         time_point_sec time_to_75_percent = property->creation_date + (allocation_duration_seconds) * 3 / 4;
+         time_point_sec time_to_75_percent = property.creation_date + (allocation_duration_seconds) * 3 / 4;
          generate_blocks(time_to_75_percent, false);
          set_expiration(db, trx);
          trx.clear();
 
          property = db.get_property(prop_op.property_id);
 
-         BOOST_CHECK_EQUAL(ratio_type(3, 4), property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(3, 4), property.get_allocation_progress());
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 75, 100);
+         expected_valuation = calculate_meta1_valuation(property.appraised_property_value, 75, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -447,18 +447,18 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // Advance to the 100% moment
          // The appreciation should be at 100%
          //////
-         time_point_sec time_to_100_percent = property->creation_date + (allocation_duration_seconds);
+         time_point_sec time_to_100_percent = property.creation_date + (allocation_duration_seconds);
          generate_blocks(time_to_100_percent, false);
          set_expiration(db, trx);
          trx.clear();
 
          property = db.get_property(prop_op.property_id);
 
-         BOOST_CHECK_EQUAL(ratio_type(1, 1), property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), property.get_allocation_progress());
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 100, 100);
+         expected_valuation = calculate_meta1_valuation(property.appraised_property_value, 100, 100);
          BOOST_CHECK_EQUAL(expected_valuation, alo.cumulative_sell_limit);
 
 
@@ -466,18 +466,18 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // Advance to the 125% moment
          // The appreciation should be at 100%
          //////
-         time_point_sec time_to_125_percent = property->creation_date + (allocation_duration_seconds) * 5 / 4;
+         time_point_sec time_to_125_percent = property.creation_date + (allocation_duration_seconds) * 5 / 4;
          generate_blocks(time_to_125_percent, false);
          set_expiration(db, trx);
          trx.clear();
 
          property = db.get_property(prop_op.property_id);
 
-         BOOST_CHECK_EQUAL(ratio_type(1, 1), property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), property.get_allocation_progress());
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 100, 100);
+         expected_valuation = calculate_meta1_valuation(property.appraised_property_value, 100, 100);
          BOOST_CHECK_EQUAL(expected_valuation, alo.cumulative_sell_limit);
 
       } FC_LOG_AND_RETHROW()
@@ -547,10 +547,10 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
 
 
          // Check the initial allocation of the asset before any blocks advance
-         const graphene::chain::property_object *property = db.get_property(prop_op.property_id);
+         graphene::chain::property_object property = db.get_property(prop_op.property_id);
 
          // Check the property's allocation
-         BOOST_CHECK_EQUAL(ratio_type(0, 4), property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(0, 4), property.get_allocation_progress());
 
          asset_limitation_object alo;
          const auto &asset_limitation_idx = db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
@@ -561,9 +561,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // Advance to the 65% moment
          // The appreciation should be at 25%
          //////
-         uint32_t allocation_duration_seconds = (property->approval_end_date.sec_since_epoch() -
-                                                 property->creation_date.sec_since_epoch());
-         time_point_sec time_to_65_percent = property->creation_date + (allocation_duration_seconds) * 65 / 100;
+         uint32_t allocation_duration_seconds = (property.approval_end_date.sec_since_epoch() -
+                                                 property.creation_date.sec_since_epoch());
+         time_point_sec time_to_65_percent = property.creation_date + (allocation_duration_seconds) * 65 / 100;
          // time_point_sec time_approval = time_to_65_percent;
          generate_blocks(time_to_65_percent, false);
          set_expiration(db, trx);
@@ -571,11 +571,11 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
 
          property = db.get_property(prop_op.property_id);
 
-         BOOST_CHECK_EQUAL(ratio_type(1, 4), property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 4), property.get_allocation_progress());
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(property.appraised_property_value, 25, 100);
          uint64_t tol = 1; // The error at any time during the appreciation should be <= 1 USD * (number of properties)
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
@@ -585,7 +585,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          //////
          property_approve_operation aop;
          aop.issuer = meta1.id;
-         aop.property_to_approve = property->id;
+         aop.property_to_approve = property.id;
 
          trx.operations.push_back(aop);
          sign(trx, meta1_private_key);
@@ -604,7 +604,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // Advance to the 75% moment
          // The appreciation should be at approximately 46.4%
          //////
-         time_point_sec time_to_75_percent = property->creation_date + (allocation_duration_seconds) * 3 / 4;
+         time_point_sec time_to_75_percent = property.creation_date + (allocation_duration_seconds) * 3 / 4;
          ilog(" Current time: ${time}", ("time", db.head_block_time()));
          generate_blocks(time_to_75_percent, false);
          set_expiration(db, trx);
@@ -616,12 +616,12 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // The approval allocation is 10/(100-65) = 10/35
          // The combined allocation = 1/4*(1) + (3/4 * 10/35) = 1/4 + 30/140 = 35/140 + 30/140 = 65/140 = 13/28
          // Get allocation progress should return 13/28 ~= 46.4%
-         BOOST_CHECK_EQUAL(ratio_type(13, 28), property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(13, 28), property.get_allocation_progress());
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->appraised_property_value,
-                                                        property->get_allocation_progress());
+         expected_valuation = calculate_meta1_valuation(property.appraised_property_value,
+                                                        property.get_allocation_progress());
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -629,18 +629,18 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // Advance to the 100% moment
          // The appreciation should be at 100%
          //////
-         time_point_sec time_to_100_percent = property->creation_date + (allocation_duration_seconds);
+         time_point_sec time_to_100_percent = property.creation_date + (allocation_duration_seconds);
          generate_blocks(time_to_100_percent, false);
          set_expiration(db, trx);
          trx.clear();
 
          property = db.get_property(prop_op.property_id);
 
-         BOOST_CHECK_EQUAL(ratio_type(1, 1), property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), property.get_allocation_progress());
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 100, 100);
+         expected_valuation = calculate_meta1_valuation(property.appraised_property_value, 100, 100);
          BOOST_CHECK_EQUAL(expected_valuation, alo.cumulative_sell_limit);
 
 
@@ -648,18 +648,18 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // Advance to the 125% moment
          // The appreciation should be at 100%
          //////
-         time_point_sec time_to_125_percent = property->creation_date + (allocation_duration_seconds) * 5 / 4;
+         time_point_sec time_to_125_percent = property.creation_date + (allocation_duration_seconds) * 5 / 4;
          generate_blocks(time_to_125_percent, false);
          set_expiration(db, trx);
          trx.clear();
 
          property = db.get_property(prop_op.property_id);
 
-         BOOST_CHECK_EQUAL(ratio_type(1, 1), property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), property.get_allocation_progress());
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(property->appraised_property_value, 100, 100);
+         expected_valuation = calculate_meta1_valuation(property.appraised_property_value, 100, 100);
          BOOST_CHECK_EQUAL(expected_valuation, alo.cumulative_sell_limit);
 
       } FC_LOG_AND_RETHROW()
@@ -750,10 +750,10 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          generate_blocks(1);
    
          // Check the initial allocation of the asset before any blocks advance
-         const graphene::chain::property_object *first_property = db.get_property(first_prop_op.property_id);
+         graphene::chain::property_object first_property = db.get_property(first_prop_op.property_id);
    
          // Check the property's allocation
-         BOOST_CHECK_EQUAL(ratio_type(0, 4), first_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(0, 4), first_property.get_allocation_progress());
    
          asset_limitation_object alo;
          const auto &asset_limitation_idx = db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
@@ -767,9 +767,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // The appreciation of second asset should be at 0 %
          // The appreciation of sell limit   should be at 10%
          //////
-         uint32_t allocation_duration_seconds = (first_property->approval_end_date.sec_since_epoch() -
-                                                 first_property->creation_date.sec_since_epoch());
-         time_point_sec time_to_10_percent = first_property->creation_date + (allocation_duration_seconds) * 10 / 100;
+         uint32_t allocation_duration_seconds = (first_property.approval_end_date.sec_since_epoch() -
+                                                 first_property.creation_date.sec_since_epoch());
+         time_point_sec time_to_10_percent = first_property.creation_date + (allocation_duration_seconds) * 10 / 100;
          generate_blocks(time_to_10_percent, false);
          set_expiration(db, trx);
          trx.clear();
@@ -790,17 +790,17 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
    
          // Check the initial allocation of the FIRST asset
          first_property = db.get_property(first_prop_op.property_id);
-         BOOST_CHECK_EQUAL(ratio_type(1, 10), first_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 10), first_property.get_allocation_progress());
          
          // Check the initial allocation of the SECOND before any blocks advance
-         const graphene::chain::property_object *second_property = db.get_property(second_prop_op.property_id);
-         BOOST_REQUIRE_EQUAL(allocation_duration_seconds, (second_property->approval_end_date.sec_since_epoch() -
-                                                     second_property->creation_date.sec_since_epoch()));
-         BOOST_CHECK_EQUAL(ratio_type(0, 4), second_property->get_allocation_progress());
+         graphene::chain::property_object second_property = db.get_property(second_prop_op.property_id);
+         BOOST_REQUIRE_EQUAL(allocation_duration_seconds, (second_property.approval_end_date.sec_since_epoch() -
+                                                     second_property.creation_date.sec_since_epoch()));
+         BOOST_CHECK_EQUAL(ratio_type(0, 4), second_property.get_allocation_progress());
    
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 10, 100);
+         expected_valuation = calculate_meta1_valuation(first_property.appraised_property_value, 10, 100);
          uint64_t tol = 1; // The error at any time during the appreciation should be <= 1 USD * (number of properties)
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
    
@@ -810,7 +810,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // The appreciation of second asset should be at 15%
          // The appreciation of sell_limit   should be at 40%
          //////
-         time_point_sec time_to_15_percent = second_property->creation_date + (allocation_duration_seconds) * 15 / 100;
+         time_point_sec time_to_15_percent = second_property.creation_date + (allocation_duration_seconds) * 15 / 100;
          generate_blocks(time_to_15_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -818,13 +818,13 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          first_property = db.get_property(first_prop_op.property_id);
          second_property = db.get_property(second_prop_op.property_id);
    
-         BOOST_CHECK_EQUAL(ratio_type(1, 4), first_property->get_allocation_progress());
-         BOOST_CHECK_EQUAL(ratio_type(3, 20), second_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 4), first_property.get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(3, 20), second_property.get_allocation_progress());
        
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 25, 100) +
-                              calculate_meta1_valuation(second_property->appraised_property_value, 15, 100);
+         expected_valuation = calculate_meta1_valuation(first_property.appraised_property_value, 25, 100) +
+                              calculate_meta1_valuation(second_property.appraised_property_value, 15, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
      
          //////
@@ -833,7 +833,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // The appreciation of second asset should be at 25%
          // The appreciation of sell_limit   should be at 50%
          //////
-         time_point_sec time_to_40_percent = second_property->creation_date + (allocation_duration_seconds) * 40 / 100;
+         time_point_sec time_to_40_percent = second_property.creation_date + (allocation_duration_seconds) * 40 / 100;
          generate_blocks(time_to_40_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -841,13 +841,13 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          first_property = db.get_property(first_prop_op.property_id);
          second_property = db.get_property(second_prop_op.property_id);
    
-         BOOST_CHECK_EQUAL(ratio_type(1, 4), first_property->get_allocation_progress());
-         BOOST_CHECK_EQUAL(ratio_type(1, 4), second_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 4), first_property.get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 4), second_property.get_allocation_progress());
        
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 25, 100) +
-                              calculate_meta1_valuation(second_property->appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(first_property.appraised_property_value, 25, 100) +
+                              calculate_meta1_valuation(second_property.appraised_property_value, 25, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
    
          //////
@@ -856,7 +856,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // The appreciation of second asset should be at 25%
          // The appreciation of sell_limit   should be at 50%
          //////
-         time_point_sec time_to_65_percent = second_property->creation_date + (allocation_duration_seconds) * 65 / 100;
+         time_point_sec time_to_65_percent = second_property.creation_date + (allocation_duration_seconds) * 65 / 100;
          generate_blocks(time_to_65_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -864,13 +864,13 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          first_property = db.get_property(first_prop_op.property_id);
          second_property = db.get_property(second_prop_op.property_id);
    
-         BOOST_CHECK_EQUAL(ratio_type(1, 4), first_property->get_allocation_progress());
-         BOOST_CHECK_EQUAL(ratio_type(1, 4), second_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 4), first_property.get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 4), second_property.get_allocation_progress());
        
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 25, 100) +
-                              calculate_meta1_valuation(second_property->appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(first_property.appraised_property_value, 25, 100) +
+                              calculate_meta1_valuation(second_property.appraised_property_value, 25, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
    
          //////
@@ -879,7 +879,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // The appreciation of second asset should be at 25%
          // The appreciation of sell_limit   should be at 25%
          //////
-         time_point_sec time_to_90_percent = second_property->creation_date + (allocation_duration_seconds) * 90 / 100;
+         time_point_sec time_to_90_percent = second_property.creation_date + (allocation_duration_seconds) * 90 / 100;
          generate_blocks(time_to_90_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -887,13 +887,13 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          first_property = db.get_property(first_prop_op.property_id);
          second_property = db.get_property(second_prop_op.property_id);
    
-         BOOST_CHECK_EQUAL(ratio_type(0, 4), first_property->get_allocation_progress());
-         BOOST_CHECK_EQUAL(ratio_type(1, 4), second_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(0, 4), first_property.get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 4), second_property.get_allocation_progress());
        
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 0, 100) +
-                              calculate_meta1_valuation(second_property->appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(first_property.appraised_property_value, 0, 100) +
+                              calculate_meta1_valuation(second_property.appraised_property_value, 25, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
    
          //////
@@ -902,7 +902,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // The appreciation of second asset should be at 0%
          // The appreciation of sell_limit   should be at 0%
          //////
-         time_point_sec time_to_100_percent = second_property->creation_date + (allocation_duration_seconds) * 100 / 100;
+         time_point_sec time_to_100_percent = second_property.creation_date + (allocation_duration_seconds) * 100 / 100;
          generate_blocks(time_to_100_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -910,13 +910,13 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          first_property = db.get_property(first_prop_op.property_id);
          second_property = db.get_property(second_prop_op.property_id);
    
-         BOOST_CHECK_EQUAL(ratio_type(0, 4), first_property->get_allocation_progress());
-         BOOST_CHECK_EQUAL(ratio_type(0, 4), second_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(0, 4), first_property.get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(0, 4), second_property.get_allocation_progress());
        
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 0, 100) +
-                              calculate_meta1_valuation(second_property->appraised_property_value, 0, 100);
+         expected_valuation = calculate_meta1_valuation(first_property.appraised_property_value, 0, 100) +
+                              calculate_meta1_valuation(second_property.appraised_property_value, 0, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
       } FC_LOG_AND_RETHROW()
@@ -1007,10 +1007,10 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          generate_blocks(1);
  
          // Check the initial allocation of the asset before any blocks advance
-         const graphene::chain::property_object *first_property = db.get_property(first_prop_op.property_id);
+         graphene::chain::property_object first_property = db.get_property(first_prop_op.property_id);
  
          // Check the property's allocation
-         BOOST_CHECK_EQUAL(ratio_type(0, 4), first_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(0, 4), first_property.get_allocation_progress());
  
          asset_limitation_object alo;
          const auto &asset_limitation_idx = db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
@@ -1027,9 +1027,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // The appreciation of second asset should be at 0 %
          // The appreciation of sell limit   should be at 10%
          //////
-         uint32_t allocation_duration_seconds = (first_property->approval_end_date.sec_since_epoch() -
-                                                 first_property->creation_date.sec_since_epoch());
-         time_point_sec time_to_10_percent = first_property->creation_date + (allocation_duration_seconds) * 10 / 100;
+         uint32_t allocation_duration_seconds = (first_property.approval_end_date.sec_since_epoch() -
+                                                 first_property.creation_date.sec_since_epoch());
+         time_point_sec time_to_10_percent = first_property.creation_date + (allocation_duration_seconds) * 10 / 100;
          generate_blocks(time_to_10_percent, false);
          set_expiration(db, trx);
          trx.clear();
@@ -1044,7 +1044,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // Approve first backing asset by using the update operation
          property_approve_operation first_aop;
          first_aop.issuer = meta1.id;
-         first_aop.property_to_approve = first_property->id;
+         first_aop.property_to_approve = first_property.id;
          
          trx.operations.push_back(first_aop);
          
@@ -1056,17 +1056,17 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
  
          // Check the initial allocation of the first asset
          first_property = db.get_property(first_prop_op.property_id);
-         BOOST_CHECK_EQUAL(ratio_type(1, 10), first_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 10), first_property.get_allocation_progress());
          
          // Check the initial allocation of the second before any blocks advance
-         const graphene::chain::property_object *second_property = db.get_property(second_prop_op.property_id);
-         BOOST_REQUIRE_EQUAL(allocation_duration_seconds, (second_property->approval_end_date.sec_since_epoch() -
-                                                     second_property->creation_date.sec_since_epoch()));
-         BOOST_CHECK_EQUAL(ratio_type(0, 4), second_property->get_allocation_progress());
+         graphene::chain::property_object second_property = db.get_property(second_prop_op.property_id);
+         BOOST_REQUIRE_EQUAL(allocation_duration_seconds, (second_property.approval_end_date.sec_since_epoch() -
+                                                     second_property.creation_date.sec_since_epoch()));
+         BOOST_CHECK_EQUAL(ratio_type(0, 4), second_property.get_allocation_progress());
  
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 10, 100);
+         expected_valuation = calculate_meta1_valuation(first_property.appraised_property_value, 10, 100);
          uint64_t tol = 1; // The error at any time during the appreciation should be <= 1 USD * (number of properties)
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
          
@@ -1077,7 +1077,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // The appreciation of second asset should be at 25%
          // The appreciation of sell limit   should be at 100%
          //////
-         time_point_sec time_to_75_percent = first_property->creation_date + (allocation_duration_seconds) * 75 / 100;
+         time_point_sec time_to_75_percent = first_property.creation_date + (allocation_duration_seconds) * 75 / 100;
          generate_blocks(time_to_75_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -1085,13 +1085,13 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          first_property = db.get_property(first_prop_op.property_id);
          second_property = db.get_property(second_prop_op.property_id);
  
-         BOOST_CHECK_EQUAL(ratio_type(3, 4), first_property->get_allocation_progress());
-         BOOST_CHECK_EQUAL(ratio_type(1, 4), second_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(3, 4), first_property.get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 4), second_property.get_allocation_progress());
  
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 75, 100) +
-                              calculate_meta1_valuation(second_property->appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(first_property.appraised_property_value, 75, 100) +
+                              calculate_meta1_valuation(second_property.appraised_property_value, 25, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
  
          //////
@@ -1100,7 +1100,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          //////
          property_approve_operation second_aop;
          second_aop.issuer = meta1.id;
-         second_aop.property_to_approve = second_property->id;
+         second_aop.property_to_approve = second_property.id;
          trx.operations.push_back(second_aop);
          sign(trx, meta1_private_key);
          PUSH_TX(db, trx);
@@ -1112,7 +1112,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // The appreciation of second asset should be at 46.422499291%
          // The appreciation of sell limit   should be at 131.4%
          //////
-         time_point_sec time_to_85_percent = first_property->creation_date + (allocation_duration_seconds) * 85 / 100;
+         time_point_sec time_to_85_percent = first_property.creation_date + (allocation_duration_seconds) * 85 / 100;
          generate_blocks(time_to_85_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -1120,13 +1120,13 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          first_property = db.get_property(first_prop_op.property_id);
          second_property = db.get_property(second_prop_op.property_id);
  
-         BOOST_CHECK_EQUAL(ratio_type(17, 20), first_property->get_allocation_progress());
-         BOOST_CHECK_EQUAL(ratio_type(6553,14116), second_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(17, 20), first_property.get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(6553,14116), second_property.get_allocation_progress());
  
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 85, 100) +
-                              calculate_meta1_valuation(second_property->appraised_property_value, ratio_type(6553,14116));
+         expected_valuation = calculate_meta1_valuation(first_property.appraised_property_value, 85, 100) +
+                              calculate_meta1_valuation(second_property.appraised_property_value, ratio_type(6553,14116));
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
          
  
@@ -1136,7 +1136,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // The appreciation of second asset should be at 100%
          // The appreciation of sell limit   should be at 200%
          //////
-         time_point_sec time_to_100_percent = second_property->creation_date + (allocation_duration_seconds) * 100 / 100;
+         time_point_sec time_to_100_percent = second_property.creation_date + (allocation_duration_seconds) * 100 / 100;
          generate_blocks(time_to_100_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -1144,13 +1144,13 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          first_property = db.get_property(first_prop_op.property_id);
          second_property = db.get_property(second_prop_op.property_id);
  
-         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property->get_allocation_progress());
-         BOOST_CHECK_EQUAL(ratio_type(1, 1), second_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property.get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), second_property.get_allocation_progress());
  
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 1, 1) +
-                              calculate_meta1_valuation(second_property->appraised_property_value, ratio_type(1,1));
+         expected_valuation = calculate_meta1_valuation(first_property.appraised_property_value, 1, 1) +
+                              calculate_meta1_valuation(second_property.appraised_property_value, ratio_type(1,1));
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
  
 
@@ -1160,7 +1160,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // The appreciation of second asset should be at 100%
          // The appreciation of sell limit   should be at 200%
          //////
-         time_point_sec time_to_135_percent = first_property->creation_date + (allocation_duration_seconds) * 135 / 100;
+         time_point_sec time_to_135_percent = first_property.creation_date + (allocation_duration_seconds) * 135 / 100;
          generate_blocks(time_to_135_percent, false);
          set_expiration(db, trx);
          trx.clear();  
@@ -1168,13 +1168,13 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          first_property = db.get_property(first_prop_op.property_id);
          second_property = db.get_property(second_prop_op.property_id);
  
-         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property->get_allocation_progress());
-         BOOST_CHECK_EQUAL(ratio_type(1, 1), second_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property.get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), second_property.get_allocation_progress());
  
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 1, 1) +
-                              calculate_meta1_valuation(second_property->appraised_property_value, ratio_type(1,1));
+         expected_valuation = calculate_meta1_valuation(first_property.appraised_property_value, 1, 1) +
+                              calculate_meta1_valuation(second_property.appraised_property_value, ratio_type(1,1));
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
       } FC_LOG_AND_RETHROW()
@@ -1265,10 +1265,10 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          generate_blocks(1);
             
          // Check the initial allocation of the asset before any blocks advance
-         const graphene::chain::property_object *first_property = db.get_property(first_prop_op.property_id);
+         graphene::chain::property_object first_property = db.get_property(first_prop_op.property_id);
  
          // Check the property's allocation
-         BOOST_CHECK_EQUAL(ratio_type(0, 4), first_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(0, 4), first_property.get_allocation_progress());
  
          asset_limitation_object alo;
          const auto &asset_limitation_idx = db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
@@ -1277,7 +1277,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // 2) approve first  backing asset
          property_approve_operation first_aop;
          first_aop.issuer = meta1.id;
-         first_aop.property_to_approve = first_property->id;
+         first_aop.property_to_approve = first_property.id;
 
          trx.clear();
          trx.operations.push_back(first_aop);
@@ -1294,20 +1294,20 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // Advance to the 100% moment of FIRST asset
          // The appreciation of first  asset should be at 100%
          //////
-         uint32_t allocation_duration_seconds = (first_property->approval_end_date.sec_since_epoch() -
-                                                 first_property->creation_date.sec_since_epoch());
-         time_point_sec time_to_100_percent = first_property->creation_date + (allocation_duration_seconds) * 100 / 100;
+         uint32_t allocation_duration_seconds = (first_property.approval_end_date.sec_since_epoch() -
+                                                 first_property.creation_date.sec_since_epoch());
+         time_point_sec time_to_100_percent = first_property.creation_date + (allocation_duration_seconds) * 100 / 100;
          generate_blocks(time_to_100_percent, false);
          set_expiration(db, trx);
          trx.clear();
 
          // Check allocation value of the FIRST asset
          first_property = db.get_property(first_prop_op.property_id);
-         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property.get_allocation_progress());
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 100, 100);
+         expected_valuation = calculate_meta1_valuation(first_property.appraised_property_value, 100, 100);
          uint64_t tol = 1; // The error at any time during the appreciation should be <= 1 USD * (number of properties)
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
          
@@ -1321,9 +1321,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          generate_blocks(1);
          generate_blocks(1);
 
-         const graphene::chain::property_object *second_property = db.get_property(second_prop_op.property_id);
-         BOOST_REQUIRE_EQUAL(allocation_duration_seconds, (second_property->approval_end_date.sec_since_epoch() -
-                                                     second_property->creation_date.sec_since_epoch()));
+         graphene::chain::property_object second_property = db.get_property(second_prop_op.property_id);
+         BOOST_REQUIRE_EQUAL(allocation_duration_seconds, (second_property.approval_end_date.sec_since_epoch() -
+                                                     second_property.creation_date.sec_since_epoch()));
 
 
          //////
@@ -1331,7 +1331,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // The appreciation of first  asset should be at 100%
          // The appreciation of second asset should be at 25%
          //////
-         time_point_sec time_to_25_percent = second_property->creation_date + (allocation_duration_seconds) * 25 / 100;
+         time_point_sec time_to_25_percent = second_property.creation_date + (allocation_duration_seconds) * 25 / 100;
          generate_blocks(time_to_25_percent, false);
          set_expiration(db, trx);
          trx.clear(); 
@@ -1339,13 +1339,13 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          first_property = db.get_property(first_prop_op.property_id);
          second_property = db.get_property(second_prop_op.property_id);
  
-         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property->get_allocation_progress());
-         BOOST_CHECK_EQUAL(ratio_type(1, 4), second_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property.get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 4), second_property.get_allocation_progress());
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 100, 100) +
-                              calculate_meta1_valuation(second_property->appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(first_property.appraised_property_value, 100, 100) +
+                              calculate_meta1_valuation(second_property.appraised_property_value, 25, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -1354,7 +1354,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // The appreciation of first  asset should be at 100%
          // The appreciation of second asset should be at 25%
          //////
-         time_point_sec time_to_75_percent = second_property->creation_date + (allocation_duration_seconds) * 75 / 100;
+         time_point_sec time_to_75_percent = second_property.creation_date + (allocation_duration_seconds) * 75 / 100;
          generate_blocks(time_to_75_percent, false);
          set_expiration(db, trx);
          trx.clear(); 
@@ -1362,13 +1362,13 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          first_property = db.get_property(first_prop_op.property_id);
          second_property = db.get_property(second_prop_op.property_id);
  
-         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property->get_allocation_progress());
-         BOOST_CHECK_EQUAL(ratio_type(1, 4), second_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property.get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 4), second_property.get_allocation_progress());
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 100, 100) +
-                              calculate_meta1_valuation(second_property->appraised_property_value, 25, 100);
+         expected_valuation = calculate_meta1_valuation(first_property.appraised_property_value, 100, 100) +
+                              calculate_meta1_valuation(second_property.appraised_property_value, 25, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
 
 
@@ -1378,7 +1378,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          // The appreciation of first  asset should be at 100%
          // The appreciation of second asset should be at 0%
          //////
-         time_point_sec time_to_101_percent = second_property->creation_date + (allocation_duration_seconds) * 101 / 100;
+         time_point_sec time_to_101_percent = second_property.creation_date + (allocation_duration_seconds) * 101 / 100;
          generate_blocks(time_to_101_percent, false);
          set_expiration(db, trx);
          trx.clear(); 
@@ -1386,13 +1386,13 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          first_property = db.get_property(first_prop_op.property_id);
          second_property = db.get_property(second_prop_op.property_id);
  
-         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property->get_allocation_progress());
-         BOOST_CHECK_EQUAL(ratio_type(0, 1), second_property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), first_property.get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(0, 1), second_property.get_allocation_progress());
 
          // Check the sell_limit
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = calculate_meta1_valuation(first_property->appraised_property_value, 100, 100) +
-                              calculate_meta1_valuation(second_property->appraised_property_value, 0, 100);
+         expected_valuation = calculate_meta1_valuation(first_property.appraised_property_value, 100, 100) +
+                              calculate_meta1_valuation(second_property.appraised_property_value, 0, 100);
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
          
         } FC_LOG_AND_RETHROW()

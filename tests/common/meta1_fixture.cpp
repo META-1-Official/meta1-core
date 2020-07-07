@@ -161,11 +161,11 @@ namespace graphene {
          /**
           * Approve the asset by using the update operation
           */
-         const graphene::chain::property_object* property = db.get_property(prop_op.property_id);
-         const property_id_type prop_id = property->id;
+         graphene::chain::property_object property = db.get_property(prop_op.property_id);
+         const property_id_type prop_id = property.id;
          property_approve_operation aop;
          aop.issuer = authorizing_id;
-         aop.property_to_approve = property->id;
+         aop.property_to_approve = property.id;
 
          trx.clear();
          trx.operations.push_back(aop);
@@ -179,9 +179,9 @@ namespace graphene {
           * The appreciation should be at 100%
           */
          property = db.get_property(prop_op.property_id);
-         const uint32_t allocation_duration_seconds = (property->approval_end_date.sec_since_epoch() -
-                                                       property->creation_date.sec_since_epoch());
-         const time_point_sec time_to_100_percent = property->creation_date + (allocation_duration_seconds) * 4 / 4;
+         const uint32_t allocation_duration_seconds = (property.approval_end_date.sec_since_epoch() -
+                                                       property.creation_date.sec_since_epoch());
+         const time_point_sec time_to_100_percent = property.creation_date + (allocation_duration_seconds) * 4 / 4;
          generate_blocks(time_to_100_percent, false);
          set_expiration(db, trx);
          trx.clear();

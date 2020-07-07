@@ -528,7 +528,7 @@ namespace graphene { namespace chain {
          void update_smooth_allocation();
 
    public:
-      const property_object* get_property(uint32_t property_id) const;
+      const property_object& get_property(uint32_t property_id) const;
 
          ///Steps performed only at maintenance intervals
          ///@{
