@@ -430,6 +430,20 @@ bool database_api_impl::is_property_exists(uint32_t property_id)const
       return false;
 }
 
+optional<property_object> database_api::get_property_by_id(uint32_t id) const
+{
+   return my->get_property_by_id(id);
+}
+
+optional<property_object> database_api_impl::get_property_by_id(uint32_t id) const
+{
+   const auto &idx = _db.get_index_type<property_index>().indices().get<by_property_id>();
+   auto itr = idx.find(id);
+   if (itr != idx.end())
+      return *itr;
+   return optional<property_object>();
+}
+
 vector<optional<property_object>> database_api::get_properties(const vector<uint32_t> &properties_ids) const
 {
    return my->get_properties(properties_ids);
@@ -774,19 +788,6 @@ optional<account_object> database_api_impl::get_account_by_name( string name )co
    if (itr != idx.end())
       return *itr;
    return optional<account_object>();
-}
-
-optional<property_object> database_api::get_property_by_id(uint32_t id) const
-{
-   return my->get_property_by_id(id);
-}
-optional<property_object> database_api_impl::get_property_by_id(uint32_t id) const
-{
-   const auto &idx = _db.get_index_type<property_index>().indices().get<by_property_id>();
-   auto itr = idx.find(id);
-   if (itr != idx.end())
-      return *itr;
-   return optional<property_object>();
 }
 
 vector<account_id_type> database_api::get_account_references( const std::string account_id_or_name )const
