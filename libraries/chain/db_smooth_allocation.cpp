@@ -146,15 +146,12 @@ namespace graphene {
       }
 
       // TODO: Move this function to API?
-      const property_object *database::get_property(uint32_t property_id) const {
+      const property_object& database::get_property(uint32_t property_id) const {
          const auto &idx = get_index_type<property_index>().indices().get<by_property_id>();
          auto itr = idx.find(property_id);
-         if (itr != idx.end()) {
-            const property_object *property = &*itr;
-            return property;
-         } else {
-            return nullptr;
-         }
+
+         FC_ASSERT( itr != idx.end(), "Can not find property object with property_id ${id}", ("id",property_id) );
+         return *itr;
       }
 
    }
