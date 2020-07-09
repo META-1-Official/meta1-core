@@ -173,7 +173,7 @@ std::size_t callback(const char *in, std::size_t size, std::size_t num, std::str
                       * called the asset type's precision, and is a non-negative integer.
                       *
                       * For example, the META1 token has a precision that will be called p_M1, has a value of 5,
-                      * so 10^5 = 10,000.
+                      * so 10^5 = 100,000.
                       *
                       * For example, the "Other" token will have a precision called p_O.
                       *
@@ -208,16 +208,16 @@ std::size_t callback(const char *in, std::size_t size, std::size_t num, std::str
                       * **Implied USD-Price for META1 in Graphene terms to avoid rounding errors, reduce computations,
                       * and reduce likelihood of overflow**
                       *
-                      * Equation (3) can be re-expressed to reduce the likelihood of an overflow by combining
+                      * Equation (4) can be re-expressed to reduce the likelihood of an overflow by combining
                       * the terms 10^p_M1 and 10^p_O.
                       *
                       *
-                      * When p_M1 >= p_0, Equation 4 can be arranged as
+                      * When p_M1 >= p_O, Equation 4 can be arranged as
                       *
                       * 10^(p_M1 - p_O) * o * O_num * N >= m * O_den * Cumulative                   (4a)
                       *
                       *
-                      * When p_M1 < p_0, Equation 4 can be arranged as
+                      * When p_M1 < p_O, Equation 4 can be arranged as
                       *
                       * o * O_num * N >= 10^(p_O - p_M1) * m * O_den * Cumulative                   (4b)
                       *
