@@ -61,14 +61,14 @@ object_id_type property_create_evaluator::do_apply(const property_create_operati
                p.property_id = op.property_id;
                p.expired = false;
 
-               uint32_t full_duration_minutes = op.allocation_duration_minutes;
-               // TODO: [Low] Overflow check
-                uint32_t full_duration_seconds = full_duration_minutes * 60;
+               // Overflow checks during arithmetic is performed with the fc::safe struct
+               const safe<uint32_t> full_duration_minutes = op.allocation_duration_minutes;
+               const safe<uint32_t> full_duration_seconds = full_duration_minutes * 60;
 
                // Calculate the appreciation period parameters
                const time_point_sec &start_time = calc_meta1_next_start_time(d.head_block_time());
                const appreciation_period_parameters period =
-                       calc_meta1_allocation_initial_parameters(start_time, full_duration_seconds);
+                       calc_meta1_allocation_initial_parameters(start_time, full_duration_seconds.value);
                p.creation_date = start_time;
                p.next_allocation_date = start_time + META1_INTERVAL_BETWEEN_ALLOCATION_SECONDS;
 

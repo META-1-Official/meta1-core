@@ -222,24 +222,22 @@ std::size_t callback(const char *in, std::size_t size, std::size_t num, std::str
                       * o * O_num * N >= 10^(p_O - p_M1) * m * O_den * Cumulative                   (4b)
                       *
                       */
-                     // TODO: [Medium] Overflow check
                      const int64_t o = selling_meta1 ? op.min_to_receive.amount.value : op.amount_to_sell.amount.value;
                      const int64_t m = selling_meta1 ? op.amount_to_sell.amount.value : op.min_to_receive.amount.value;
 
                      const int64_t META1_SUPPLY =
                              META1.options.max_supply.value / asset::scaled_precision(META1.precision).value;
-                     fc::uint128_t LHS = fc::uint128_t(o) * usd_price_num * META1_SUPPLY;
-                     fc::uint128_t RHS = fc::uint128_t(m) * usd_price_den * cumulative;
+                     // Overflow checks during arithmetic is performed with the fc::safe struct
+                     safe<fc::uint128_t> LHS = safe<fc::uint128_t>(o) * usd_price_num * META1_SUPPLY;
+                     safe<fc::uint128_t> RHS = safe<fc::uint128_t>(m) * usd_price_den * cumulative;
                      if (META1.precision >= O.precision) {
                         const uint8_t precision_delta = META1.precision - O.precision;
                         const int64_t ten_to_precision_delta = asset::scaled_precision(precision_delta).value;
                         LHS *= ten_to_precision_delta;
-
                      } else {
                         const uint8_t precision_delta = O.precision - META1.precision;
                         const int64_t ten_to_precision_delta = asset::scaled_precision(precision_delta).value;
                         RHS *= ten_to_precision_delta;
-
                      }
                      FC_ASSERT(LHS >= RHS, "The implied valuation for the META1 token is too low: ${LHS} >= ${RHS}",
                                ("LHS", LHS)("RHS", RHS));
