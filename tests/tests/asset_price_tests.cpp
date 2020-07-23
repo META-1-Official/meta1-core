@@ -823,10 +823,10 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
          PUSH_TX(db, trx);
 
          // Check the initial allocation of the asset before any blocks advance
-         const graphene::chain::property_object *property = db.get_property(prop_op.property_id);
+         graphene::chain::property_object property = db.get_property(prop_op.property_id);
 
          // Check the property's allocation
-         BOOST_CHECK_EQUAL(ratio_type(0, 4), property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(0, 4), property.get_allocation_progress());
 
 
          /**
@@ -834,7 +834,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
           */
          property_approve_operation aop;
          aop.issuer = meta1.id;
-         aop.property_to_approve = property->id;
+         aop.property_to_approve = property.id;
 
          trx.clear();
          trx.operations.push_back(aop);
@@ -847,16 +847,16 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
           * Advance to the 125% moment
           * The appreciation should be at 100%
           */
-         const uint32_t allocation_duration_seconds = (property->approval_end_date.sec_since_epoch() -
-                                                       property->creation_date.sec_since_epoch());
-         time_point_sec time_to_125_percent = property->creation_date + (allocation_duration_seconds) * 5 / 4;
+         const uint32_t allocation_duration_seconds = (property.approval_end_date.sec_since_epoch() -
+                                                       property.creation_date.sec_since_epoch());
+         time_point_sec time_to_125_percent = property.creation_date + (allocation_duration_seconds) * 5 / 4;
          generate_blocks(time_to_125_percent, false);
          set_expiration(db, trx);
          trx.clear();
 
          property = db.get_property(prop_op.property_id);
 
-         BOOST_CHECK_EQUAL(ratio_type(1, 1), property->get_allocation_progress());
+         BOOST_CHECK_EQUAL(ratio_type(1, 1), property.get_allocation_progress());
 
          // Check the sell_limit
          asset_limitation_object alo;
@@ -864,7 +864,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
          uint64_t expected_valuation;
 
          alo = *asset_limitation_idx.find(limit_symbol);
-         expected_valuation = meta1_fixture::calculate_meta1_valuation(property->appraised_property_value, 100, 100);
+         expected_valuation = meta1_fixture::calculate_meta1_valuation(property.appraised_property_value, 100, 100);
          BOOST_CHECK_EQUAL(expected_valuation, alo.cumulative_sell_limit);
 
 
