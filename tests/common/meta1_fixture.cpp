@@ -78,10 +78,11 @@ namespace graphene {
          // The total appraisal sums the appraisal of every property
          // This test contains only one property
 
-         fc::uint128_t appraised_value_128(appraised_value);
-
-         // TODO: [Low] Check for overflow
-         fc::uint128_t meta1_valuation_128 = appraised_value_128 * 10 * progress_numerator;
+         // Overflow checks during arithmetic is performed with the fc::safe struct
+         const safe<fc::uint128_t> appraised_value_128(appraised_value);
+         const safe<fc::uint128_t> safe_meta1_valuation_128 = (appraised_value_128 * 10 * progress_numerator);
+         // "Un-safe" before division to avoid compiler warning
+         fc::uint128_t meta1_valuation_128 = safe_meta1_valuation_128.value;
          meta1_valuation_128 /= progress_denominator;
 
          uint64_t meta1_valuation = static_cast<uint64_t>(meta1_valuation_128);
