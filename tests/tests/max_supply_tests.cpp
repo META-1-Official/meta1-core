@@ -93,12 +93,77 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
             BOOST_CHECK_EQUAL(GRAPHENE_MAX_SHARE_SUPPLY, large_id(db).dynamic_data(db).current_supply.value);
             BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), GRAPHENE_MAX_SHARE_SUPPLY);
             BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
-                                GRAPHENE_CORE_MAX_SHARE_SUPPLY - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
+                                GRAPHENE_CORE_MAX_SHARE_SUPPLY/3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
          }
 
          generate_block();
       }
       FC_LOG_AND_RETHROW()
+   }
+
+   /**
+    * Test a market sale of the entire supply in a limit order
+    */
+   BOOST_AUTO_TEST_CASE(sell_max_supply_1) {
+      INVOKE(create_mia_with_max_supply);
+
+      /**
+       * Re-initialize
+       */
+      trx.clear();
+      set_expiration(db, trx);
+      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).id;
+      asset_id_type large_id = get_asset("LARGE").id;
+      GET_ACTOR(dan);
+
+      BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), GRAPHENE_MAX_SHARE_SUPPLY);
+      BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
+                          GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
+
+
+      /**
+       * Dan places an order to sell all the LARGE for 10 CORE
+       */
+      limit_order_object dan_sell_all
+         = *create_sell_order(dan, large_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY), core_id(db).amount(1));
+      limit_order_id_type dan_sell_all_id = dan_sell_all.id;
+      // The order should remain on the books without being matched
+      BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), 0); // Dan's balance should be zero
+      BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
+                          GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - (GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2));
+
+
+      /**
+       * Yanna places an order to sell 1 CORE for 5 LARGE
+       */
+      ACTOR(yanna);
+      const asset yanna_initial_core_balance = core_id(db).amount(3 * 10000);
+      trx.clear();
+      fund(yanna, yanna_initial_core_balance);
+
+      create_sell_order(yanna, core_id(db).amount(1), large_id(db).amount(5));
+
+
+      /**
+       * Check the order match and fill
+       * Yanna's order should be matched to Dan's.
+       * Yanna's order should be filled.  Dan's order should be partially filled.
+       * The issue should collect 1% of the fill.
+       */
+      const uint64_t expected_fill_large = GRAPHENE_MAX_SHARE_SUPPLY;
+      const uint64_t expected_issuer_fee_large = GRAPHENE_MAX_SHARE_SUPPLY / 100; // Asset's market fee is 1%
+      const uint64_t expected_receipt_large = expected_fill_large - expected_issuer_fee_large;
+
+      BOOST_REQUIRE_EQUAL(get_balance(yanna, large_id(db)), expected_receipt_large);
+      BOOST_REQUIRE_EQUAL(get_balance(yanna, core_id(db)), (3 * 10000) - 1);
+
+      BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), 0); // Dan's balance should be zero
+      BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
+                          GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - (GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2) + 1);
+
+      // Check the asset issuer's accumulated fees
+      BOOST_CHECK(large_id(db).dynamic_asset_data_id(db).accumulated_fees == expected_issuer_fee_large);
+
    }
 
 BOOST_AUTO_TEST_SUITE_END()
