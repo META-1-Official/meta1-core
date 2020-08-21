@@ -96,6 +96,9 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
                                 GRAPHENE_CORE_MAX_SHARE_SUPPLY/3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
          }
 
+         // The supply of the MIA should be at the maximum value
+         BOOST_CHECK_EQUAL(large_id(db).dynamic_asset_data_id(db).current_supply.value, GRAPHENE_MAX_SHARE_SUPPLY);
+
          generate_block();
       }
       FC_LOG_AND_RETHROW()
@@ -166,5 +169,351 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
       BOOST_CHECK(large_id(db).dynamic_asset_data_id(db).accumulated_fees == expected_issuer_fee_large);
 
    }
+
+
+   /**
+    * Test a margin call of the entire supply that SHOULD trigger a global settlement
+    * because of **the absence of offers** to purchase the margin call
+    */
+   BOOST_AUTO_TEST_CASE(margin_call_global_settlement_1) {
+      INVOKE(create_mia_with_max_supply);
+
+      /**
+       * Re-initialize
+       */
+      trx.clear();
+      set_expiration(db, trx);
+      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).id;
+      asset_id_type large_id = get_asset("LARGE").id;
+      GET_ACTOR(dan);
+
+      BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), GRAPHENE_MAX_SHARE_SUPPLY);
+      BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
+                          GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
+
+
+      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement()); // No global settlement yet
+
+
+      /**
+       * Publish a feed price that should trigger a margin call by increasing the MCR
+       * 1 satoshi CORE = 5000 satoshi LARGE --> 10^5 CORE = 5*10^8 LARGE
+       */
+      {
+         // Publish a new feed that requires a higher MCR than is available in the outstanding debt position.
+         // It should be sufficient to trigger a margin call.
+         // However, there are no counter-offers that can match and completely fill the offer.
+         // Furthermore, because the 200% CR of the outstanding debt position is below the NEW MSSR of 300%,
+         // a global settlement should be triggered.
+         GET_ACTOR(vikram);
+         price_feed current_feed;
+         current_feed.settlement_price = large_id(db).amount(5000) / core_id(db).amount(1);
+         current_feed.maintenance_collateral_ratio = 1750 * 2; // Initially 1750
+         current_feed.maximum_short_squeeze_ratio = 3000;
+         publish_feed(large_id(db), vikram, current_feed);
+
+      }
+
+      /**
+       * Check the state
+       */
+      // A global settlement should have been triggered
+      BOOST_CHECK(large_id(db).bitasset_data(db).has_settlement());
+   }
+
+
+   /**
+    * Test a margin call of the entire supply that SHOULD trigger a global settlement
+    * because of an existing offer, **created in the same block** as the updated price feed,
+    * to buy the margin call **will not match because it is too high**
+    */
+   BOOST_AUTO_TEST_CASE(margin_call_global_settlement_2a) {
+      INVOKE(create_mia_with_max_supply);
+
+      /**
+       * Re-initialize
+       */
+      trx.clear();
+      set_expiration(db, trx);
+      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).id;
+      asset_id_type large_id = get_asset("LARGE").id;
+      GET_ACTOR(dan);
+
+      BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), GRAPHENE_MAX_SHARE_SUPPLY);
+      BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
+                          GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
+
+
+      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement()); // No global settlement yet
+
+
+      /**
+       * Create a sell order of CORE for the MIA that is should match the future margin call
+       * and be large enough to completely fill the margin call.
+       * Dan places an order to sell all of his borrowed LARGE at a price of
+       * 1 satoshi LARGE = 5/5000 satoshi CORE --> 5000 satoshi LARGE = 5 satoshi CORE --> 5000 LARGE = 5*10^-5 CORE
+       * = 5 * feed_price denominated in CORE/LARGE
+       */
+      trx.clear();
+      limit_order_object dan_sell_order
+         = *create_sell_order(dan, large_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY),
+                              core_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 5));
+      limit_order_id_type dan_sell_order_id = dan_sell_order.id;
+
+
+      /**
+       * Publish a feed price that should trigger a margin call by increasing the MCR
+       * 1 satoshi CORE = 5000 satoshi LARGE --> 10^5 CORE = 5*10^8 LARGE
+       */
+      {
+         // Publish a new feed that requires a higher MCR than is available in the outstanding debt position.
+         // It should be sufficient to trigger a margin call.
+         // However, there are no counter-offers that can match and completely fill the offer.
+         // Furthermore, because the 200% CR of the outstanding debt position is below the NEW MSSR of 300%,
+         // a global settlement should be triggered.
+         GET_ACTOR(vikram);
+         price_feed current_feed;
+         current_feed.settlement_price = large_id(db).amount(5000) / core_id(db).amount(1);
+         current_feed.maintenance_collateral_ratio = 1750 * 2; // Initially 1750
+         current_feed.maximum_short_squeeze_ratio = 3000;
+         publish_feed(large_id(db), vikram, current_feed);
+
+      }
+
+      /**
+       * Check the state
+       */
+      // A global settlement should have been triggered
+      BOOST_CHECK(large_id(db).bitasset_data(db).has_settlement());
+   }
+
+
+   /**
+    * Test a margin call of the entire supply that SHOULD trigger a global settlement
+    * because of an existing offer, **created in a previous block** as the updated price feed,
+    * to buy the margin call **will not match because it is too high**
+    */
+   BOOST_AUTO_TEST_CASE(margin_call_global_settlement_2b) {
+      INVOKE(create_mia_with_max_supply);
+
+      /**
+       * Re-initialize
+       */
+      trx.clear();
+      set_expiration(db, trx);
+      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).id;
+      asset_id_type large_id = get_asset("LARGE").id;
+      GET_ACTOR(dan);
+
+      BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), GRAPHENE_MAX_SHARE_SUPPLY);
+      BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
+                          GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
+
+
+      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement()); // No global settlement yet
+
+
+      /**
+       * Create a sell order of CORE for the MIA that is should match the future margin call
+       * and be large enough to completely fill the margin call.
+       * Dan places an order to sell all of his borrowed LARGE at a price of
+       * 1 satoshi LARGE = 5/5000 satoshi CORE --> 5000 satoshi LARGE = 5 satoshi CORE --> 5000 LARGE = 5*10^-5 CORE
+       * = 5 * feed_price denominated in CORE/LARGE
+       */
+      trx.clear();
+      limit_order_object dan_sell_order
+         = *create_sell_order(dan, large_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY),
+                              core_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 5));
+      limit_order_id_type dan_sell_order_id = dan_sell_order.id;
+
+
+      /**
+       * Generate a block between the limit order and the updated price feed
+       */
+      generate_block();
+
+
+      /**
+       * Publish a feed price that should trigger a margin call by increasing the MCR
+       * 1 satoshi CORE = 5000 satoshi LARGE --> 10^5 CORE = 5*10^8 LARGE
+       */
+      {
+         // Publish a new feed that requires a higher MCR than is available in the outstanding debt position.
+         // It should be sufficient to trigger a margin call.
+         // However, there are no counter-offers that can match and completely fill the offer.
+         // Furthermore, because the 200% CR of the outstanding debt position is below the NEW MSSR of 300%,
+         // a global settlement should be triggered.
+         GET_ACTOR(vikram);
+         price_feed current_feed;
+         current_feed.settlement_price = large_id(db).amount(5000) / core_id(db).amount(1);
+         current_feed.maintenance_collateral_ratio = 1750 * 2; // Initially 1750
+         current_feed.maximum_short_squeeze_ratio = 3000;
+         publish_feed(large_id(db), vikram, current_feed);
+
+      }
+
+      /**
+       * Check the state
+       */
+      // A global settlement should have been triggered
+      BOOST_CHECK(large_id(db).bitasset_data(db).has_settlement());
+   }
+
+
+   /**
+    * Test a margin call of the entire supply that should NOT trigger a global settlement
+    * because there exists an offer, **created in the same block** as the updated price feed,
+    * that can match and completely fill the margin call
+    */
+   BOOST_AUTO_TEST_CASE(margin_call_no_global_settlement_1a) {
+      INVOKE(create_mia_with_max_supply);
+
+      /**
+       * Re-initialize
+       */
+      trx.clear();
+      set_expiration(db, trx);
+      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).id;
+      asset_id_type large_id = get_asset("LARGE").id;
+      GET_ACTOR(dan);
+
+      BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), GRAPHENE_MAX_SHARE_SUPPLY);
+      BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
+                          GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
+
+      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement()); // No global settlement yet
+
+
+      /**
+       * Create a sell order of CORE for the MIA that is should match the future margin call
+       * and be large enough to completely fill the margin call.
+       * Dan places an order to sell all of his borrowed LARGE at a price of
+       * 1 satoshi LARGE = 1/5000 satoshi CORE --> 5000 satoshi LARGE = 1 satoshi CORE --> 5000 LARGE = 1*10^-5 CORE
+       * = 1 * feed_price denominated in CORE/LARGE
+       */
+      trx.clear();
+      limit_order_object dan_sell_order
+         = *create_sell_order(dan, large_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY),
+                              core_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 1));
+      limit_order_id_type dan_sell_order_id = dan_sell_order.id;
+
+
+      /**
+       * Publish a feed price that should trigger a margin call by increasing the MCR
+       * The feed price will remain unchanged from the previous
+       * 1 satoshi CORE = 5000 satoshi LARGE --> 10^5 CORE = 5*10^8 LARGE
+       */
+      {
+         // Publish a new feed that requires a higher MCR than is available in the outstanding debt position
+         // It should be sufficient to trigger a margin call.
+         // However, the are existing counter-offers should match and completely fill the offer
+         // to avoid a global settlement.
+         GET_ACTOR(vikram);
+         price_feed current_feed;
+         current_feed.settlement_price = large_id(db).amount(5000) / core_id(db).amount(1);
+         current_feed.maintenance_collateral_ratio = 1750 * 2; // Initially 1750
+         current_feed.maximum_short_squeeze_ratio = 3000;
+         publish_feed(large_id(db), vikram, current_feed);
+      }
+
+      /**
+       * Dan's margin call should be matched against his own limit order.
+       */
+      // A global settlement should have been triggered
+      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement());
+
+      // Confirm that the limit order no longer exists
+      BOOST_CHECK(!db.find(dan_sell_order_id));
+
+      // Dan's balances should be restored to their initial values
+      BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), 0);
+      BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)), GRAPHENE_CORE_MAX_SHARE_SUPPLY/3);
+
+      // The supply of the MIA should be zero
+      BOOST_CHECK_EQUAL(large_id(db).dynamic_asset_data_id(db).current_supply.value, 0);
+
+   }
+
+
+   /**
+    * Test a margin call of the entire supply that should NOT trigger a global settlement
+    * because there exists an offer, **created in a previous block** as the updated price feed,
+    * that can match and completely fill the margin call
+    */
+   BOOST_AUTO_TEST_CASE(margin_call_no_global_settlement_1b) {
+      INVOKE(create_mia_with_max_supply);
+
+      /**
+       * Re-initialize
+       */
+      trx.clear();
+      set_expiration(db, trx);
+      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).id;
+      asset_id_type large_id = get_asset("LARGE").id;
+      GET_ACTOR(dan);
+
+      BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), GRAPHENE_MAX_SHARE_SUPPLY);
+      BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
+                          GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
+
+      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement()); // No global settlement yet
+
+
+      /**
+       * Create a sell order of CORE for the MIA that is should match the future margin call
+       * and be large enough to completely fill the margin call.
+       * Dan places an order to sell all of his borrowed LARGE at a price of
+       * 1 satoshi LARGE = 1/5000 satoshi CORE --> 5000 satoshi LARGE = 1 satoshi CORE --> 5000 LARGE = 1*10^-5 CORE
+       * = 1 * feed_price denominated in CORE/LARGE
+       */
+      trx.clear();
+      limit_order_object dan_sell_order
+         = *create_sell_order(dan, large_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY),
+                              core_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 1));
+      limit_order_id_type dan_sell_order_id = dan_sell_order.id;
+
+
+      /**
+       * Generate a block between the limit order and the updated price feed
+       */
+       generate_block();
+
+
+      /**
+       * Publish a feed price that should trigger a margin call by increasing the MCR
+       * The feed price will remain unchanged from the previous
+       * 1 satoshi CORE = 5000 satoshi LARGE --> 10^5 CORE = 5*10^8 LARGE
+       */
+      {
+         // Publish a new feed that requires a higher MCR than is available in the outstanding debt position
+         // It should be sufficient to trigger a margin call.
+         // However, the are existing counter-offers should match and completely fill the offer
+         // to avoid a global settlement.
+         GET_ACTOR(vikram);
+         price_feed current_feed;
+         current_feed.settlement_price = large_id(db).amount(5000) / core_id(db).amount(1);
+         current_feed.maintenance_collateral_ratio = 1750 * 2; // Initially 1750
+         current_feed.maximum_short_squeeze_ratio = 3000;
+         publish_feed(large_id(db), vikram, current_feed);
+      }
+
+      /**
+       * Dan's margin call should be matched against his own limit order.
+       */
+      // A global settlement should have been triggered
+      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement());
+
+      // Confirm that the limit order no longer exists
+      BOOST_CHECK(!db.find(dan_sell_order_id));
+
+      // Dan's balances should be restored to their initial values
+      BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), 0);
+      BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)), GRAPHENE_CORE_MAX_SHARE_SUPPLY/3);
+
+      // The supply of the MIA should be zero
+      BOOST_CHECK_EQUAL(large_id(db).dynamic_asset_data_id(db).current_supply.value, 0);
+
+   }
+
 
 BOOST_AUTO_TEST_SUITE_END()
