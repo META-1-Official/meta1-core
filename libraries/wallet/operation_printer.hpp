@@ -47,6 +47,8 @@ public:
    std::string operator()(const graphene::protocol::void_result& x) const;
    std::string operator()(const graphene::protocol::object_id_type& oid);
    std::string operator()(const graphene::protocol::asset& a);
+   std::string operator()(const graphene::protocol::generic_operation_result& r);
+   std::string operator()(const graphene::protocol::generic_exchange_operation_result& r);
 };
 
 // BLOCK  TRX  OP  VOP
