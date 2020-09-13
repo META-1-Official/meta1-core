@@ -29,6 +29,7 @@
 #include <graphene/protocol/market.hpp>
 
 #include <graphene/chain/committee_member_object.hpp>
+#include <graphene/chain/liquidity_pool_object.hpp>
 #include <graphene/chain/worker_object.hpp>
 #include <graphene/chain/asset_limitation_object.hpp>
 #include <graphene/chain/operation_history_object.hpp>
@@ -350,6 +351,33 @@ struct database_fixture {
    void transfer( account_id_type from, account_id_type to, const asset& amount, const asset& fee = asset() );
    void transfer( const account_object& from, const account_object& to, const asset& amount, const asset& fee = asset() );
    void fund_fee_pool( const account_object& from, const asset_object& asset_to_fund, const share_type amount );
+
+   liquidity_pool_create_operation make_liquidity_pool_create_op( account_id_type account, asset_id_type asset_a,
+                                                  asset_id_type asset_b, asset_id_type share_asset,
+                                                  uint16_t taker_fee_percent, uint16_t withdrawal_fee_percent )const;
+   const liquidity_pool_object& create_liquidity_pool( account_id_type account, asset_id_type asset_a,
+                                                  asset_id_type asset_b, asset_id_type share_asset,
+                                                  uint16_t taker_fee_percent, uint16_t withdrawal_fee_percent );
+   liquidity_pool_delete_operation make_liquidity_pool_delete_op( account_id_type account,
+                                                  liquidity_pool_id_type pool )const;
+   generic_operation_result delete_liquidity_pool( account_id_type account, liquidity_pool_id_type pool );
+   liquidity_pool_deposit_operation make_liquidity_pool_deposit_op( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_a,
+                                                  const asset& amount_b )const;
+   generic_exchange_operation_result deposit_to_liquidity_pool( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_a,
+                                                  const asset& amount_b );
+   liquidity_pool_withdraw_operation make_liquidity_pool_withdraw_op( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& share_amount )const;
+   generic_exchange_operation_result withdraw_from_liquidity_pool( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& share_amount );
+   liquidity_pool_exchange_operation make_liquidity_pool_exchange_op( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_to_sell,
+                                                  const asset& min_to_receive )const;
+   generic_exchange_operation_result exchange_with_liquidity_pool( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_to_sell,
+                                                  const asset& min_to_receive );
+
    /**
     * NOTE: This modifies the database directly. You will probably have to call this each time you
     * finish creating a block
