@@ -4,6 +4,7 @@
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/database.hpp>
 #include <graphene/chain/exceptions.hpp>
+#include <graphene/chain/hardfork.hpp>
 
 #include <functional>
 
@@ -86,11 +87,35 @@ void_result asset_limitation_update_evaluator::do_apply(const asset_limitation_o
 
            // Non-negative price for the external asset is checked by the asset_price_publish_operation.validate()
 
-           // Verify that limitation asset update only with meta1 account
+           // Verify that limitation asset update only with specially-named accounts
+           // which may or may not exist on the blockchain at the time of this evaluation
            const auto &accounts_by_name = d.get_index_type<account_index>().indices().get<by_name>();
-           auto itr = accounts_by_name.find("meta1");
-           FC_ASSERT(itr->get_id() == op.fee_paying_account,
-                     "Asset prices can be updated only by meta1 account");
+           const account_id_type fee_payer = op.fee_paying_account;
+
+           // A helper function to check whether the operation's fee paying account has a special name
+           auto publisher_is = [&accounts_by_name, &fee_payer](const std::string &account_name ) -> bool
+           {
+               auto itr_name = accounts_by_name.find(account_name);
+               if (itr_name == accounts_by_name.end()) {
+                   return false;
+               }
+               bool match = itr_name->get_id() == fee_payer;
+               return match;
+            };
+
+            if( d.head_block_time() < HF_ASSET_PRICE_PUBLISHERS_TIME ) {
+               FC_ASSERT(publisher_is("meta1"),
+                         "Asset prices can be updated only by approved accounts");
+
+            } else {
+                FC_ASSERT(publisher_is("meta1") ||
+                             publisher_is("freedom") || publisher_is("peace") || publisher_is("love") ||
+                             publisher_is("unity") || publisher_is("abundance") || publisher_is("victory") ||
+                             publisher_is("awareness") || publisher_is("destiny") || publisher_is("strength") ||
+                             publisher_is("clarity") || publisher_is("truth"),
+                          "Asset prices can be updated only by approved accounts");
+
+            }
 
            // Verify that the asset is an existing asset
            const auto &asset_by_symbol = d.get_index_type<asset_index>().indices().get<by_symbol>();

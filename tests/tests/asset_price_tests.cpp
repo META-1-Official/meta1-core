@@ -52,7 +52,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
          trx.operations.push_back(publish_op);
          sign(trx, nathan_private_key);
 
-         REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "only by meta1 account");
+         REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "only by approved accounts");
 
 
          // Ensure that only meta1 can publish these external asset feed prices
@@ -153,6 +153,359 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
          // Check unknown assets
          itr = idx.find("USDT");
          BOOST_CHECK(itr == idx.end());
+
+
+         /**
+          * Check publishing by other special accounts
+          */
+         // Publish by freedom before the hardfork time should fail
+         trx.clear();
+         ACTOR(freedom);
+         // Advance the blocks
+         generate_blocks(10);
+         set_expiration(db, trx);
+         now = db.head_block_time();
+
+         // Publish an updated price
+         publish_op.usd_price = price_ratio(1501, 1); // 1501 USD per BTC
+         publish_op.fee_paying_account = freedom_id;
+
+         trx.clear();
+         trx.operations.push_back(publish_op);
+         sign(trx, freedom_private_key);
+
+         REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "only by approved accounts");
+
+         // Publish by freedom after the hardfork
+         generate_blocks(HF_ASSET_PRICE_PUBLISHERS_TIME);
+         set_expiration(db, trx);
+         now = db.head_block_time();
+
+         trx.clear();
+         trx.operations.push_back(publish_op);
+         sign(trx, freedom_private_key);
+
+         BOOST_CHECK_NO_THROW(PUSH_TX(db, trx));
+
+         // Confirm that the new feed can be retrieved
+         itr = idx.find("BTC");
+         BOOST_CHECK(itr != idx.end());
+         price_of_btc = *itr;
+         BOOST_CHECK_EQUAL(price_of_btc.symbol, "BTC");
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.numerator, 1501);
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.denominator, 1);
+         BOOST_CHECK(price_of_btc.publication_time == now);
+
+
+         // Publish by peace
+         trx.clear();
+         ACTOR(peace);
+         // Advance the blocks
+         generate_blocks(10);
+         set_expiration(db, trx);
+         now = db.head_block_time();
+
+         // Publish an updated price
+         publish_op.usd_price = price_ratio(1502, 1); // 1502 USD per BTC
+         publish_op.fee_paying_account = peace_id;
+
+         trx.clear();
+         trx.operations.push_back(publish_op);
+         sign(trx, peace_private_key);
+
+         BOOST_CHECK_NO_THROW(PUSH_TX(db, trx));
+
+         // Confirm that the new feed can be retrieved
+         itr = idx.find("BTC");
+         BOOST_CHECK(itr != idx.end());
+         price_of_btc = *itr;
+         BOOST_CHECK_EQUAL(price_of_btc.symbol, "BTC");
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.numerator, 1502);
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.denominator, 1);
+         BOOST_CHECK(price_of_btc.publication_time == now);
+
+
+         // Publish by love
+         trx.clear();
+         ACTOR(love);
+         // Advance the blocks
+         generate_blocks(10);
+         set_expiration(db, trx);
+         now = db.head_block_time();
+
+         // Publish an updated price
+         publish_op.usd_price = price_ratio(1503, 1); // 1503 USD per BTC
+         publish_op.fee_paying_account = love_id;
+
+         trx.clear();
+         trx.operations.push_back(publish_op);
+         sign(trx, love_private_key);
+
+         BOOST_CHECK_NO_THROW(PUSH_TX(db, trx));
+
+         // Confirm that the new feed can be retrieved
+         itr = idx.find("BTC");
+         BOOST_CHECK(itr != idx.end());
+         price_of_btc = *itr;
+         BOOST_CHECK_EQUAL(price_of_btc.symbol, "BTC");
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.numerator, 1503);
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.denominator, 1);
+         BOOST_CHECK(price_of_btc.publication_time == now);
+
+
+         // Publish by unity
+         trx.clear();
+         ACTOR(unity);
+         // Advance the blocks
+         generate_blocks(10);
+         set_expiration(db, trx);
+         now = db.head_block_time();
+
+         // Publish an updated price
+         publish_op.usd_price = price_ratio(1504, 1); // 1504 USD per BTC
+         publish_op.fee_paying_account = unity_id;
+
+         trx.clear();
+         trx.operations.push_back(publish_op);
+         sign(trx, unity_private_key);
+
+         BOOST_CHECK_NO_THROW(PUSH_TX(db, trx));
+
+         // Confirm that the new feed can be retrieved
+         itr = idx.find("BTC");
+         BOOST_CHECK(itr != idx.end());
+         price_of_btc = *itr;
+         BOOST_CHECK_EQUAL(price_of_btc.symbol, "BTC");
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.numerator, 1504);
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.denominator, 1);
+         BOOST_CHECK(price_of_btc.publication_time == now);
+
+
+         // Publish by abundance
+         trx.clear();
+         ACTOR(abundance);
+         // Advance the blocks
+         generate_blocks(10);
+         set_expiration(db, trx);
+         now = db.head_block_time();
+
+         // Publish an updated price
+         publish_op.usd_price = price_ratio(1505, 1); // 1505 USD per BTC
+         publish_op.fee_paying_account = abundance_id;
+
+         trx.clear();
+         trx.operations.push_back(publish_op);
+         sign(trx, abundance_private_key);
+
+         BOOST_CHECK_NO_THROW(PUSH_TX(db, trx));
+
+         // Confirm that the new feed can be retrieved
+         itr = idx.find("BTC");
+         BOOST_CHECK(itr != idx.end());
+         price_of_btc = *itr;
+         BOOST_CHECK_EQUAL(price_of_btc.symbol, "BTC");
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.numerator, 1505);
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.denominator, 1);
+         BOOST_CHECK(price_of_btc.publication_time == now);
+
+
+         // Publish by victory
+         trx.clear();
+         ACTOR(victory);
+         // Advance the blocks
+         generate_blocks(10);
+         set_expiration(db, trx);
+         now = db.head_block_time();
+
+         // Publish an updated price
+         publish_op.usd_price = price_ratio(1506, 1); // 1506 USD per BTC
+         publish_op.fee_paying_account = victory_id;
+
+         trx.clear();
+         trx.operations.push_back(publish_op);
+         sign(trx, victory_private_key);
+
+         BOOST_CHECK_NO_THROW(PUSH_TX(db, trx));
+
+         // Confirm that the new feed can be retrieved
+         itr = idx.find("BTC");
+         BOOST_CHECK(itr != idx.end());
+         price_of_btc = *itr;
+         BOOST_CHECK_EQUAL(price_of_btc.symbol, "BTC");
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.numerator, 1506);
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.denominator, 1);
+         BOOST_CHECK(price_of_btc.publication_time == now);
+
+
+         // Publish by awareness
+         trx.clear();
+         ACTOR(awareness);
+         // Advance the blocks
+         generate_blocks(10);
+         set_expiration(db, trx);
+         now = db.head_block_time();
+
+         // Publish an updated price
+         publish_op.usd_price = price_ratio(1507, 1); // 1507 USD per BTC
+         publish_op.fee_paying_account = awareness_id;
+
+         trx.clear();
+         trx.operations.push_back(publish_op);
+         sign(trx, awareness_private_key);
+
+         BOOST_CHECK_NO_THROW(PUSH_TX(db, trx));
+
+         // Confirm that the new feed can be retrieved
+         itr = idx.find("BTC");
+         BOOST_CHECK(itr != idx.end());
+         price_of_btc = *itr;
+         BOOST_CHECK_EQUAL(price_of_btc.symbol, "BTC");
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.numerator, 1507);
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.denominator, 1);
+         BOOST_CHECK(price_of_btc.publication_time == now);
+
+
+         // Publish by destiny
+         trx.clear();
+         ACTOR(destiny);
+         // Advance the blocks
+         generate_blocks(10);
+         set_expiration(db, trx);
+         now = db.head_block_time();
+
+         // Publish an updated price
+         publish_op.usd_price = price_ratio(1508, 1); // 1508 USD per BTC
+         publish_op.fee_paying_account = destiny_id;
+
+         trx.clear();
+         trx.operations.push_back(publish_op);
+         sign(trx, destiny_private_key);
+
+         BOOST_CHECK_NO_THROW(PUSH_TX(db, trx));
+
+         // Confirm that the new feed can be retrieved
+         itr = idx.find("BTC");
+         BOOST_CHECK(itr != idx.end());
+         price_of_btc = *itr;
+         BOOST_CHECK_EQUAL(price_of_btc.symbol, "BTC");
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.numerator, 1508);
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.denominator, 1);
+         BOOST_CHECK(price_of_btc.publication_time == now);
+
+
+         // Publish by strength
+         trx.clear();
+         ACTOR(strength);
+         // Advance the blocks
+         generate_blocks(10);
+         set_expiration(db, trx);
+         now = db.head_block_time();
+
+         // Publish an updated price
+         publish_op.usd_price = price_ratio(1509, 1); // 1509 USD per BTC
+         publish_op.fee_paying_account = strength_id;
+
+         trx.clear();
+         trx.operations.push_back(publish_op);
+         sign(trx, strength_private_key);
+
+         BOOST_CHECK_NO_THROW(PUSH_TX(db, trx));
+
+         // Confirm that the new feed can be retrieved
+         itr = idx.find("BTC");
+         BOOST_CHECK(itr != idx.end());
+         price_of_btc = *itr;
+         BOOST_CHECK_EQUAL(price_of_btc.symbol, "BTC");
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.numerator, 1509);
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.denominator, 1);
+         BOOST_CHECK(price_of_btc.publication_time == now);
+
+
+         // Publish by clarity
+         trx.clear();
+         ACTOR(clarity);
+         // Advance the blocks
+         generate_blocks(10);
+         set_expiration(db, trx);
+         now = db.head_block_time();
+
+         // Publish an updated price
+         publish_op.usd_price = price_ratio(1510, 1); // 1510 USD per BTC
+         publish_op.fee_paying_account = clarity_id;
+
+         trx.clear();
+         trx.operations.push_back(publish_op);
+         sign(trx, clarity_private_key);
+
+         BOOST_CHECK_NO_THROW(PUSH_TX(db, trx));
+
+         // Confirm that the new feed can be retrieved
+         itr = idx.find("BTC");
+         BOOST_CHECK(itr != idx.end());
+         price_of_btc = *itr;
+         BOOST_CHECK_EQUAL(price_of_btc.symbol, "BTC");
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.numerator, 1510);
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.denominator, 1);
+         BOOST_CHECK(price_of_btc.publication_time == now);
+
+
+         // Publish by truth
+         trx.clear();
+         ACTOR(truth);
+         // Advance the blocks
+         generate_blocks(10);
+         set_expiration(db, trx);
+         now = db.head_block_time();
+
+         // Publish an updated price
+         publish_op.usd_price = price_ratio(1511, 1); // 1511 USD per BTC
+         publish_op.fee_paying_account = truth_id;
+
+         trx.clear();
+         trx.operations.push_back(publish_op);
+         sign(trx, truth_private_key);
+
+         BOOST_CHECK_NO_THROW(PUSH_TX(db, trx));
+
+         // Confirm that the new feed can be retrieved
+         itr = idx.find("BTC");
+         BOOST_CHECK(itr != idx.end());
+         price_of_btc = *itr;
+         BOOST_CHECK_EQUAL(price_of_btc.symbol, "BTC");
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.numerator, 1511);
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.denominator, 1);
+         BOOST_CHECK(price_of_btc.publication_time == now);
+
+
+         // Publish by unauthorized
+         // This should fail because the account is not a special account
+         trx.clear();
+         ACTOR(unauthorized);
+         // Advance the blocks
+         generate_blocks(10);
+         set_expiration(db, trx);
+         time_point_sec before = now;
+         now = db.head_block_time();
+
+         // Publish an updated price
+         publish_op.usd_price = price_ratio(1512, 1); // 1512 USD per BTC
+         publish_op.fee_paying_account = unauthorized_id;
+
+         trx.clear();
+         trx.operations.push_back(publish_op);
+         sign(trx, unauthorized_private_key);
+
+         REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "only by approved accounts");
+
+         // Confirm that the previous feed can be retrieved
+         itr = idx.find("BTC");
+         BOOST_CHECK(itr != idx.end());
+         price_of_btc = *itr;
+         BOOST_CHECK_EQUAL(price_of_btc.symbol, "BTC");
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.numerator, 1511);
+         BOOST_CHECK_EQUAL(price_of_btc.usd_price.denominator, 1);
+         BOOST_CHECK(price_of_btc.publication_time == before);
+
       }
       FC_LOG_AND_RETHROW()
    }
