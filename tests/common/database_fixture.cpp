@@ -87,8 +87,10 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    const auto current_test_name = buf::current_test_case().p_name.value;
    const auto current_test_suite_id = buf::current_test_case().p_parent_id;
    const auto current_suite_name = buf::get<boost::unit_test::test_suite>(current_test_suite_id).p_name.value;
-   auto mhplugin = app.register_plugin<graphene::market_history::market_history_plugin>();
-   auto goplugin = app.register_plugin<graphene::grouped_orders::grouped_orders_plugin>();
+
+   auto mhplugin = app.register_plugin<graphene::market_history::market_history_plugin>(true);
+   auto goplugin = app.register_plugin<graphene::grouped_orders::grouped_orders_plugin>(true);
+
    init_account_pub_key = init_account_priv_key.get_public_key();
 
    boost::program_options::variables_map options;
@@ -194,11 +196,6 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
     options.insert(std::make_pair("api-limit-get-order-book", boost::program_options::variable_value(
        (uint64_t)80, false)));
    }
-   if( current_test_name == "asset_in_collateral" )
-   {
-    options.insert( std::make_pair( "plugins",
-                                    boost::program_options::variable_value( string("api_helper_indexes"), false ) ) );
-   }
    if(current_test_name =="api_limit_lookup_accounts")
    {
       options.insert(std::make_pair("api-limit-lookup-accounts", boost::program_options::variable_value
@@ -264,7 +261,8 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
       options.insert(std::make_pair("api-limit-get-full-accounts", boost::program_options::variable_value
          ((uint64_t)200, false)));
    }
-      // add account tracking for ahplugin for special test case with track-account enabled
+
+   // add account tracking for ahplugin for special test case with track-account enabled
    if( !options.count("track-account") && current_test_name == "track_account") {
       std::vector<std::string> track_account;
       std::string track = "\"1.2.17\"";
@@ -286,10 +284,10 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
           || current_test_name == "track_votes_committee_disabled") {
       app.chain_database()->enable_standby_votes_tracking( false );
    }
+   // load ES or AH, but not both
    if(current_test_name == "elasticsearch_account_history" || current_test_name == "elasticsearch_suite" ||
-      current_test_name == "elasticsearch_history_api") {
-      auto esplugin = app.register_plugin<graphene::elasticsearch::elasticsearch_plugin>();
-      esplugin->plugin_set_app(&app);
+         current_test_name == "elasticsearch_history_api") {
+      auto esplugin = app.register_plugin<graphene::elasticsearch::elasticsearch_plugin>(true);
 
       options.insert(std::make_pair("elasticsearch-node-url", boost::program_options::variable_value(string("http://localhost:9200/"), false)));
       options.insert(std::make_pair("elasticsearch-bulk-replay", boost::program_options::variable_value(uint32_t(2), false)));
@@ -305,21 +303,13 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    }
    else if( current_suite_name != "performance_tests" )
    {
-      auto ahplugin = app.register_plugin<graphene::account_history::account_history_plugin>();
-      ahplugin->plugin_set_app(&app);
+      auto ahplugin = app.register_plugin<graphene::account_history::account_history_plugin>(true);
       ahplugin->plugin_initialize(options);
       ahplugin->plugin_startup();
-
-      if(validation_current_test_name_for_setting_api_limit(current_test_name))
-      {
-          app.initialize(graphene::utilities::temp_directory_path(), options);
-          app.set_api_limit();
-      }
    }
 
    if(current_test_name == "elasticsearch_objects" || current_test_name == "elasticsearch_suite") {
-      auto esobjects_plugin = app.register_plugin<graphene::es_objects::es_objects_plugin>();
-      esobjects_plugin->plugin_set_app(&app);
+      auto esobjects_plugin = app.register_plugin<graphene::es_objects::es_objects_plugin>(true);
 
       options.insert(std::make_pair("es-objects-elasticsearch-url", boost::program_options::variable_value(string("http://localhost:9200/"), false)));
       options.insert(std::make_pair("es-objects-bulk-replay", boost::program_options::variable_value(uint32_t(2), false)));
@@ -334,22 +324,23 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
       esobjects_plugin->plugin_initialize(options);
       esobjects_plugin->plugin_startup();
    }
-   else if( current_test_name == "asset_in_collateral"
+
+   if( current_test_name == "asset_in_collateral"
             || current_test_name == "htlc_database_api"
             || current_suite_name == "database_api_tests"
             || current_suite_name == "api_limit_tests" )
    {
-      auto ahiplugin = app.register_plugin<graphene::api_helper_indexes::api_helper_indexes>();
-      ahiplugin->plugin_set_app(&app);
+      auto ahiplugin = app.register_plugin<graphene::api_helper_indexes::api_helper_indexes>(true);
       ahiplugin->plugin_initialize(options);
       ahiplugin->plugin_startup();
    }
 
    options.insert(std::make_pair("bucket-size", boost::program_options::variable_value(string("[15]"),false)));
-   mhplugin->plugin_set_app(&app);
-   mhplugin->plugin_initialize(options);
 
-   goplugin->plugin_set_app(&app);
+   // apply api limits, initialize the "has_market_history_plugin" variable and etc in app_options
+   app.initialize(graphene::utilities::temp_directory_path(), options);
+
+   mhplugin->plugin_initialize(options);
    goplugin->plugin_initialize(options);
 
    mhplugin->plugin_startup();
@@ -362,13 +353,13 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    BOOST_CHECK( mpa1_id(db).bitasset_data(db).asset_id == mpa1_id );
 
    set_expiration( db, trx );
+
    } catch ( const fc::exception& e )
    {
       edump( (e.to_detail_string()) );
       throw;
    }
 
-   return;
 }
 
 database_fixture::~database_fixture()
@@ -381,7 +372,7 @@ database_fixture::~database_fixture()
          verify_asset_supplies(db);
          BOOST_CHECK( db.get_node_properties().skip_flags == database::skip_nothing );
       }
-      return;
+
    } catch (fc::exception& ex) {
       BOOST_FAIL( std::string("fc::exception in ~database_fixture: ") + ex.to_detail_string() );
    } catch (std::exception& e) {
@@ -445,30 +436,7 @@ string database_fixture::generate_anon_acct_name()
    //    to workaround issue #46
    return "anon-acct-x" + std::to_string( anon_acct_count++ );
 }
-bool database_fixture::validation_current_test_name_for_setting_api_limit( const string& current_test_name ) const
-{
-   vector <string> valid_testcase {"api_limit_get_account_history_operations","api_limit_get_account_history"
-      ,"api_limit_get_grouped_limit_orders","api_limit_get_relative_account_history"
-      ,"api_limit_get_account_history_by_operations","api_limit_get_asset_holders"
-      ,"api_limit_get_key_references","api_limit_get_limit_orders","api_limit_get_limit_orders_by_account"
-      ,"api_limit_get_call_orders","api_limit_get_settle_orders"
-      ,"api_limit_get_order_book","api_limit_lookup_accounts"
-      ,"api_limit_lookup_witness_accounts","api_limit_lookup_committee_member_accounts"
-      ,"api_limit_lookup_vote_ids","api_limit_get_account_limit_orders"
-      ,"api_limit_get_collateral_bids","api_limit_get_top_markets"
-      ,"api_limit_get_trade_history", "api_limit_get_trade_history_by_sequence"
-      ,"api_limit_get_withdraw_permissions_by_giver","api_limit_get_withdraw_permissions_by_recipient"
-      ,"api_limit_get_full_accounts2"};
-   for(string i_valid_testcase: valid_testcase)
-   {
-      if(i_valid_testcase.compare(current_test_name)==0)
-      {
-         return true;
-      }
-   }
 
-   return false;
-}
 void database_fixture::verify_asset_supplies( const database& db )
 {
    //wlog("*** Begin asset supply verification ***");
