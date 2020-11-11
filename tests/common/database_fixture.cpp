@@ -87,6 +87,7 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    boost::program_options::variables_map options;
 
    genesis_state.initial_timestamp = initial_timestamp;
+   genesis_state.max_core_supply = 100000000000000; // From "Genesis for softrelease"
 
    if(boost::unit_test::framework::current_test_case().p_name.value == "hf_935_test") {
       genesis_state.initial_active_witnesses = 20;
