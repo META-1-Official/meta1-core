@@ -187,6 +187,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
       asset_id_type large_id = get_asset("LARGE").id;
       GET_ACTOR(dan);
 
+      const int64_t GRAPHENE_CORE_MAX_SHARE_SUPPLY= get_asset(GRAPHENE_SYMBOL).options.max_supply.value;
       BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), GRAPHENE_MAX_SHARE_SUPPLY);
       BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
                           GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
@@ -239,6 +240,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
       asset_id_type large_id = get_asset("LARGE").id;
       GET_ACTOR(dan);
 
+      const int64_t GRAPHENE_CORE_MAX_SHARE_SUPPLY= get_asset(GRAPHENE_SYMBOL).options.max_supply.value;
       BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), GRAPHENE_MAX_SHARE_SUPPLY);
       BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
                           GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
@@ -305,6 +307,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
       asset_id_type large_id = get_asset("LARGE").id;
       GET_ACTOR(dan);
 
+      const int64_t GRAPHENE_CORE_MAX_SHARE_SUPPLY= get_asset(GRAPHENE_SYMBOL).options.max_supply.value;
       BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), GRAPHENE_MAX_SHARE_SUPPLY);
       BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
                           GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
@@ -377,6 +380,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
       asset_id_type large_id = get_asset("LARGE").id;
       GET_ACTOR(dan);
 
+      const int64_t GRAPHENE_CORE_MAX_SHARE_SUPPLY= get_asset(GRAPHENE_SYMBOL).options.max_supply.value;
       BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), GRAPHENE_MAX_SHARE_SUPPLY);
       BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
                           GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
@@ -452,6 +456,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
       asset_id_type large_id = get_asset("LARGE").id;
       GET_ACTOR(dan);
 
+      const int64_t GRAPHENE_CORE_MAX_SHARE_SUPPLY= get_asset(GRAPHENE_SYMBOL).options.max_supply.value;
       BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), GRAPHENE_MAX_SHARE_SUPPLY);
       BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
                           GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
