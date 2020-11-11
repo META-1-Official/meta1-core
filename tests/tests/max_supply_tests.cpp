@@ -85,6 +85,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
           * Borrow all the LARGE into existence
           */
          {
+            const int64_t GRAPHENE_CORE_MAX_SHARE_SUPPLY= get_asset(GRAPHENE_SYMBOL).options.max_supply.value;
             transfer(committee_account, dan_id, asset(GRAPHENE_CORE_MAX_SHARE_SUPPLY));
             borrow(dan_id(db), large_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY),
                    core_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2)); // CR = 2
