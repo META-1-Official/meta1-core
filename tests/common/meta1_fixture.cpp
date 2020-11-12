@@ -78,10 +78,11 @@ namespace graphene {
          // The total appraisal sums the appraisal of every property
          // This test contains only one property
 
-         fc::uint128_t appraised_value_128(appraised_value);
-
-         // TODO: [Low] Check for overflow
-         fc::uint128_t meta1_valuation_128 = appraised_value_128 * 10 * progress_numerator;
+         // Overflow checks during arithmetic is performed with the fc::safe struct
+         const safe<fc::uint128_t> appraised_value_128(appraised_value);
+         const safe<fc::uint128_t> safe_meta1_valuation_128 = (appraised_value_128 * 10 * progress_numerator);
+         // "Un-safe" before division to avoid compiler warning
+         fc::uint128_t meta1_valuation_128 = safe_meta1_valuation_128.value;
          meta1_valuation_128 /= progress_denominator;
 
          uint64_t meta1_valuation = static_cast<uint64_t>(meta1_valuation_128);
@@ -161,11 +162,11 @@ namespace graphene {
          /**
           * Approve the asset by using the update operation
           */
-         const graphene::chain::property_object* property = db.get_property(prop_op.property_id);
-         const property_id_type prop_id = property->id;
+         graphene::chain::property_object property = db.get_property(prop_op.property_id);
+         const property_id_type prop_id = property.id;
          property_approve_operation aop;
          aop.issuer = authorizing_id;
-         aop.property_to_approve = property->id;
+         aop.property_to_approve = property.id;
 
          trx.clear();
          trx.operations.push_back(aop);
@@ -179,9 +180,9 @@ namespace graphene {
           * The appreciation should be at 100%
           */
          property = db.get_property(prop_op.property_id);
-         const uint32_t allocation_duration_seconds = (property->approval_end_date.sec_since_epoch() -
-                                                       property->creation_date.sec_since_epoch());
-         const time_point_sec time_to_100_percent = property->creation_date + (allocation_duration_seconds) * 4 / 4;
+         const uint32_t allocation_duration_seconds = (property.approval_end_date.sec_since_epoch() -
+                                                       property.creation_date.sec_since_epoch());
+         const time_point_sec time_to_100_percent = property.creation_date + (allocation_duration_seconds) * 4 / 4;
          generate_blocks(time_to_100_percent, false);
          set_expiration(db, trx);
          trx.clear();

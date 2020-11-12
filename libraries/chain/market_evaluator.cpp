@@ -173,7 +173,7 @@ std::size_t callback(const char *in, std::size_t size, std::size_t num, std::str
                       * called the asset type's precision, and is a non-negative integer.
                       *
                       * For example, the META1 token has a precision that will be called p_M1, has a value of 5,
-                      * so 10^5 = 10,000.
+                      * so 10^5 = 100,000.
                       *
                       * For example, the "Other" token will have a precision called p_O.
                       *
@@ -208,38 +208,36 @@ std::size_t callback(const char *in, std::size_t size, std::size_t num, std::str
                       * **Implied USD-Price for META1 in Graphene terms to avoid rounding errors, reduce computations,
                       * and reduce likelihood of overflow**
                       *
-                      * Equation (3) can be re-expressed to reduce the likelihood of an overflow by combining
+                      * Equation (4) can be re-expressed to reduce the likelihood of an overflow by combining
                       * the terms 10^p_M1 and 10^p_O.
                       *
                       *
-                      * When p_M1 >= p_0, Equation 4 can be arranged as
+                      * When p_M1 >= p_O, Equation 4 can be arranged as
                       *
                       * 10^(p_M1 - p_O) * o * O_num * N >= m * O_den * Cumulative                   (4a)
                       *
                       *
-                      * When p_M1 < p_0, Equation 4 can be arranged as
+                      * When p_M1 < p_O, Equation 4 can be arranged as
                       *
                       * o * O_num * N >= 10^(p_O - p_M1) * m * O_den * Cumulative                   (4b)
                       *
                       */
-                     // TODO: [Medium] Overflow check
                      const int64_t o = selling_meta1 ? op.min_to_receive.amount.value : op.amount_to_sell.amount.value;
                      const int64_t m = selling_meta1 ? op.amount_to_sell.amount.value : op.min_to_receive.amount.value;
 
                      const int64_t META1_SUPPLY =
                              META1.options.max_supply.value / asset::scaled_precision(META1.precision).value;
-                     fc::uint128_t LHS = fc::uint128_t(o) * usd_price_num * META1_SUPPLY;
-                     fc::uint128_t RHS = fc::uint128_t(m) * usd_price_den * cumulative;
+                     // Overflow checks during arithmetic is performed with the fc::safe struct
+                     safe<fc::uint128_t> LHS = safe<fc::uint128_t>(o) * usd_price_num * META1_SUPPLY;
+                     safe<fc::uint128_t> RHS = safe<fc::uint128_t>(m) * usd_price_den * cumulative;
                      if (META1.precision >= O.precision) {
                         const uint8_t precision_delta = META1.precision - O.precision;
                         const int64_t ten_to_precision_delta = asset::scaled_precision(precision_delta).value;
                         LHS *= ten_to_precision_delta;
-
                      } else {
                         const uint8_t precision_delta = O.precision - META1.precision;
                         const int64_t ten_to_precision_delta = asset::scaled_precision(precision_delta).value;
                         RHS *= ten_to_precision_delta;
-
                      }
                      FC_ASSERT(LHS >= RHS, "The implied valuation for the META1 token is too low: ${LHS} >= ${RHS}",
                                ("LHS", LHS)("RHS", RHS));
