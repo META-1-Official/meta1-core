@@ -27,7 +27,7 @@ namespace graphene {
                const string symbol = a.limit_symbol;
 
                const auto itr = asset_idx.find(symbol);
-               assert(itr != idx.end());
+               FC_ASSERT(itr != asset_idx.end());
                const asset_object &asset = *itr;
 
                uint64_t asset_supply = asset.options.max_supply.value / std::pow(10, asset.precision);
@@ -121,7 +121,7 @@ namespace graphene {
                const int64_t cumulative = static_cast<int64_t>(contribution);
 
                auto itr = asset_limitation_idx.find(symbol);
-               assert(itr != idx.end());
+               FC_ASSERT(itr != asset_limitation_idx.end());
                const asset_limitation_object &alo = *itr;
 
                modify(alo, [&cumulative](asset_limitation_object &alo) {
