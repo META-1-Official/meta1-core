@@ -25,6 +25,9 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
     * Test valid allocation durations
     */
    BOOST_AUTO_TEST_CASE(allocation_durations) {
+      // Initialize the actors
+      ACTOR(meta1);
+
       // Create the property
       const property_options property_ops = {
               "some description",
