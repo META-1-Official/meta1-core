@@ -593,7 +593,7 @@ const asset_object& database_fixture::get_asset( const string& symbol )const
 {
    const auto& idx = db.get_index_type<asset_index>().indices().get<by_symbol>();
    const auto itr = idx.find(symbol);
-   assert( itr != idx.end() );
+   FC_ASSERT( itr != idx.end() );
    return *itr;
 }
 
@@ -601,7 +601,7 @@ const account_object& database_fixture::get_account( const string& name )const
 {
    const auto& idx = db.get_index_type<account_index>().indices().get<by_name>();
    const auto itr = idx.find(name);
-   assert( itr != idx.end() );
+   FC_ASSERT( itr != idx.end() );
    return *itr;
 }
 
@@ -1377,7 +1377,7 @@ const asset_limitation_object& database_fixture::get_asset_limitation(string lim
 {
    const auto &idx = db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
    auto itr = idx.find(limit_symbol);
-   assert( itr != idx.end() );
+   FC_ASSERT( itr != idx.end() );
    return *itr;
 }
 
