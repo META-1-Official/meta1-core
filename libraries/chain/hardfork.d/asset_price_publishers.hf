@@ -1,0 +1,4 @@
+// Expand the specially authorized asset price publishers
+#ifndef HF_ASSET_PRICE_PUBLISHERS_TIME
+#define HF_ASSET_PRICE_PUBLISHERS_TIME (fc::time_point_sec( 1601557200 )) // Oct  1 13:00:00 UTC 2020
+#endif

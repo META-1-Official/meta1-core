@@ -87,6 +87,7 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    boost::program_options::variables_map options;
 
    genesis_state.initial_timestamp = initial_timestamp;
+   genesis_state.max_core_supply = 100000000000000; // From "Genesis for softrelease"
 
    if(boost::unit_test::framework::current_test_case().p_name.value == "hf_935_test") {
       genesis_state.initial_active_witnesses = 20;
@@ -592,7 +593,7 @@ const asset_object& database_fixture::get_asset( const string& symbol )const
 {
    const auto& idx = db.get_index_type<asset_index>().indices().get<by_symbol>();
    const auto itr = idx.find(symbol);
-   assert( itr != idx.end() );
+   FC_ASSERT( itr != idx.end() );
    return *itr;
 }
 
@@ -600,7 +601,7 @@ const account_object& database_fixture::get_account( const string& name )const
 {
    const auto& idx = db.get_index_type<account_index>().indices().get<by_name>();
    const auto itr = idx.find(name);
-   assert( itr != idx.end() );
+   FC_ASSERT( itr != idx.end() );
    return *itr;
 }
 
@@ -1376,7 +1377,7 @@ const asset_limitation_object& database_fixture::get_asset_limitation(string lim
 {
    const auto &idx = db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
    auto itr = idx.find(limit_symbol);
-   assert( itr != idx.end() );
+   FC_ASSERT( itr != idx.end() );
    return *itr;
 }
 

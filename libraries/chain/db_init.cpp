@@ -272,8 +272,8 @@ void database::init_genesis(const genesis_state_type& genesis_state)
 
    // Create blockchain accounts
    fc::ecc::private_key null_private_key = fc::ecc::private_key::regenerate(fc::sha256::hash(string("null_key")));
-   create<account_balance_object>([](account_balance_object& b) {
-      b.balance = GRAPHENE_MAX_SHARE_SUPPLY;
+   create<account_balance_object>([&genesis_state](account_balance_object& b) {
+      b.balance = genesis_state.max_core_supply;
    });
    const account_object& committee_account =
       create<account_object>( [&](account_object& n) {
@@ -283,10 +283,10 @@ void database::init_genesis(const genesis_state_type& genesis_state)
          n.owner.weight_threshold = 1;
          n.active.weight_threshold = 1;
          n.name = "committee-account";
-         n.statistics = create<account_statistics_object>( [&n](account_statistics_object& s){
+         n.statistics = create<account_statistics_object>( [&n, &genesis_state](account_statistics_object& s){
                            s.owner = n.id;
                            s.name = n.name;
-                           s.core_in_balance = GRAPHENE_MAX_SHARE_SUPPLY;
+                           s.core_in_balance = genesis_state.max_core_supply;
                         }).id;
       });
    FC_ASSERT(committee_account.get_id() == GRAPHENE_COMMITTEE_ACCOUNT);
@@ -381,13 +381,14 @@ void database::init_genesis(const genesis_state_type& genesis_state)
 
    // Create core asset
    const asset_dynamic_data_object& dyn_asset =
-      create<asset_dynamic_data_object>([](asset_dynamic_data_object& a) {
-         a.current_supply = GRAPHENE_MAX_SHARE_SUPPLY;
+      create<asset_dynamic_data_object>([&genesis_state](asset_dynamic_data_object& a) {
+         a.current_supply = genesis_state.max_core_supply;
       });
    const asset_object& core_asset =
      create<asset_object>( [&genesis_state,&dyn_asset]( asset_object& a ) {
          a.symbol = GRAPHENE_SYMBOL;
          a.options.max_supply = genesis_state.max_core_supply;
+         a.options.max_market_fee = genesis_state.max_core_supply;
          a.precision = GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS;
          a.options.flags = 0;
          a.options.issuer_permissions = 0;
@@ -616,7 +617,7 @@ void database::init_genesis(const genesis_state_type& genesis_state)
    }
    else
    {
-       total_supplies[ asset_id_type(0) ] = GRAPHENE_MAX_SHARE_SUPPLY;
+       total_supplies[ asset_id_type(0) ] = genesis_state.max_core_supply;
    }
 
    const auto& idx = get_index_type<asset_index>().indices().get<by_symbol>();

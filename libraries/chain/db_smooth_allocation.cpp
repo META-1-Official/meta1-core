@@ -27,7 +27,7 @@ namespace graphene {
                const string symbol = a.limit_symbol;
 
                const auto itr = asset_idx.find(symbol);
-               assert(itr != idx.end());
+               FC_ASSERT(itr != asset_idx.end());
                const asset_object &asset = *itr;
 
                uint64_t asset_supply = asset.options.max_supply.value / std::pow(10, asset.precision);
@@ -109,21 +109,19 @@ namespace graphene {
             }
 
             // Update the asset limitation's cumulative_sell_limit
+            static const uint64_t max_uint64 = std::numeric_limits<uint64_t>::max();
             std::map<std::string, fc::int128_t>::iterator it2;
             for (it2 = mapSymbolToContribution.begin(); it2 != mapSymbolToContribution.end(); it2++) {
                const string symbol = it2->first;
                const fc::int128_t contribution = it2->second;
 
-               // TODO: [Low] Review this overflow check: should GRAPHENE_MAX_SHARE_SUPPLY be used?
                // Check whether all contributions have already overflowed 64-bit before any arithmetic
-               FC_ASSERT( contribution <= GRAPHENE_MAX_SHARE_SUPPLY );
-
-               // TODO: [Medium] Check for arithmetic overflow
-               const fc::int128_t cumultative128 = contribution;
-               const int64_t cumulative = static_cast<int64_t>(cumultative128);
+               FC_ASSERT( contribution <= max_uint64 );
+               // Safely cast to int64_t
+               const int64_t cumulative = static_cast<int64_t>(contribution);
 
                auto itr = asset_limitation_idx.find(symbol);
-               assert(itr != idx.end());
+               FC_ASSERT(itr != asset_limitation_idx.end());
                const asset_limitation_object &alo = *itr;
 
                modify(alo, [&cumulative](asset_limitation_object &alo) {
@@ -146,15 +144,12 @@ namespace graphene {
       }
 
       // TODO: Move this function to API?
-      const property_object *database::get_property(uint32_t property_id) const {
+      const property_object& database::get_property(uint32_t property_id) const {
          const auto &idx = get_index_type<property_index>().indices().get<by_property_id>();
          auto itr = idx.find(property_id);
-         if (itr != idx.end()) {
-            const property_object *property = &*itr;
-            return property;
-         } else {
-            return nullptr;
-         }
+
+         FC_ASSERT( itr != idx.end(), "Can not find property object with property_id ${id}", ("id",property_id) );
+         return *itr;
       }
 
    }

@@ -112,10 +112,10 @@ namespace graphene {
          //////
          fc::uint128_t multiplication_result = (c128 * num + den - 1) / den;
 
-         // TODO: [Low] Review this overflow check: should GRAPHENE_MAX_SHARE_SUPPLY be used?
          // TODO: [Low] Create tests for exceeding the maximum satoshis
          // TODO: [Low] Review how to handle exceeding the maximum satoshis
-         FC_ASSERT( multiplication_result <= GRAPHENE_MAX_SHARE_SUPPLY );
+         static const uint64_t max_uint64 = std::numeric_limits<uint64_t>::max();
+         FC_ASSERT( multiplication_result <= max_uint64 );
 
          // Add contribution to symbol
          uint64_t contribution = static_cast<int64_t>(multiplication_result);

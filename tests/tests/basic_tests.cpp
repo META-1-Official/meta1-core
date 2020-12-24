@@ -224,25 +224,41 @@ BOOST_AUTO_TEST_CASE( price_test )
     BOOST_CHECK( less_than_max * ratio_type(7,1) == price(asset(less_than_max.base.amount*7/11),asset(1,asset_id_type(1))) );
 
    /**
+    * Test the particular algorithmic implementation within the price operator *
+    *
     * The particular inputs of
     *
-    * (a) 100000000000000 satoshi META1 / X satoshi ASSET 1
+    * (a) 50000000000000000 satoshi META1 / X satoshi ASSET 1
     * (b) a multiplying fraction of of 7/1
-    * (c) GRAPHENE_MAX_SHARE_SUPPLY = 100000000000000
+    * (c) GRAPHENE_MAX_SHARE_SUPPLY = 50000000000000000
     *
     * is provided to the price operator *.
     *
     * 1. price operator * performs the multiplication of the fraction
-    *    while protecting against overflows of GRAPHENE_MAX_SHARE_SUPPLY with bitshifting to the right (>>>)
+    *    while protecting against overflows of GRAPHENE_MAX_SHARE_SUPPLY with bitshifting to the right (>>)
     *
     * 2. The overflow protection loop also uses fc::rational class which, when possible,
     *    further reduces the fraction by dividing by a greatest common denominator (GCD).
     */
-    less_than_max.quote.amount = 92131419;
-    BOOST_CHECK( less_than_max * ratio_type(7,1) == price(asset(less_than_max.base.amount.value*7>>3),asset(92131419>>3,asset_id_type(1))) );
+    less_than_max.quote.amount = 51292131419;
+    /**
+     * The bit-shifting within operator * changes the numerator and denominators with the following steps
+     *
+     * Initial: 350000000000000000  / 51292131419
+     * Shrinked: 175000000000000000 / 25646065709
+     * Shrinked: 43750000000000000 / 6411516427
+     */
+    BOOST_CHECK( less_than_max * ratio_type(7,1) == price(asset((less_than_max.base.amount.value*7>>2)),asset((less_than_max.quote.amount.value>>2),asset_id_type(1))) );
 
-    less_than_max.quote.amount = 192131419;
-    BOOST_CHECK( less_than_max * ratio_type(7,1) == price(asset(less_than_max.base.amount.value*7>>3),asset(192131419>>3,asset_id_type(1))) );
+    less_than_max.quote.amount = 151292131419;
+   /**
+    * The bit-shifting within operator * changes the numerator and denominators with the following steps
+    *
+    * Initial:350000000000000000 ?(1) / 151292131419
+    * Shrinked:175000000000000000 ?(1) / 75646065709
+    * Shrinked:43750000000000000 ?(0) / 18911516427
+    */
+    BOOST_CHECK( less_than_max * ratio_type(7,1) == price(asset(less_than_max.base.amount.value*7>>2),asset(less_than_max.quote.amount.value>>2,asset_id_type(1))) );
 
     price more_than_min = price_min(0,1);
     more_than_min.base.amount = 11;

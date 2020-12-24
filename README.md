@@ -15,20 +15,18 @@ META1 Core
 * [License](#license)
 
 META1 Core is the META1 blockchain implementation and command-line interface.
-The web wallet is [META1 UI](https://github.com/meta1-blockchain/meta1-ui).
+The web wallet is [META1 UI](https://github.com/META1CoinTrust/softlaunch-meta1-ui).
 
 Visit [meta1.io](https://meta1.io/) to learn about META1 and join the community.
 
-Information for developers can be found in the [META1 Developer Portal](https://dev.bitshares.works/). Users interested in how META1 works can go to the [META1 Documentation](https://how.bitshares.works/) site.
-
-For security issues and bug bounty program please visit [Hack the DEX](https://hackthedex.io).
+For security issues and bug bounty program please leave an issue on corresponding repo of Meta1 GitHub.
 
 Getting Started
 ---------------
 Build instructions and additional documentation are available in the
-[wiki](https://github.com/meta1-blockchain/meta1-core/wiki).
+[wiki](https://github.com/meta1cointrust/meta1-core/wiki).
 
-We recommend building on Ubuntu 16.04 LTS (64-bit) 
+Meta1 Core software is guaranteed to work on Ubuntu 18.04 x64. 
 
 **Build Dependencies:**
 
@@ -37,16 +35,16 @@ We recommend building on Ubuntu 16.04 LTS (64-bit)
 
 **Build Script:**
 
-    git clone https://github.com/meta1-blockchain/meta1-core.git
+    git clone https://github.com/META1CoinTrust/meta1-core.git
     cd meta1-core
-    git checkout master # may substitute "master" with current release tag
+    git checkout master # may substitute "master" "pr-softrelease-trusted-publishers"
     git submodule update --init --recursive
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .
     make
 
 **Upgrade Script:** (prepend to the Build Script above if you built a prior release):
 
-    git remote set-url origin https://github.com/meta1-blockchain/meta1-core.git
+    git remote set-url origin https://github.com/META1CoinTrust/meta1-core.git
     git checkout master
     git remote set-head origin --auto
     git pull
@@ -76,14 +74,13 @@ the blockchain. After syncing, you can exit the node using Ctrl+C and setup the 
 
     rpc-endpoint = 127.0.0.1:8090
 
-**IMPORTANT:** By default the witness node will start in reduced memory mode by using some of the commands detailed in [Memory reduction for nodes](https://github.com/bitshares/bitshares-core/wiki/Memory-reduction-for-nodes).
-In order to run a full node with all the account history you need to remove `partial-operations` and `max-ops-per-account` from your config file. Please note that currently(2018-10-17) a full node will need more than 160GB of RAM to operate and required memory is growing fast. Consider the following table as minimal requirements before running a node:
+**IMPORTANT:** In order to run a full node with all the account history you need to remove `partial-operations` and `max-ops-per-account` from your config file. Consider the following table as minimal requirements before running a node:
 
 | Default | Full | Minimal  | ElasticSearch 
 | --- | --- | --- | ---
-| 100G HDD, 16G RAM | 640G SSD, 64G RAM * | 80G HDD, 4G RAM | 500G SSD, 32G RAM
+| 100G SSD, 8G RAM | 240G SSD, 32G RAM * | 60G SSD, 4G RAM | 500G SSD, 64G RAM
 
-\* For this setup, allocate at least 500GB of SSD as swap.
+\* For this setup, allocate at least 100GB of SSD as system swap.
 
 After starting the witness node again, in a separate terminal you can run:
 
@@ -108,17 +105,16 @@ To import your initial balance:
 If you send private keys over this connection, `rpc-endpoint` should be bound to localhost for security.
 
 Use `help` to see all available wallet commands. Source definition and listing of all commands is available
-[here](https://github.com/meta1-blockchain/meta1-core/blob/master/libraries/wallet/include/graphene/wallet/wallet.hpp).
+[here](https://github.com/META1CoinTrust/meta1-core/blob/master/libraries/wallet/include/graphene/wallet/wallet.hpp).
 
 Support
 -------
-Technical support is available in the [BitSharesTalk technical support subforum](https://bitsharestalk.org/index.php?board=45.0).
+Technical support is available through GitHub.
 
-META1 Core bugs can be reported directly to the [issue tracker](https://github.com/meta1-blockchain/meta1-core/issues).
+META1 Core bugs can be reported directly to the [issue tracker](https://github.com/META1CoinTrust/meta1-core/issues).
 
-META1 UI bugs should be reported to the [UI issue tracker](https://github.com/meta1-blockchain/meta1-ui/issues)
+META1 UI bugs should be reported to the [UI issue tracker](https://github.com/META1CoinTrust/softlaunch-meta1-ui/issues)
 
-Up to date online Doxygen documentation can be found at [Doxygen](https://bitshares.org/doxygen/hierarchy.html)
 
 Using the API
 -------------
@@ -184,12 +180,6 @@ With the above configuration, here is an example of how to call `add_node` from 
 
 Note, the call to `network_node` is necessary to obtain the correct API identifier for the network API.  It is not guaranteed that the network API identifier will always be `2`.
 
-Since the `network_node` API requires login, it is only accessible over the websocket RPC.  Our `doxygen` documentation contains the most up-to-date information
-about API's for the [witness node](https://bitshares.github.io/doxygen/namespacegraphene_1_1app.html) and the
-[wallet](https://bitshares.github.io/doxygen/classgraphene_1_1wallet_1_1wallet__api.html).
-If you want information which is not available from an API, it might be available
-from the [database](https://bitshares.github.io/doxygen/classgraphene_1_1chain_1_1database.html);
-it is fairly simple to write API methods to expose database methods.
 
 FAQ
 ---
@@ -222,20 +212,6 @@ FAQ
 
     Websockets solves all these problems.  If you need to access Graphene's stateful methods, you need to use Websockets.
 
-- What is the meaning of `a.b.c` numbers?
-
-    The first number specifies the *space*.  Space 1 is for protocol objects, 2 is for implementation objects.
-    Protocol space objects can appear on the wire, for example in the binary form of transactions.
-    Implementation space objects cannot appear on the wire and solely exist for implementation
-    purposes, such as optimization or internal bookkeeping.
-
-    The second number specifies the *type*.  The type of the object determines what fields it has.  For a
-    complete list of type ID's, see `enum object_type` and `enum impl_object_type` in
-    [types.hpp](https://github.com/bitshares/bitshares-2/blob/bitshares/libraries/chain/include/graphene/chain/protocol/types.hpp).
-
-    The third number specifies the *instance*.  The instance of the object is different for each individual
-    object.
-
 - The answer to the previous question was really confusing.  Can you make it clearer?
 
     All account ID's are of the form `1.2.x`.  If you were the 9735th account to be registered,
@@ -264,5 +240,5 @@ FAQ
  
 License
 -------
-META1 Core is under the MIT license. See [LICENSE](https://github.com/meta1-blockchain/meta1-core/blob/master/LICENSE.txt)
+META1 Core is under the MIT/FLOSS license. See [LICENSE](https://github.com/META1CoinTrust/meta1-core/blob/master/LICENSE.txt)
 for more information.

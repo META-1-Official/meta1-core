@@ -178,7 +178,7 @@ void database::clear_expired_proposals()
  *  let SP = current median feed's Settlement Price 
  *  let LC = the least collateralized call order's swan price (debt/collateral)
  *
- *  If there is no valid price feed or no bids then there is no black swan.
+ *  If there is no valid price feed there is no black swan.
  *
  *  A black swan occurs if MAX(HB,SP) <= LC
  */
