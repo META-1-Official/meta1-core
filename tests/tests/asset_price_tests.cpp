@@ -529,7 +529,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
          create_user_issued_asset("BTC");
          asset_object BTC = get_asset("BTC");
          const asset_id_type BTC_ID = BTC.id;
-         asset_object META1 = get_asset("META1");
+         asset_object META1 = get_asset(GRAPHENE_SYMBOL);
          const asset_id_type META1_ID = META1.id;
 
          account_object issuer_account = get_account("meta1");
@@ -557,7 +557,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
          /**
           * Create the asset limitation
           */
-         const string limit_symbol = "META1";
+         const string limit_symbol = GRAPHENE_SYMBOL;
          asset_limitation_object_create_operation create_limitation_op;
          create_limitation_op.limit_symbol = limit_symbol;
          create_limitation_op.issuer = issuer_account.id;
@@ -584,7 +584,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
                  1,
                  33104,
          };
-         property_create_operation prop_op = create_property_operation("meta1", 900000000, 10080, "META1",
+         property_create_operation prop_op = create_property_operation("meta1", 900000000, 10080, GRAPHENE_SYMBOL,
                                                                        property_ops);
 
          trx.clear();
@@ -822,7 +822,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
          create_user_issued_asset("BTC");
          asset_object BTC = get_asset("BTC");
          const asset_id_type BTC_ID = BTC.id;
-         asset_object META1 = get_asset("META1");
+         asset_object META1 = get_asset(GRAPHENE_SYMBOL);
          const asset_id_type META1_ID = META1.id;
 
          account_object issuer_account = get_account("meta1");
@@ -850,7 +850,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
          /**
           * Create the asset limitation
           */
-         const string limit_symbol = "META1";
+         const string limit_symbol = GRAPHENE_SYMBOL;
          asset_limitation_object_create_operation create_limitation_op;
          create_limitation_op.limit_symbol = limit_symbol;
          create_limitation_op.issuer = issuer_account.id;
@@ -880,7 +880,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
                  1,
                  33104,
          };
-         property_create_operation prop_op = create_property_operation("meta1", 1000000000, 10080, "META1",
+         property_create_operation prop_op = create_property_operation("meta1", 1000000000, 10080, GRAPHENE_SYMBOL,
                                                                        property_ops);
 
          tx.clear();
@@ -1108,7 +1108,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
          }
          asset_object LARGE = get_asset("LARGE");
          const asset_id_type LARGE_ID = LARGE.id;
-         asset_object META1 = get_asset("META1");
+         asset_object META1 = get_asset(GRAPHENE_SYMBOL);
          const asset_id_type META1_ID = META1.id;
 
          account_object issuer_account = get_account("meta1");
@@ -1138,7 +1138,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
          /**
           * Create the asset limitation
           */
-         const string limit_symbol = "META1";
+         const string limit_symbol = GRAPHENE_SYMBOL;
          asset_limitation_object_create_operation create_limitation_op;
          create_limitation_op.limit_symbol = limit_symbol;
          create_limitation_op.issuer = issuer_account.id;
@@ -1165,7 +1165,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
             1,
             33104,
          };
-         property_create_operation prop_op = create_property_operation("meta1", 900000000000000, 10080, "META1",
+         property_create_operation prop_op = create_property_operation("meta1", 900000000000000, 10080, GRAPHENE_SYMBOL,
                                                                        property_ops);
 
          trx.clear();

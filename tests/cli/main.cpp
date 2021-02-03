@@ -1113,10 +1113,10 @@ BOOST_FIXTURE_TEST_CASE(create_asset_limitation, cli_fixture)
 
       }
       // create_asset_limitation for META1 asset
-      signed_transaction asset_limitation_trx = con.wallet_api_ptr->create_asset_limitation("meta1", "META1", true);
+      signed_transaction asset_limitation_trx = con.wallet_api_ptr->create_asset_limitation("meta1", GRAPHENE_SYMBOL, true);
       //get asset_limitation for META1 asset
-      auto asset_limitation_meta1 = con.wallet_api_ptr->get_asset_limitaion_by_symbol("META1");
-      BOOST_CHECK(asset_limitation_meta1->limit_symbol == "META1");
+      auto asset_limitation_meta1 = con.wallet_api_ptr->get_asset_limitaion_by_symbol(GRAPHENE_SYMBOL);
+      BOOST_CHECK(asset_limitation_meta1->limit_symbol == GRAPHENE_SYMBOL);
       BOOST_CHECK(asset_limitation_meta1->issuer == con.wallet_api_ptr->get_account("meta1").get_id());
    }
    catch (fc::exception &e)
@@ -1144,7 +1144,7 @@ BOOST_FIXTURE_TEST_CASE(backing_asset_tests,cli_fixture)
          33104,
       };
 
-      signed_transaction create_backing_asset = con.wallet_api_ptr->create_property("meta1", 1000000000, 10080, "META1",
+      signed_transaction create_backing_asset = con.wallet_api_ptr->create_property("meta1", 1000000000, 10080, GRAPHENE_SYMBOL,
                                                                                    property_ops, true);
 
       auto first_backing_asset_id = create_backing_asset.operations.back().get<property_create_operation>().property_id;
@@ -1154,7 +1154,7 @@ BOOST_FIXTURE_TEST_CASE(backing_asset_tests,cli_fixture)
       BOOST_CHECK(backing_asset.issuer == con.wallet_api_ptr->get_account("meta1").get_id());
       BOOST_CHECK(backing_asset.appraised_property_value == 1000000000);
       BOOST_CHECK_EQUAL(backing_asset.allocation_duration_minutes, 10080);
-      BOOST_CHECK(backing_asset.backed_by_asset_symbol == "META1");
+      BOOST_CHECK(backing_asset.backed_by_asset_symbol == GRAPHENE_SYMBOL);
       BOOST_CHECK(!backing_asset.approval_date.valid());
       // Check backing asset options
       BOOST_CHECK(backing_asset.options.description == "some description");
@@ -1184,7 +1184,7 @@ BOOST_FIXTURE_TEST_CASE(backing_asset_tests,cli_fixture)
       BOOST_CHECK(backing_asset.issuer == con.wallet_api_ptr->get_account("meta1").get_id());
       BOOST_CHECK(backing_asset.appraised_property_value == 1000000000);
       BOOST_CHECK_EQUAL(backing_asset.allocation_duration_minutes, 10080);
-      BOOST_CHECK(backing_asset.backed_by_asset_symbol == "META1");
+      BOOST_CHECK(backing_asset.backed_by_asset_symbol == GRAPHENE_SYMBOL);
       BOOST_CHECK(backing_asset.approval_date.valid());
 
 
@@ -1201,7 +1201,7 @@ BOOST_FIXTURE_TEST_CASE(backing_asset_tests,cli_fixture)
 
       // Create second backing_asset 
       signed_transaction create_backing_asset_second =
-              con.wallet_api_ptr->create_property("meta1", 1000000000, 10080, "META1", property_ops, true);
+              con.wallet_api_ptr->create_property("meta1", 1000000000, 10080, GRAPHENE_SYMBOL, property_ops, true);
       auto backing_asset_create_second = create_backing_asset_second.operations.back().get<property_create_operation>();
 
       // get_all_backing_assets test

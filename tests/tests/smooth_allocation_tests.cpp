@@ -47,7 +47,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
       // Test the shortest duration
       // This should succeed
       //////
-      prop_op = create_property_operation("meta1", 1000000000, 4, "META1",
+      prop_op = create_property_operation("meta1", 1000000000, 4, GRAPHENE_SYMBOL,
                                           property_ops);
       prop_op.validate();
 
@@ -55,7 +55,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
       // Test a duration that is too short
       // This should fail
       //////
-      prop_op = create_property_operation("meta1", 1000000000, 3, "META1",
+      prop_op = create_property_operation("meta1", 1000000000, 3, GRAPHENE_SYMBOL,
                                           property_ops);
       REQUIRE_EXCEPTION_WITH_TEXT(prop_op.validate(), "allocation_duration_minutes >= 4");
 
@@ -64,7 +64,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
       // Test a duration that is a multiple of 4 minutes
       // This should succeed
       //////
-      prop_op = create_property_operation("meta1", 1000000000, 10080, "META1",
+      prop_op = create_property_operation("meta1", 1000000000, 10080, GRAPHENE_SYMBOL,
                                           property_ops);
       prop_op.validate();
 
@@ -72,7 +72,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
       // Test a duration that is NOT a multiple of 4 minutes
       // This should fail
       //////
-      prop_op = create_property_operation("meta1", 1000000000, 10080 + 1, "META1",
+      prop_op = create_property_operation("meta1", 1000000000, 10080 + 1, GRAPHENE_SYMBOL,
                                           property_ops);
       REQUIRE_EXCEPTION_WITH_TEXT(prop_op.validate(), "a multiple of 4");
 
@@ -80,7 +80,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
       // Test a duration that is NOT a multiple of 4 minutes
       // This should fail
       //////
-      prop_op = create_property_operation("meta1", 1000000000, 10080 + 2, "META1",
+      prop_op = create_property_operation("meta1", 1000000000, 10080 + 2, GRAPHENE_SYMBOL,
                                           property_ops);
       REQUIRE_EXCEPTION_WITH_TEXT(prop_op.validate(), "a multiple of 4");
 
@@ -88,7 +88,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
       // Test a duration that is NOT a multiple of 4 minutes
       // This should fail
       //////
-      prop_op = create_property_operation("meta1", 1000000000, 10080 + 3, "META1",
+      prop_op = create_property_operation("meta1", 1000000000, 10080 + 3, GRAPHENE_SYMBOL,
                                           property_ops);
       REQUIRE_EXCEPTION_WITH_TEXT(prop_op.validate(), "a multiple of 4");
 
@@ -96,7 +96,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
       // Test a multiple that is a multiple of 4 minutes
       // This should succeed
       //////
-      prop_op = create_property_operation("meta1", 1000000000, 10080 + 4, "META1",
+      prop_op = create_property_operation("meta1", 1000000000, 10080 + 4, GRAPHENE_SYMBOL,
                                           property_ops);
       prop_op.validate();
    }
@@ -117,7 +117,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
       generate_blocks(6); // Seems to prime the test fixture better
 
       // Create the asset limitation
-      const string limit_symbol = "META1";
+      const string limit_symbol = GRAPHENE_SYMBOL;
 
       account_object issuer_account = get_account("meta1");
 
@@ -147,7 +147,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
               1,
               33104,
       };
-      property_create_operation prop_op = create_property_operation("meta1", 1000000000, 10080, "META1",
+      property_create_operation prop_op = create_property_operation("meta1", 1000000000, 10080, GRAPHENE_SYMBOL,
                                                                     property_ops);
 
       tx.clear();
@@ -294,7 +294,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          generate_blocks(6); // Seems to prime the test fixture better
 
          // Create the asset limitation
-         const string limit_symbol = "META1";
+         const string limit_symbol = GRAPHENE_SYMBOL;
 
          account_object issuer_account = get_account("meta1");
 
@@ -323,7 +323,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
                  1,
                  33104,
          };
-         property_create_operation prop_op = create_property_operation("meta1", 1000000000, 10080, "META1",
+         property_create_operation prop_op = create_property_operation("meta1", 1000000000, 10080, GRAPHENE_SYMBOL,
                                                                        property_ops);
 
          trx.clear();
@@ -505,7 +505,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          generate_blocks(6); // Seems to prime the test fixture better
 
          // Create the asset limitation
-         const string limit_symbol = "META1";
+         const string limit_symbol = GRAPHENE_SYMBOL;
 
          account_object issuer_account = get_account("meta1");
 
@@ -534,7 +534,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
                  1,
                  33104,
          };
-         property_create_operation prop_op = create_property_operation("meta1", 1000000000, 10080, "META1",
+         property_create_operation prop_op = create_property_operation("meta1", 1000000000, 10080, GRAPHENE_SYMBOL,
                                                                        property_ops);
 
          trx.clear();
@@ -687,7 +687,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          generate_blocks(6);
    
          // Create the asset limitation
-         const string limit_symbol = "META1";
+         const string limit_symbol = GRAPHENE_SYMBOL;
          account_object issuer_account = get_account("meta1");
    
          asset_limitation_object_create_operation create_limitation_op;
@@ -738,7 +738,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          //////
    
          // 1)
-         property_create_operation first_prop_op = create_property_operation("meta1", 1000000000, 10080, "META1",
+         property_create_operation first_prop_op = create_property_operation("meta1", 1000000000, 10080, GRAPHENE_SYMBOL,
                                                                              first_property_ops);
    
          trx.clear();
@@ -778,7 +778,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          trx.clear();
    
          // Create second property
-         property_create_operation second_prop_op = create_property_operation("meta1", 2000000000, 10080, "META1",
+         property_create_operation second_prop_op = create_property_operation("meta1", 2000000000, 10080, GRAPHENE_SYMBOL,
                                                                               second_property_ops);
    
          trx.operations.push_back(second_prop_op);
@@ -943,7 +943,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          generate_blocks(6);
    
          // Create the asset limitation
-         const string limit_symbol = "META1";
+         const string limit_symbol = GRAPHENE_SYMBOL;
          account_object issuer_account = get_account("meta1");
    
          asset_limitation_object_create_operation create_limitation_op;
@@ -996,7 +996,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          //////
          
          // 1)
-         property_create_operation first_prop_op = create_property_operation("meta1", 1000000000, 10080, "META1",
+         property_create_operation first_prop_op = create_property_operation("meta1", 1000000000, 10080, GRAPHENE_SYMBOL,
                                                                              first_property_ops);
          trx.clear();
          trx.operations.push_back(first_prop_op);
@@ -1039,7 +1039,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
  
          // 2)
          // Create second property
-         property_create_operation second_prop_op = create_property_operation("meta1", 2000000000, 10080, "META1",
+         property_create_operation second_prop_op = create_property_operation("meta1", 2000000000, 10080, GRAPHENE_SYMBOL,
                                                                               second_property_ops);
          trx.operations.push_back(second_prop_op);
  
@@ -1200,7 +1200,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          generate_blocks(6);
    
          // Create the asset limitation
-         const string limit_symbol = "META1";
+         const string limit_symbol = GRAPHENE_SYMBOL;
          account_object issuer_account = get_account("meta1");
    
          asset_limitation_object_create_operation create_limitation_op;
@@ -1253,7 +1253,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          //////
          
          // 1) create  FIRST  backing asset 
-         property_create_operation first_prop_op = create_property_operation("meta1", 2000000000, 10080, "META1",
+         property_create_operation first_prop_op = create_property_operation("meta1", 2000000000, 10080, GRAPHENE_SYMBOL,
                                                                              first_property_ops);
 
          trx.clear();
@@ -1315,7 +1315,7 @@ BOOST_FIXTURE_TEST_SUITE(smooth_allocation_tests, meta1_fixture)
          BOOST_CHECK_LE(abs64(expected_valuation, alo.cumulative_sell_limit), tol);
          
          //4) create second backing asset & not approve it like in CASE A.
-         property_create_operation second_prop_op = create_property_operation("meta1", 1000000000, 10080, "META1",
+         property_create_operation second_prop_op = create_property_operation("meta1", 1000000000, 10080, GRAPHENE_SYMBOL,
                                                                        second_property_ops);
          trx.operations.push_back(second_prop_op);
          sign(trx, meta1_private_key);

@@ -144,7 +144,7 @@ namespace graphene {
                                                               const account_id_type authorizing_id,
                                                               const private_key_type authorizing_private_key) {
 
-         const string asset_to_back = "META1";
+         const string asset_to_back = GRAPHENE_SYMBOL;
          initialize_allocation_object(asset_to_back, authorizing_id, authorizing_private_key);
 
          const string issuer = "meta1";
