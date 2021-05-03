@@ -394,6 +394,48 @@ public:
 
    operation get_prototype_operation( string operation_name );
 
+   /*
+    * Property methods
+    */
+   bool is_property_exists(uint32_t id) const;
+   signed_transaction create_property(string issuer,
+                                       uint64_t appraised_property_value,
+                                       uint32_t allocation_duration_minutes,
+                                       string backed_by_asset_symbol,
+                                       property_options common,
+                                       bool broadcast = false);
+   signed_transaction update_property(uint32_t id,
+                                      property_options new_options,
+                                      bool broadcast = false);
+   signed_transaction approve_property(uint32_t id,
+                                       bool broadcast = false);
+   property_object get_property(uint32_t id) const;
+   optional<property_object> find_property(uint32_t id) const;
+   vector<property_object> get_all_properties() const;
+   vector<property_object> get_properties_by_backed_asset_symbol(string symbol) const;
+   pair<uint32_t,uint32_t> get_property_allocation_progress(uint32_t property_id) const;
+   signed_transaction delete_property(uint32_t property_id, bool broadcast = false);
+
+   bool is_asset_limitation_exists(string limit_symbol) const;
+   signed_transaction create_asset_limitation(string issuer,
+                                              string limit_symbol,
+                                              bool broadcast = false);
+   optional<asset_limitation_object> get_asset_limitaion_by_symbol( string limit_symbol ) const;
+   uint64_t get_asset_limitation_value(const string symbol_or_id) const;
+
+   /*
+    * Asset price methods
+    */
+   signed_transaction publish_asset_price(string publishing_account,
+                                          string symbol,
+                                          price_ratio usd_price,
+                                          bool broadcast = false);
+   price_ratio get_published_asset_price(const std::string &symbol) const;
+
+
+   /*
+    * Variables
+    */
    string                  _wallet_filename;
    wallet_data             _wallet;
 
