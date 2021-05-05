@@ -1591,9 +1591,6 @@ public:
 
    signed_transaction htlc_extend ( string htlc_id, string issuer, const uint32_t seconds_to_add, bool broadcast);
 
-   signed_transaction account_store_map(string account, string catalog, bool remove,
-         flat_map<string, optional<string>> key_values, bool broadcast);
-
    vector< vesting_balance_object_with_info > get_vesting_balances( string account_name )
    { try {
       fc::optional<vesting_balance_id_type> vbid = maybe_id<vesting_balance_id_type>( account_name );

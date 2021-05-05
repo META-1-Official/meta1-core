@@ -98,35 +98,5 @@ signed_transaction wallet_api_impl::create_account_with_brain_key(string brain_k
                                           referrer_account, broadcast, save_wallet);
 } FC_CAPTURE_AND_RETHROW( (account_name)(registrar_account)(referrer_account) ) }
 
-signed_transaction wallet_api_impl::account_store_map(string account, string catalog, bool remove,
-      flat_map<string, optional<string>> key_values, bool broadcast)
-{
-   try
-   {
-      FC_ASSERT( !self.is_locked() );
-
-      account_id_type account_id = get_account(account).id;
-
-      custom_operation op;
-      account_storage_map store;
-      store.catalog = catalog;
-      store.remove = remove;
-      store.key_values = key_values;
-
-      custom_plugin_operation custom_plugin_op(store);
-      auto packed = fc::raw::pack(custom_plugin_op);
-
-      op.payer = account_id;
-      op.data = packed;
-
-      signed_transaction tx;
-      tx.operations.push_back(op);
-      set_operation_fees( tx, _remote_db->get_global_properties().parameters.get_current_fees());
-      tx.validate();
-
-      return sign_transaction(tx, broadcast);
-
-   } FC_CAPTURE_AND_RETHROW( (account)(remove)(catalog)(key_values)(broadcast) )
-}
 
 }}} // namespace graphene::wallet::detail
