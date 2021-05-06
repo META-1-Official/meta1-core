@@ -200,11 +200,11 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
             }
             else if (n - floor(n) < 0.000001)
             {
-               ss << setiosflags( ios::fixed ) << setprecision(10) << n;
+               ss << std::setiosflags( std::ios::fixed ) << std::setprecision(10) << n;
             }
             else
             {
-               ss << setiosflags( ios::fixed ) << setprecision(6) << n;
+               ss << std::setiosflags( std::ios::fixed ) << std::setprecision(6) << n;
             }
          };
          auto prettify_num_string = [&]( string& num_string )
@@ -213,13 +213,13 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
             prettify_num( n );
          };
 
-         ss << setprecision( 8 ) << setiosflags( ios::fixed ) << setiosflags( ios::left );
+         ss << std::setprecision( 8 ) << std::setiosflags( std::ios::fixed ) << std::setiosflags( std::ios::left );
 
-         ss << ' ' << setw( (spacing * 4) + 6 ) << "BUY ORDERS" << "SELL ORDERS\n"
-            << ' ' << setw( spacing + 1 ) << "Price" << setw( spacing ) << orders.quote << ' ' << setw( spacing )
-            << orders.base << ' ' << setw( spacing ) << sum_stream.str()
-            << "   " << setw( spacing + 1 ) << "Price" << setw( spacing ) << orders.quote << ' ' << setw( spacing )
-            << orders.base << ' ' << setw( spacing ) << sum_stream.str()
+         ss << ' ' << std::setw( (spacing * 4) + 6 ) << "BUY ORDERS" << "SELL ORDERS\n"
+            << ' ' << std::setw( spacing + 1 ) << "Price" << std::setw( spacing ) << orders.quote << ' ' << std::setw( spacing )
+            << orders.base << ' ' << std::setw( spacing ) << sum_stream.str()
+            << "   " << std::setw( spacing + 1 ) << "Price" << std::setw( spacing ) << orders.quote << ' ' << std::setw( spacing )
+            << orders.base << ' ' << std::setw( spacing ) << sum_stream.str()
             << "\n====================================================================================="
             << "|=====================================================================================\n";
 
@@ -228,19 +228,19 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
             if ( i < bids.size() )
             {
                 bid_sum += fc::to_double( bids[i].base );
-                ss << ' ' << setw( spacing );
+                ss << ' ' << std::setw( spacing );
                 prettify_num_string( bids[i].price );
-                ss << ' ' << setw( spacing );
+                ss << ' ' << std::setw( spacing );
                 prettify_num_string( bids[i].quote );
-                ss << ' ' << setw( spacing );
+                ss << ' ' << std::setw( spacing );
                 prettify_num_string( bids[i].base );
-                ss << ' ' << setw( spacing );
+                ss << ' ' << std::setw( spacing );
                 prettify_num( bid_sum );
                 ss << ' ';
             }
             else
             {
-                ss << setw( (spacing * 4) + 5 ) << ' ';
+                ss << std::setw( (spacing * 4) + 5 ) << ' ';
             }
 
             ss << '|';
@@ -248,22 +248,22 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
             if ( i < asks.size() )
             {
                ask_sum += fc::to_double( asks[i].base );
-               ss << ' ' << setw( spacing );
+               ss << ' ' << std::setw( spacing );
                prettify_num_string( asks[i].price );
-               ss << ' ' << setw( spacing );
+               ss << ' ' << std::setw( spacing );
                prettify_num_string( asks[i].quote );
-               ss << ' ' << setw( spacing );
+               ss << ' ' << std::setw( spacing );
                prettify_num_string( asks[i].base );
-               ss << ' ' << setw( spacing );
+               ss << ' ' << std::setw( spacing );
                prettify_num( ask_sum );
             }
 
             ss << '\n';
          }
 
-         ss << endl
-            << "Buy Total:  " << bid_sum << ' ' << orders.base << endl
-            << "Sell Total: " << ask_sum << ' ' << orders.base << endl;
+         ss << std::endl
+            << "Buy Total:  " << bid_sum << ' ' << orders.base << std::endl
+            << "Sell Total: " << ask_sum << ' ' << orders.base << std::endl;
 
          return ss.str();
       };
