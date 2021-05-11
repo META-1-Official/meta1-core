@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
    try {
 
       // Proceeds to a recent hard fork
-      generate_blocks( HARDFORK_BSIP_86_TIME );
+      generate_blocks( HARDFORK_LIQUIDITY_POOL_TIME - fc::days(1));
       generate_block();
       set_expiration( db, trx );
 
@@ -650,7 +650,7 @@ BOOST_AUTO_TEST_CASE( deposit_withdrawal_test )
 
       // Able to deposit more
       deposit_to_liquidity_pool( sam_id, lp_id, asset( 2, eur_id ), asset( 2, usd_id ) );
-
+/* Disabling of supply is not an enabled feature in META1
       // update flag to disable creation of new supply
       auop.new_options.flags |= disable_new_supply;
       trx.operations.clear();
@@ -662,7 +662,7 @@ BOOST_AUTO_TEST_CASE( deposit_withdrawal_test )
       // Unable to deposit more
       BOOST_CHECK_THROW( deposit_to_liquidity_pool( sam_id, lp_id, asset( 2, eur_id ), asset( 2, usd_id ) ),
                          fc::exception );
-
+*/
       generate_block();
 
    } catch (fc::exception& e) {
