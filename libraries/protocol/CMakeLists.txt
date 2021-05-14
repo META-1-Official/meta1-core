@@ -19,6 +19,7 @@ list(APPEND SOURCES account.cpp
                     committee_member.cpp
                     custom.cpp
                     market.cpp
+                    liquidity_pool.cpp
                     operations.cpp
                     pts_address.cpp
                     small_ops.cpp

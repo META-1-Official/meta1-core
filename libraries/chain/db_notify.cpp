@@ -18,6 +18,7 @@
 #include <graphene/chain/transaction_history_object.hpp>
 #include <graphene/chain/property_object.hpp>
 #include <graphene/chain/asset_limitation_object.hpp>
+#include <graphene/chain/liquidity_pool_object.hpp>
 #include <graphene/chain/impacted.hpp>
 
 using namespace fc;
@@ -306,6 +307,26 @@ struct get_impacted_account_visitor
    {
       _impacted.insert(op.fee_payer());
    }
+   void operator()( const liquidity_pool_create_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // account
+   }
+   void operator()( const liquidity_pool_delete_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // account
+   }
+   void operator()( const liquidity_pool_deposit_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // account
+   }
+   void operator()( const liquidity_pool_withdraw_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // account
+   }
+   void operator()( const liquidity_pool_exchange_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // account
+   }
 
 };
 
@@ -409,6 +430,9 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
            const auto &aobj = dynamic_cast<const asset_limitation_object *>(obj);
            FC_ASSERT(aobj != nullptr);
            accounts.insert(aobj->issuer);
+           break;
+        } case liquidity_pool_object_type:{
+           // no account info in the object although it does have an owner
            break;
         }
       }

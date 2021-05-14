@@ -41,6 +41,7 @@
 #include <graphene/chain/worker_object.hpp>
 #include <graphene/chain/htlc_object.hpp>
 #include <graphene/chain/proposal_object.hpp>
+#include <graphene/chain/hardfork_visitor.hpp>
 
 #include <graphene/utilities/tempdir.hpp>
 
@@ -515,6 +516,11 @@ void database_fixture::verify_asset_supplies( const database& db )
       total_balances[ asset_id_type() ] += fba.accumulated_fba_fees;
    for( const balance_object& bo : db.get_index_type< balance_index >().indices() )
       total_balances[ bo.balance.asset_id ] += bo.balance.amount;
+   for( const liquidity_pool_object& o : db.get_index_type<liquidity_pool_index>().indices() )
+   {
+      total_balances[o.asset_a] += o.balance_a;
+      total_balances[o.asset_b] += o.balance_b;
+   }
 
    total_balances[asset_id_type()] += db.get_dynamic_global_properties().witness_budget;
 
@@ -788,6 +794,7 @@ void database_fixture::issue_uia( const account_object& recipient, asset amount 
    op.issuer = amount.asset_id(db).issuer;
    op.asset_to_issue = amount;
    op.issue_to_account = recipient.id;
+   trx.operations.clear();
    trx.operations.push_back(op);
    PUSH_TX( db, trx, ~0 );
    trx.operations.clear();
@@ -796,6 +803,20 @@ void database_fixture::issue_uia( const account_object& recipient, asset amount 
 void database_fixture::issue_uia( account_id_type recipient_id, asset amount )
 {
    issue_uia( recipient_id(db), amount );
+}
+
+void database_fixture::reserve_asset( account_id_type account, asset amount )
+{
+   BOOST_TEST_MESSAGE( "Reserving asset" );
+   asset_reserve_operation op;
+   op.payer = account;
+   op.amount_to_reserve = amount;
+   trx.operations.clear();
+   trx.operations.push_back(op);
+   set_expiration( db, trx );
+   trx.validate();
+   PUSH_TX( db, trx, ~0 );
+   trx.operations.clear();
 }
 
 void database_fixture::change_fees(
@@ -1232,6 +1253,156 @@ void database_fixture::fund_fee_pool( const account_object& from, const asset_ob
    verify_asset_supplies(db);
 }
 
+
+liquidity_pool_create_operation database_fixture::make_liquidity_pool_create_op(
+                                                  account_id_type account, asset_id_type asset_a,
+                                                  asset_id_type asset_b, asset_id_type share_asset,
+                                                  uint16_t taker_fee_percent, uint16_t withdrawal_fee_percent )const
+{
+   liquidity_pool_create_operation op;
+   op.account = account;
+   op.asset_a = asset_a;
+   op.asset_b = asset_b;
+   op.share_asset = share_asset;
+   op.taker_fee_percent = taker_fee_percent;
+   op.withdrawal_fee_percent = withdrawal_fee_percent;
+   return op;
+}
+
+const liquidity_pool_object& database_fixture::create_liquidity_pool( account_id_type account, asset_id_type asset_a,
+                                                  asset_id_type asset_b, asset_id_type share_asset,
+                                                  uint16_t taker_fee_percent, uint16_t withdrawal_fee_percent )
+{
+   liquidity_pool_create_operation op = make_liquidity_pool_create_op( account, asset_a, asset_b, share_asset,
+                                                                       taker_fee_percent, withdrawal_fee_percent );
+   trx.operations.clear();
+   trx.operations.push_back( op );
+
+   for( auto& o : trx.operations ) db.current_fee_schedule().set_fee(o);
+   trx.validate();
+   set_expiration( db, trx );
+   processed_transaction ptx = PUSH_TX(db, trx, ~0);
+   const operation_result& op_result = ptx.operation_results.front();
+   trx.operations.clear();
+   verify_asset_supplies(db);
+   return db.get<liquidity_pool_object>( *op_result.get<generic_operation_result>().new_objects.begin() );
+}
+
+liquidity_pool_delete_operation database_fixture::make_liquidity_pool_delete_op( account_id_type account,
+                                                  liquidity_pool_id_type pool )const
+{
+   liquidity_pool_delete_operation op;
+   op.account = account;
+   op.pool = pool;
+   return op;
+}
+
+generic_operation_result database_fixture::delete_liquidity_pool( account_id_type account,
+                                                  liquidity_pool_id_type pool )
+{
+   liquidity_pool_delete_operation op = make_liquidity_pool_delete_op( account, pool );
+   trx.operations.clear();
+   trx.operations.push_back( op );
+
+   for( auto& o : trx.operations ) db.current_fee_schedule().set_fee(o);
+   trx.validate();
+   set_expiration( db, trx );
+   processed_transaction ptx = PUSH_TX(db, trx, ~0);
+   const operation_result& op_result = ptx.operation_results.front();
+   trx.operations.clear();
+   verify_asset_supplies(db);
+   return op_result.get<generic_operation_result>();
+}
+
+liquidity_pool_deposit_operation database_fixture::make_liquidity_pool_deposit_op( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_a,
+                                                  const asset& amount_b )const
+{
+   liquidity_pool_deposit_operation op;
+   op.account = account;
+   op.pool = pool;
+   op.amount_a = amount_a;
+   op.amount_b = amount_b;
+   return op;
+}
+
+generic_exchange_operation_result database_fixture::deposit_to_liquidity_pool( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_a,
+                                                  const asset& amount_b )
+{
+   liquidity_pool_deposit_operation op = make_liquidity_pool_deposit_op( account, pool, amount_a, amount_b );
+   trx.operations.clear();
+   trx.operations.push_back( op );
+
+   for( auto& o : trx.operations ) db.current_fee_schedule().set_fee(o);
+   trx.validate();
+   set_expiration( db, trx );
+   processed_transaction ptx = PUSH_TX(db, trx, ~0);
+   const operation_result& op_result = ptx.operation_results.front();
+   trx.operations.clear();
+   verify_asset_supplies(db);
+   return op_result.get<generic_exchange_operation_result>();
+}
+
+liquidity_pool_withdraw_operation database_fixture::make_liquidity_pool_withdraw_op( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& share_amount )const
+{
+   liquidity_pool_withdraw_operation op;
+   op.account = account;
+   op.pool = pool;
+   op.share_amount = share_amount;
+   return op;
+}
+
+generic_exchange_operation_result database_fixture::withdraw_from_liquidity_pool( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& share_amount )
+{
+   liquidity_pool_withdraw_operation op = make_liquidity_pool_withdraw_op( account, pool, share_amount );
+   trx.operations.clear();
+   trx.operations.push_back( op );
+
+   for( auto& o : trx.operations ) db.current_fee_schedule().set_fee(o);
+   trx.validate();
+   set_expiration( db, trx );
+   processed_transaction ptx = PUSH_TX(db, trx, ~0);
+   const operation_result& op_result = ptx.operation_results.front();
+   trx.operations.clear();
+   verify_asset_supplies(db);
+   return op_result.get<generic_exchange_operation_result>();
+}
+
+liquidity_pool_exchange_operation database_fixture::make_liquidity_pool_exchange_op( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_to_sell,
+                                                  const asset& min_to_receive )const
+{
+   liquidity_pool_exchange_operation op;
+   op.account = account;
+   op.pool = pool;
+   op.amount_to_sell = amount_to_sell;
+   op.min_to_receive = min_to_receive;
+   return op;
+}
+
+generic_exchange_operation_result database_fixture::exchange_with_liquidity_pool( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_to_sell,
+                                                  const asset& min_to_receive )
+{
+   liquidity_pool_exchange_operation op = make_liquidity_pool_exchange_op( account, pool, amount_to_sell,
+                                                                           min_to_receive );
+   trx.operations.clear();
+   trx.operations.push_back( op );
+
+   for( auto& o : trx.operations ) db.current_fee_schedule().set_fee(o);
+   trx.validate();
+   set_expiration( db, trx );
+   processed_transaction ptx = PUSH_TX(db, trx, ~0);
+   const operation_result& op_result = ptx.operation_results.front();
+   trx.operations.clear();
+   verify_asset_supplies(db);
+   return op_result.get<generic_exchange_operation_result>();
+}
+
+
 void database_fixture::enable_fees()
 {
    db.modify(global_property_id_type()(db), [](global_property_object& gpo)
@@ -1481,14 +1652,15 @@ void database_fixture::set_htlc_committee_parameters()
    std::shared_ptr<fee_schedule_type> new_fee_schedule = std::make_shared<fee_schedule_type>();
    new_fee_schedule->scale = GRAPHENE_100_PERCENT;
    // replace the old with the new
-   flat_map<uint64_t, graphene::chain::fee_parameters> params_map = get_htlc_fee_parameters();
+   flat_map<uint64_t, graphene::chain::fee_parameters> htlc_fees = get_htlc_fee_parameters();
    for(auto param : existing_fee_schedule.parameters)
    {
-      auto itr = params_map.find(param.which());
-      if (itr == params_map.end())
-         new_fee_schedule->parameters.insert(param);
-      else
-      {
+      auto itr = htlc_fees.find(param.which());
+      if (itr == htlc_fees.end()) {
+         // Only define fees for operations which are already forked in!
+         if (hardfork_visitor(db.head_block_time()).visit(param.which()))
+            new_fee_schedule->parameters.insert(param);
+      } else {
          new_fee_schedule->parameters.insert( (*itr).second);
       }
    }
@@ -1505,6 +1677,7 @@ void database_fixture::set_htlc_committee_parameters()
    uop.new_parameters.current_fees = new_fee_schedule;
    cop.proposed_ops.emplace_back(uop);
 
+   trx.operations.clear();
    trx.operations.push_back(cop);
    graphene::chain::processed_transaction proc_trx = db.push_transaction(trx);
    trx.clear();

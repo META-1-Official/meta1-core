@@ -420,9 +420,16 @@ namespace graphene { namespace chain {
          // helpers to fill_order
          void pay_order( const account_object& receiver, const asset& receives, const asset& pays );
 
-         asset calculate_market_fee(const asset_object& recv_asset, const asset& trade_amount, const bool& is_maker);
+         /**
+          * @brief Calculate the market fee that is to be taken
+          * @param trade_asset the asset (passed in to avoid a lookup)
+          * @param trade_amount the quantity that the fee calculation is based upon
+          * @param is_maker TRUE if this is the fee for a maker, FALSE if taker
+          */
+         asset calculate_market_fee( const asset_object& trade_asset, const asset& trade_amount,
+                                     const bool& is_maker )const;
          asset pay_market_fees(const account_object* seller, const asset_object& recv_asset, const asset& receives,
-                               const bool& is_maker);
+                               const bool& is_maker, const optional<asset>& calculated_market_fees = {});
          ///@}
 
 
