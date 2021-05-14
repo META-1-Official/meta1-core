@@ -935,7 +935,9 @@ bool database::fill_settle_order( const force_settlement_object& settle, const a
 { try {
    bool filled = false;
 
-   auto issuer_fees = pay_market_fees(get(receives.asset_id), receives);
+   auto issuer_fees = ( head_block_time() < HARDFORK_CORE_1780_TIME ) ?
+      pay_market_fees(get(receives.asset_id), receives) :
+      pay_market_fees(settle.owner(*this), get(receives.asset_id), receives);
 
    if( pays < settle.balance )
    {
@@ -1249,7 +1251,13 @@ asset database::pay_market_fees(const account_object& seller, const asset_object
             if ( reward_value > 0 && is_authorized_asset(*this, seller.registrar(*this), recv_asset) )
             {
                reward = recv_asset.amount(reward_value);
-               FC_ASSERT( reward < issuer_fees, "Market reward should be less than issuer fees");
+               // TODO after hf_1774, remove the `if` check, keep the code in `else`
+               if( head_block_time() < HARDFORK_1774_TIME ){
+                  FC_ASSERT( reward < issuer_fees, "Market reward should be less than issuer fees");
+               }
+               else{
+                  FC_ASSERT( reward <= issuer_fees, "Market reward should not be greater than issuer fees");
+               }
                // cut referrer percent from reward
                auto registrar_reward = reward;
                if( seller.referrer != seller.registrar )
@@ -1266,15 +1274,19 @@ asset database::pay_market_fees(const account_object& seller, const asset_object
                      deposit_market_fee_vesting_balance(seller.referrer, referrer_reward);
                   }
                }
-               deposit_market_fee_vesting_balance(seller.registrar, registrar_reward);
+               if( registrar_reward.amount > 0 )
+                  deposit_market_fee_vesting_balance(seller.registrar, registrar_reward);
             }
          }
       }
 
-      const auto& recv_dyn_data = recv_asset.dynamic_asset_data_id(*this);
-      modify( recv_dyn_data, [&issuer_fees, &reward]( asset_dynamic_data_object& obj ){
-         obj.accumulated_fees += issuer_fees.amount - reward.amount;
-      });
+      if( issuer_fees.amount > reward.amount )
+      {
+         const auto& recv_dyn_data = recv_asset.dynamic_asset_data_id(*this);
+         modify( recv_dyn_data, [&issuer_fees, &reward]( asset_dynamic_data_object& obj ){
+            obj.accumulated_fees += issuer_fees.amount - reward.amount;
+         });
+      }
    }
 
    return issuer_fees;
