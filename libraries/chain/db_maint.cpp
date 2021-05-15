@@ -1098,6 +1098,7 @@ void process_hf_868_890( database& db, bool skip_check_call_orders )
    wlog( "Done processing hard fork core-868-890 at block ${n}", ("n",head_num) );
 }
 
+
 /******
  * @brief one-time data process for hard fork core-935
  *

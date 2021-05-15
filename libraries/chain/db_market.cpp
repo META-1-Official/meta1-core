@@ -822,9 +822,7 @@ bool database::fill_limit_order( const limit_order_object& order, const asset& p
    const account_object& seller = order.seller(*this);
    const asset_object& recv_asset = receives.asset_id(*this);
 
-   auto issuer_fees = ( head_block_time() < HARDFORK_1268_TIME ) ? 
-      pay_market_fees(recv_asset, receives) : 
-      pay_market_fees(seller, recv_asset, receives);
+   auto issuer_fees = pay_market_fees(&seller, recv_asset, receives, is_maker);
 
    pay_order( seller, receives - issuer_fees, pays );
 
@@ -935,7 +933,16 @@ bool database::fill_settle_order( const force_settlement_object& settle, const a
 { try {
    bool filled = false;
 
-   auto issuer_fees = pay_market_fees(get(receives.asset_id), receives);
+   const account_object* settle_owner_ptr = nullptr;
+   // The owner of the settle order pays market fees to the issuer of the collateral asset after HF core-1780
+   //
+   // TODO Check whether the HF check can be removed after the HF.
+   //      Note: even if logically it can be removed, perhaps the removal will lead to a small performance
+   //            loss. Needs testing.
+   if( head_block_time() >= HARDFORK_CORE_1780_TIME )
+      settle_owner_ptr = &settle.owner(*this);
+
+   auto issuer_fees = pay_market_fees( settle_owner_ptr, get(receives.asset_id), receives, is_maker );
 
    if( pays < settle.balance )
    {
@@ -1189,16 +1196,32 @@ void database::pay_order( const account_object& receiver, const asset& receives,
    adjust_balance(receiver.get_id(), receives);
 }
 
-asset database::calculate_market_fee( const asset_object& trade_asset, const asset& trade_amount )
+asset database::calculate_market_fee( const asset_object& trade_asset, const asset& trade_amount,
+                                      const bool& is_maker )const
 {
    assert( trade_asset.id == trade_amount.asset_id );
 
    if( !trade_asset.charges_market_fees() )
       return trade_asset.amount(0);
-   if( trade_asset.options.market_fee_percent == 0 )
+   // Optimization: The fee is zero if the order is a maker, and the maker fee percent is 0%
+   if( is_maker && trade_asset.options.market_fee_percent == 0 )
       return trade_asset.amount(0);
 
-   auto value = detail::calculate_percent(trade_amount.amount, trade_asset.options.market_fee_percent);
+   // Optimization: The fee is zero if the order is a taker, and the taker fee percent is 0%
+   const optional<uint16_t>& taker_fee_percent = trade_asset.options.extensions.value.taker_fee_percent;
+   if(!is_maker && taker_fee_percent.valid() && *taker_fee_percent == 0)
+      return trade_asset.amount(0);
+
+   uint16_t fee_percent;
+   if (is_maker) {
+      // Maker orders are charged the maker fee percent
+      fee_percent = trade_asset.options.market_fee_percent;
+   } else {
+      // Taker orders are charged the taker fee percent if they are valid.  Otherwise, the maker fee percent.
+      fee_percent = taker_fee_percent.valid() ? *taker_fee_percent : trade_asset.options.market_fee_percent;
+   }
+
+   auto value = detail::calculate_percent(trade_amount.amount, fee_percent);
    asset percent_fee = trade_asset.amount(value);
 
    if( percent_fee.amount > trade_asset.options.max_market_fee )
@@ -1207,27 +1230,12 @@ asset database::calculate_market_fee( const asset_object& trade_asset, const ass
    return percent_fee;
 }
 
-asset database::pay_market_fees( const asset_object& recv_asset, const asset& receives )
+asset database::pay_market_fees(const account_object* seller, const asset_object& recv_asset, const asset& receives,
+                                const bool& is_maker, const optional<asset>& calculated_market_fees )
 {
-   auto issuer_fees = calculate_market_fee( recv_asset, receives );
-   FC_ASSERT( issuer_fees <= receives, "Market fee shouldn't be greater than receives");
-
-   //Don't dirty undo state if not actually collecting any fees
-   if( issuer_fees.amount > 0 )
-   {
-      const auto& recv_dyn_data = recv_asset.dynamic_asset_data_id(*this);
-      modify( recv_dyn_data, [&]( asset_dynamic_data_object& obj ){
-                   //idump((issuer_fees));
-         obj.accumulated_fees += issuer_fees.amount;
-      });
-   }
-
-   return issuer_fees;
-}
-
-asset database::pay_market_fees(const account_object& seller, const asset_object& recv_asset, const asset& receives )
-{
-   const auto issuer_fees = calculate_market_fee( recv_asset, receives );
+   const auto market_fees = ( calculated_market_fees.valid() ? *calculated_market_fees
+                                    : calculate_market_fee( recv_asset, receives, is_maker ) );
+   auto issuer_fees = market_fees;
    FC_ASSERT( issuer_fees <= receives, "Market fee shouldn't be greater than receives");
    //Don't dirty undo state if not actually collecting any fees
    if ( issuer_fees.amount > 0 )
@@ -1235,9 +1243,12 @@ asset database::pay_market_fees(const account_object& seller, const asset_object
       // calculate and pay rewards
       asset reward = recv_asset.amount(0);
 
-      auto is_rewards_allowed = [&recv_asset, &seller]() {
+      auto is_rewards_allowed = [&recv_asset, seller]() {
+         if (seller == nullptr)
+            return false;
          const auto &white_list = recv_asset.options.extensions.value.whitelist_market_fee_sharing;
-         return ( !white_list || (*white_list).empty() || ( (*white_list).find(seller.registrar) != (*white_list).end() ) );
+         return ( !white_list || (*white_list).empty() 
+               || ( (*white_list).find(seller->registrar) != (*white_list).end() ) );
       };
 
       if ( is_rewards_allowed() )
@@ -1246,35 +1257,45 @@ asset database::pay_market_fees(const account_object& seller, const asset_object
          if ( reward_percent && *reward_percent )
          {
             const auto reward_value = detail::calculate_percent(issuer_fees.amount, *reward_percent);
-            if ( reward_value > 0 && is_authorized_asset(*this, seller.registrar(*this), recv_asset) )
+            if ( reward_value > 0 && is_authorized_asset(*this, seller->registrar(*this), recv_asset) )
             {
                reward = recv_asset.amount(reward_value);
-               FC_ASSERT( reward < issuer_fees, "Market reward should be less than issuer fees");
+               // TODO after hf_1774, remove the `if` check, keep the code in `else`
+               if( head_block_time() < HARDFORK_1774_TIME ){
+                  FC_ASSERT( reward < issuer_fees, "Market reward should be less than issuer fees");
+               }
+               else{
+                  FC_ASSERT( reward <= issuer_fees, "Market reward should not be greater than issuer fees");
+               }
                // cut referrer percent from reward
                auto registrar_reward = reward;
-               if( seller.referrer != seller.registrar )
+               if( seller->referrer != seller->registrar )
                {
                   const auto referrer_rewards_value = detail::calculate_percent( reward.amount,
-                                                                                 seller.referrer_rewards_percentage );
+                                                                                 seller->referrer_rewards_percentage );
 
-                  if ( referrer_rewards_value > 0 && is_authorized_asset(*this, seller.referrer(*this), recv_asset) )
+                  if ( referrer_rewards_value > 0 && is_authorized_asset(*this, seller->referrer(*this), recv_asset) )
                   {
                      FC_ASSERT ( referrer_rewards_value <= reward.amount.value,
                                  "Referrer reward shouldn't be greater than total reward" );
                      const asset referrer_reward = recv_asset.amount(referrer_rewards_value);
                      registrar_reward -= referrer_reward;
-                     deposit_market_fee_vesting_balance(seller.referrer, referrer_reward);
+                     deposit_market_fee_vesting_balance(seller->referrer, referrer_reward);
                   }
                }
-               deposit_market_fee_vesting_balance(seller.registrar, registrar_reward);
+               if( registrar_reward.amount > 0 )
+                  deposit_market_fee_vesting_balance(seller->registrar, registrar_reward);
             }
          }
       }
 
-      const auto& recv_dyn_data = recv_asset.dynamic_asset_data_id(*this);
-      modify( recv_dyn_data, [&issuer_fees, &reward]( asset_dynamic_data_object& obj ){
-         obj.accumulated_fees += issuer_fees.amount - reward.amount;
-      });
+      if( issuer_fees.amount > reward.amount )
+      {
+         const auto& recv_dyn_data = recv_asset.dynamic_asset_data_id(*this);
+         modify( recv_dyn_data, [&issuer_fees, &reward]( asset_dynamic_data_object& obj ){
+            obj.accumulated_fees += issuer_fees.amount - reward.amount;
+         });
+      }
    }
 
    return issuer_fees;

@@ -36,16 +36,24 @@
 
 namespace graphene { namespace chain {
 namespace detail {
-   // TODO review and remove code below and links to it after hf_1268
-   void check_asset_options_hf_1268(const fc::time_point_sec& block_time, const asset_options& options)
+   // TODO review and remove code below and links to it after hf_1774
+   void check_asset_options_hf_1774(const fc::time_point_sec& block_time, const asset_options& options)
    {
-      if( block_time < HARDFORK_1268_TIME )
+      if( block_time < HARDFORK_1774_TIME )
       {
-         FC_ASSERT( !options.extensions.value.reward_percent.valid(),
-            "Asset extension reward percent is only available after HARDFORK_1268_TIME!");
+         FC_ASSERT( !options.extensions.value.reward_percent.valid() ||
+                    *options.extensions.value.reward_percent < GRAPHENE_100_PERCENT,
+            "Asset extension reward percent must be less than 100% till HARDFORK_1774_TIME!");
+      }
+   }
 
-         FC_ASSERT( !options.extensions.value.whitelist_market_fee_sharing.valid(),
-            "Asset extension whitelist_market_fee_sharing is only available after HARDFORK_1268_TIME!");
+   // TODO review and remove code below and links to it after HARDFORK_BSIP_81_TIME
+   void check_asset_options_hf_bsip81(const fc::time_point_sec& block_time, const asset_options& options)
+   {
+      if (block_time < HARDFORK_BSIP_81_TIME) {
+         // Taker fees should be zero until activation of BSIP81
+         FC_ASSERT(!options.extensions.value.taker_fee_percent.valid(),
+                   "Taker fee percent should not be defined before HARDFORK_BSIP_81_TIME");
       }
    }
 }
@@ -53,13 +61,13 @@ namespace detail {
 void_result asset_create_evaluator::do_evaluate( const asset_create_operation& op )
 { try {
 
-   database& d = db();
+   const database& d = db();
 
    const auto& chain_parameters = d.get_global_properties().parameters;
    FC_ASSERT( op.common_options.whitelist_authorities.size() <= chain_parameters.maximum_asset_whitelist_authorities );
    FC_ASSERT( op.common_options.blacklist_authorities.size() <= chain_parameters.maximum_asset_whitelist_authorities );
 
-   detail::check_asset_options_hf_1268(d.head_block_time(), op.common_options);
+   detail::check_asset_options_hf_1774(d.head_block_time(), op.common_options);
 
    // Check that all authorities do exist
    for( auto id : op.common_options.whitelist_authorities )
@@ -71,7 +79,10 @@ void_result asset_create_evaluator::do_evaluate( const asset_create_operation& o
    auto asset_symbol_itr = asset_indx.find( op.symbol );
    FC_ASSERT( asset_symbol_itr == asset_indx.end() );
 
-   if( d.head_block_time() > HARDFORK_385_TIME )
+   // Define now from the current block time
+   const time_point_sec now = d.head_block_time();
+   // This must remain due to "BOND.CNY" being allowed before this HF
+   if( now > HARDFORK_385_TIME )
    {
       auto dotpos = op.symbol.rfind( '.' );
       if( dotpos != std::string::npos )
@@ -113,6 +124,9 @@ void_result asset_create_evaluator::do_evaluate( const asset_create_operation& o
       FC_ASSERT( op.bitasset_opts );
       FC_ASSERT( op.precision == op.bitasset_opts->short_backing_asset(d).precision );
    }
+
+   // Check the taker fee percent
+   detail::check_asset_options_hf_bsip81(now, op.common_options);
 
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (op) ) }
@@ -181,6 +195,8 @@ void_result asset_issue_evaluator::do_evaluate( const asset_issue_operation& o )
    FC_ASSERT( o.issuer == a.issuer );
    FC_ASSERT( !a.is_market_issued(), "Cannot manually issue a market-issued asset." );
 
+   FC_ASSERT( !a.is_liquidity_pool_share_asset(), "Cannot manually issue a liquidity pool share asset." );
+
    to_account = &o.issue_to_account(d);
    FC_ASSERT( is_authorized_asset( d, *to_account, a ) );
 
@@ -213,11 +229,21 @@ void_result asset_reserve_evaluator::do_evaluate( const asset_reserve_operation&
       ("sym", a.symbol)
    );
 
-   from_account = &o.payer(d);
+   from_account = fee_paying_account;
    FC_ASSERT( is_authorized_asset( d, *from_account, a ) );
 
    asset_dyn_data = &a.dynamic_asset_data_id(d);
-   FC_ASSERT( (asset_dyn_data->current_supply - o.amount_to_reserve.amount) >= 0 );
+   if( !a.is_liquidity_pool_share_asset() )
+   {
+      FC_ASSERT( asset_dyn_data->current_supply >= o.amount_to_reserve.amount,
+                 "Can not reserve an amount that is more than the current supply" );
+   }
+   else
+   {
+      FC_ASSERT( asset_dyn_data->current_supply > o.amount_to_reserve.amount,
+                 "The asset is a liquidity pool share asset thus can only reserve an amount "
+                 "that is less than the current supply" );
+   }
 
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (o) ) }
@@ -274,7 +300,8 @@ static void validate_new_issuer( const database& d, const asset_object& a, accou
 
 void_result asset_update_evaluator::do_evaluate(const asset_update_operation& o)
 { try {
-   database& d = db();
+   const database& d = db();
+   const time_point_sec now = d.head_block_time();
 
    const asset_object& a = o.asset_to_update(d);
    auto a_copy = a;
@@ -283,12 +310,12 @@ void_result asset_update_evaluator::do_evaluate(const asset_update_operation& o)
 
    if( o.new_issuer )
    {
-      FC_ASSERT( d.head_block_time() < HARDFORK_CORE_199_TIME,
+      FC_ASSERT( now  < HARDFORK_CORE_199_TIME,
                  "Since Hardfork #199, updating issuer requires the use of asset_update_issuer_operation.");
       validate_new_issuer( d, a, *o.new_issuer );
    }
 
-   detail::check_asset_options_hf_1268(d.head_block_time(), o.new_options);
+   detail::check_asset_options_hf_1774(d.head_block_time(), o.new_options);
 
    if( (d.head_block_time() < HARDFORK_572_TIME) || (a.dynamic_asset_data_id(d).current_supply != 0) )
    {
@@ -314,6 +341,9 @@ void_result asset_update_evaluator::do_evaluate(const asset_update_operation& o)
    FC_ASSERT( o.new_options.blacklist_authorities.size() <= chain_parameters.maximum_asset_whitelist_authorities );
    for( auto id : o.new_options.blacklist_authorities )
       d.get_object(id);
+
+   // Check the taker fee percent
+   detail::check_asset_options_hf_bsip81(now, o.new_options);
 
    return void_result();
 } FC_CAPTURE_AND_RETHROW((o)) }
@@ -466,6 +496,7 @@ void_result asset_update_bitasset_evaluator::do_evaluate(const asset_update_bita
 
    FC_ASSERT( !current_bitasset_data.has_settlement(), "Cannot update a bitasset after a global settlement has executed" );
 
+   // hf 922_931 is a consensus/logic change. This hf cannot be removed.
    bool after_hf_core_922_931 = ( d.get_dynamic_global_properties().next_maintenance_time > HARDFORK_CORE_922_931_TIME );
 
    // Are we changing the backing asset?
@@ -895,7 +926,20 @@ operation_result asset_settle_evaluator::do_apply(const asset_settle_evaluator::
             obj.settlement_fund -= settled_amount.amount;
          });
 
-         d.adjust_balance( op.account, settled_amount );
+         // The account who settles pays market fees to the issuer of the collateral asset after HF core-1780
+         //
+         // TODO Check whether the HF check can be removed after the HF.
+         //      Note: even if logically it can be removed, perhaps the removal will lead to a small
+         //            performance loss. Needs testing.
+         if( d.head_block_time() >= HARDFORK_CORE_1780_TIME )
+         {
+	    const bool is_maker = false; // Settlement orders are takers
+            auto issuer_fees = d.pay_market_fees( fee_paying_account, settled_amount.asset_id(d), settled_amount , is_maker );
+            settled_amount -= issuer_fees;
+         }
+
+         if( settled_amount.amount > 0 )
+            d.adjust_balance( op.account, settled_amount );
       }
 
       d.modify( mia_dyn, [&]( asset_dynamic_data_object& obj ){
