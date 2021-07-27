@@ -59,3 +59,5 @@ object_database/*
 *.pyc
 *.pyo
 .vscode/*
+
+build/

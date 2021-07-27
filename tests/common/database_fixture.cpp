@@ -41,6 +41,7 @@
 #include <graphene/chain/worker_object.hpp>
 #include <graphene/chain/htlc_object.hpp>
 #include <graphene/chain/proposal_object.hpp>
+#include <graphene/chain/hardfork_visitor.hpp>
 
 #include <graphene/utilities/tempdir.hpp>
 
@@ -59,6 +60,8 @@ namespace graphene { namespace chain {
 using std::cout;
 using std::cerr;
 
+namespace buf = boost::unit_test::framework;
+
 void clearable_block::clear()
 {
    _calculated_merkle_root = checksum_type();
@@ -70,18 +73,24 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    : app(), db( *app.chain_database() )
 {
    try {
-   int argc = boost::unit_test::framework::master_test_suite().argc;
-   char** argv = boost::unit_test::framework::master_test_suite().argv;
+   int argc = buf::master_test_suite().argc;
+   char** argv = buf::master_test_suite().argv;
    for( int i=1; i<argc; i++ )
    {
       const std::string arg = argv[i];
       if( arg == "--record-assert-trip" )
          fc::enable_record_assert_trip = true;
       if( arg == "--show-test-names" )
-         std::cout << "running test " << boost::unit_test::framework::current_test_case().p_name << std::endl;
+         std::cout << "running test " << buf::current_test_case().p_name << std::endl;
    }
-   auto mhplugin = app.register_plugin<graphene::market_history::market_history_plugin>();
-   auto goplugin = app.register_plugin<graphene::grouped_orders::grouped_orders_plugin>();
+
+   const auto current_test_name = buf::current_test_case().p_name.value;
+   const auto current_test_suite_id = buf::current_test_case().p_parent_id;
+   const auto current_suite_name = buf::get<boost::unit_test::test_suite>(current_test_suite_id).p_name.value;
+
+   auto mhplugin = app.register_plugin<graphene::market_history::market_history_plugin>(true);
+   auto goplugin = app.register_plugin<graphene::grouped_orders::grouped_orders_plugin>(true);
+
    init_account_pub_key = init_account_priv_key.get_public_key();
 
    boost::program_options::variables_map options;
@@ -89,7 +98,7 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    genesis_state.initial_timestamp = initial_timestamp;
    genesis_state.max_core_supply = 100000000000000; // From "Genesis for softrelease"
 
-   if(boost::unit_test::framework::current_test_case().p_name.value == "hf_935_test") {
+   if(current_test_name == "hf_935_test") {
       genesis_state.initial_active_witnesses = 20;
    }
    else {
@@ -126,8 +135,6 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    /**
     * Test specific settings
     */
-   auto current_test_name = boost::unit_test::framework::current_test_case().p_name.value;
-   auto current_test_suite_id = boost::unit_test::framework::current_test_case().p_parent_id;
    if (current_test_name == "get_account_history_operations")
    {
       options.insert(std::make_pair("max-ops-per-account", boost::program_options::variable_value((uint64_t)75, false)));
@@ -136,73 +143,123 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    {
     options.insert(std::make_pair("max-ops-per-account", boost::program_options::variable_value((uint64_t)125, false)));
     options.insert(std::make_pair("api-limit-get-account-history-operations", boost::program_options::variable_value((uint64_t)300, false)));
-    options.insert(std::make_pair("plugins", boost::program_options::variable_value(string("account_history"), false)));
    }
    if(current_test_name =="api_limit_get_account_history")
    {
     options.insert(std::make_pair("max-ops-per-account", boost::program_options::variable_value((uint64_t)125, false)));
     options.insert(std::make_pair("api-limit-get-account-history", boost::program_options::variable_value((uint64_t)250, false)));
-    options.insert(std::make_pair("plugins", boost::program_options::variable_value(string("account_history"), false)));
    }
    if(current_test_name =="api_limit_get_grouped_limit_orders")
    {
     options.insert(std::make_pair("api-limit-get-grouped-limit-orders", boost::program_options::variable_value((uint64_t)250, false)));
-    options.insert(std::make_pair("plugins", boost::program_options::variable_value(string("grouped_orders"), false)));
    }
    if(current_test_name =="api_limit_get_relative_account_history")
    {
     options.insert(std::make_pair("max-ops-per-account", boost::program_options::variable_value((uint64_t)125, false)));
     options.insert(std::make_pair("api-limit-get-relative-account-history", boost::program_options::variable_value((uint64_t)250, false)));
-    options.insert(std::make_pair("plugins", boost::program_options::variable_value(string("account_history"), false)));
    }
    if(current_test_name =="api_limit_get_account_history_by_operations")
    {
     options.insert(std::make_pair("api-limit-get-account-history-by-operations", boost::program_options::variable_value((uint64_t)250, false)));
     options.insert(std::make_pair("api-limit-get-relative-account-history", boost::program_options::variable_value((uint64_t)250, false)));
-    options.insert(std::make_pair("plugins", boost::program_options::variable_value(string("account_history"), false)));
    }
    if(current_test_name =="api_limit_get_asset_holders")
    {
     options.insert(std::make_pair("api-limit-get-asset-holders", boost::program_options::variable_value((uint64_t)250, false)));
-    options.insert(std::make_pair("plugins", boost::program_options::variable_value(string("account_history"), false)));
    }
    if(current_test_name =="api_limit_get_key_references")
    {
     options.insert(std::make_pair("api-limit-get-key-references", boost::program_options::variable_value((uint64_t)200, false)));
-    options.insert(std::make_pair("plugins", boost::program_options::variable_value(string("account_history"), false)));
    }
    if(current_test_name =="api_limit_get_limit_orders")
    {
     options.insert(std::make_pair("api-limit-get-limit-orders", boost::program_options::variable_value(
        (uint64_t)350, false)));
-    options.insert(std::make_pair("plugins", boost::program_options::variable_value(
-       string("account_history"), false)));
+   }
+   if(current_test_name =="api_limit_get_limit_orders_by_account")
+   {
+    options.insert(std::make_pair("api-limit-get-limit-orders-by-account", boost::program_options::variable_value(
+       (uint64_t)150, false)));
    }
    if(current_test_name =="api_limit_get_call_orders")
    {
     options.insert(std::make_pair("api-limit-get-call-orders", boost::program_options::variable_value(
        (uint64_t)350, false)));
-    options.insert(std::make_pair("plugins", boost::program_options::variable_value(
-       string("account_history"), false)));
    }
    if(current_test_name =="api_limit_get_settle_orders")
    {
     options.insert(std::make_pair("api-limit-get-settle-orders", boost::program_options::variable_value(
        (uint64_t)350, false)));
-    options.insert(std::make_pair("plugins", boost::program_options::variable_value(
-       string("account_history"), false)));
    }
    if(current_test_name =="api_limit_get_order_book")
    {
     options.insert(std::make_pair("api-limit-get-order-book", boost::program_options::variable_value(
        (uint64_t)80, false)));
-    options.insert(std::make_pair("plugins", boost::program_options::variable_value(
-       string("account_history"), false)));
    }
-   if( current_test_name == "asset_in_collateral" )
+   if(current_test_name =="api_limit_lookup_accounts")
    {
-    options.insert( std::make_pair( "plugins",
-                                    boost::program_options::variable_value( string("api_helper_indexes"), false ) ) );
+      options.insert(std::make_pair("api-limit-lookup-accounts", boost::program_options::variable_value
+         ((uint64_t)200, false)));
+   }
+   if(current_test_name =="api_limit_lookup_witness_accounts")
+   {
+      options.insert(std::make_pair("api-limit-lookup-witness-accounts", boost::program_options::variable_value
+         ((uint64_t)200, false)));
+   }
+   if(current_test_name =="api_limit_lookup_committee_member_accounts")
+   {
+      options.insert(std::make_pair("api-limit-lookup-committee-member-accounts", boost::program_options::variable_value
+         ((uint64_t)200, false)));
+   }
+   if(current_test_name =="api_limit_lookup_committee_member_accounts")
+   {
+      options.insert(std::make_pair("api-limit-lookup-committee-member-accounts", boost::program_options::variable_value
+         ((uint64_t)200, false)));
+   }
+   if(current_test_name =="api_limit_lookup_vote_ids")
+   {
+      options.insert(std::make_pair("api-limit-lookup-vote-ids", boost::program_options::variable_value
+         ((uint64_t)3, false)));
+   }
+   if(current_test_name =="api_limit_get_account_limit_orders")
+   {
+      options.insert(std::make_pair("api-limit-get-account-limit-orders", boost::program_options::variable_value
+         ((uint64_t)250, false)));
+   }
+   if(current_test_name =="api_limit_get_collateral_bids")
+   {
+      options.insert(std::make_pair("api-limit-get-collateral-bids", boost::program_options::variable_value
+         ((uint64_t)250, false)));
+   }
+   if(current_test_name =="api_limit_get_top_markets")
+   {
+      options.insert(std::make_pair("api-limit-get-top-markets", boost::program_options::variable_value
+         ((uint64_t)250, false)));
+   }
+   if(current_test_name =="api_limit_get_trade_history")
+   {
+      options.insert(std::make_pair("api-limit-get-trade-history", boost::program_options::variable_value
+         ((uint64_t)250, false)));
+   }
+   if(current_test_name =="api_limit_get_trade_history_by_sequence")
+   {
+      options.insert(std::make_pair("api-limit-get-trade-history-by-sequence", boost::program_options::variable_value
+         ((uint64_t)250, false)));
+   }
+   if(current_test_name =="api_limit_get_withdraw_permissions_by_giver")
+   {
+      options.insert(std::make_pair("api-limit-get-withdraw-permissions-by-giver", boost::program_options::variable_value
+         ((uint64_t)250, false)));
+   }
+   if(current_test_name =="api_limit_get_withdraw_permissions_by_recipient")
+   {
+      options.insert(std::make_pair("api-limit-get-withdraw-permissions-by-recipient", boost::program_options::variable_value
+         ((uint64_t)250, false)));
+   }
+   if(current_test_name =="api_limit_get_full_accounts2")
+   {
+      options.insert(std::make_pair("api-limit-get-full-accounts", boost::program_options::variable_value
+         ((uint64_t)200, false)));
    }
 
    // add account tracking for ahplugin for special test case with track-account enabled
@@ -223,14 +280,14 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
       options.insert(std::make_pair("track-account", boost::program_options::variable_value(track_account, false)));
    }
    // standby votes tracking
-   if( boost::unit_test::framework::current_test_case().p_name.value == "track_votes_witnesses_disabled" ||
-       boost::unit_test::framework::current_test_case().p_name.value == "track_votes_committee_disabled") {
+   if( current_test_name == "track_votes_witnesses_disabled"
+          || current_test_name == "track_votes_committee_disabled") {
       app.chain_database()->enable_standby_votes_tracking( false );
    }
+   // load ES or AH, but not both
    if(current_test_name == "elasticsearch_account_history" || current_test_name == "elasticsearch_suite" ||
-      current_test_name == "elasticsearch_history_api") {
-      auto esplugin = app.register_plugin<graphene::elasticsearch::elasticsearch_plugin>();
-      esplugin->plugin_set_app(&app);
+         current_test_name == "elasticsearch_history_api") {
+      auto esplugin = app.register_plugin<graphene::elasticsearch::elasticsearch_plugin>(true);
 
       options.insert(std::make_pair("elasticsearch-node-url", boost::program_options::variable_value(string("http://localhost:9200/"), false)));
       options.insert(std::make_pair("elasticsearch-bulk-replay", boost::program_options::variable_value(uint32_t(2), false)));
@@ -244,27 +301,15 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
       esplugin->plugin_initialize(options);
       esplugin->plugin_startup();
    }
-   else if( boost::unit_test::framework::get<boost::unit_test::test_suite>(current_test_suite_id).p_name.value != "performance_tests" )
+   else if( current_suite_name != "performance_tests" )
    {
-      auto ahplugin = app.register_plugin<graphene::account_history::account_history_plugin>();
-      ahplugin->plugin_set_app(&app);
+      auto ahplugin = app.register_plugin<graphene::account_history::account_history_plugin>(true);
       ahplugin->plugin_initialize(options);
       ahplugin->plugin_startup();
-      if (current_test_name == "api_limit_get_account_history_operations" || current_test_name == "api_limit_get_account_history"
-      || current_test_name == "api_limit_get_grouped_limit_orders" || current_test_name == "api_limit_get_relative_account_history"
-      || current_test_name == "api_limit_get_account_history_by_operations" || current_test_name =="api_limit_get_asset_holders"
-      || current_test_name =="api_limit_get_key_references" || current_test_name =="api_limit_get_limit_orders"
-      || current_test_name =="api_limit_get_call_orders" || current_test_name =="api_limit_get_settle_orders"
-      || current_test_name =="api_limit_get_order_book")
-      {
-          app.initialize(graphene::utilities::temp_directory_path(), options);
-          app.set_api_limit();
-      }
    }
 
    if(current_test_name == "elasticsearch_objects" || current_test_name == "elasticsearch_suite") {
-      auto esobjects_plugin = app.register_plugin<graphene::es_objects::es_objects_plugin>();
-      esobjects_plugin->plugin_set_app(&app);
+      auto esobjects_plugin = app.register_plugin<graphene::es_objects::es_objects_plugin>(true);
 
       options.insert(std::make_pair("es-objects-elasticsearch-url", boost::program_options::variable_value(string("http://localhost:9200/"), false)));
       options.insert(std::make_pair("es-objects-bulk-replay", boost::program_options::variable_value(uint32_t(2), false)));
@@ -279,19 +324,23 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
       esobjects_plugin->plugin_initialize(options);
       esobjects_plugin->plugin_startup();
    }
-   else if( current_test_name == "asset_in_collateral" )
+
+   if( current_test_name == "asset_in_collateral"
+            || current_test_name == "htlc_database_api"
+            || current_suite_name == "database_api_tests"
+            || current_suite_name == "api_limit_tests" )
    {
-      auto ahiplugin = app.register_plugin<graphene::api_helper_indexes::api_helper_indexes>();
-      ahiplugin->plugin_set_app(&app);
+      auto ahiplugin = app.register_plugin<graphene::api_helper_indexes::api_helper_indexes>(true);
       ahiplugin->plugin_initialize(options);
       ahiplugin->plugin_startup();
    }
 
    options.insert(std::make_pair("bucket-size", boost::program_options::variable_value(string("[15]"),false)));
-   mhplugin->plugin_set_app(&app);
-   mhplugin->plugin_initialize(options);
 
-   goplugin->plugin_set_app(&app);
+   // apply api limits, initialize the "has_market_history_plugin" variable and etc in app_options
+   app.initialize(graphene::utilities::temp_directory_path(), options);
+
+   mhplugin->plugin_initialize(options);
    goplugin->plugin_initialize(options);
 
    mhplugin->plugin_startup();
@@ -304,13 +353,13 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    BOOST_CHECK( mpa1_id(db).bitasset_data(db).asset_id == mpa1_id );
 
    set_expiration( db, trx );
+
    } catch ( const fc::exception& e )
    {
       edump( (e.to_detail_string()) );
       throw;
    }
 
-   return;
 }
 
 database_fixture::~database_fixture()
@@ -323,7 +372,7 @@ database_fixture::~database_fixture()
          verify_asset_supplies(db);
          BOOST_CHECK( db.get_node_properties().skip_flags == database::skip_nothing );
       }
-      return;
+
    } catch (fc::exception& ex) {
       BOOST_FAIL( std::string("fc::exception in ~database_fixture: ") + ex.to_detail_string() );
    } catch (std::exception& e) {
@@ -447,6 +496,11 @@ void database_fixture::verify_asset_supplies( const database& db )
       total_balances[ asset_id_type() ] += fba.accumulated_fba_fees;
    for( const balance_object& bo : db.get_index_type< balance_index >().indices() )
       total_balances[ bo.balance.asset_id ] += bo.balance.amount;
+   for( const liquidity_pool_object& o : db.get_index_type<liquidity_pool_index>().indices() )
+   {
+      total_balances[o.asset_a] += o.balance_a;
+      total_balances[o.asset_b] += o.balance_b;
+   }
 
    total_balances[asset_id_type()] += db.get_dynamic_global_properties().witness_budget;
 
@@ -720,6 +774,7 @@ void database_fixture::issue_uia( const account_object& recipient, asset amount 
    op.issuer = amount.asset_id(db).issuer;
    op.asset_to_issue = amount;
    op.issue_to_account = recipient.id;
+   trx.operations.clear();
    trx.operations.push_back(op);
    PUSH_TX( db, trx, ~0 );
    trx.operations.clear();
@@ -730,8 +785,22 @@ void database_fixture::issue_uia( account_id_type recipient_id, asset amount )
    issue_uia( recipient_id(db), amount );
 }
 
+void database_fixture::reserve_asset( account_id_type account, asset amount )
+{
+   BOOST_TEST_MESSAGE( "Reserving asset" );
+   asset_reserve_operation op;
+   op.payer = account;
+   op.amount_to_reserve = amount;
+   trx.operations.clear();
+   trx.operations.push_back(op);
+   set_expiration( db, trx );
+   trx.validate();
+   PUSH_TX( db, trx, ~0 );
+   trx.operations.clear();
+}
+
 void database_fixture::change_fees(
-   const flat_set< fee_parameters >& new_params,
+   const fee_parameters::flat_set_type& new_params,
    uint32_t new_scale /* = 0 */
    )
 {
@@ -1164,6 +1233,156 @@ void database_fixture::fund_fee_pool( const account_object& from, const asset_ob
    verify_asset_supplies(db);
 }
 
+
+liquidity_pool_create_operation database_fixture::make_liquidity_pool_create_op(
+                                                  account_id_type account, asset_id_type asset_a,
+                                                  asset_id_type asset_b, asset_id_type share_asset,
+                                                  uint16_t taker_fee_percent, uint16_t withdrawal_fee_percent )const
+{
+   liquidity_pool_create_operation op;
+   op.account = account;
+   op.asset_a = asset_a;
+   op.asset_b = asset_b;
+   op.share_asset = share_asset;
+   op.taker_fee_percent = taker_fee_percent;
+   op.withdrawal_fee_percent = withdrawal_fee_percent;
+   return op;
+}
+
+const liquidity_pool_object& database_fixture::create_liquidity_pool( account_id_type account, asset_id_type asset_a,
+                                                  asset_id_type asset_b, asset_id_type share_asset,
+                                                  uint16_t taker_fee_percent, uint16_t withdrawal_fee_percent )
+{
+   liquidity_pool_create_operation op = make_liquidity_pool_create_op( account, asset_a, asset_b, share_asset,
+                                                                       taker_fee_percent, withdrawal_fee_percent );
+   trx.operations.clear();
+   trx.operations.push_back( op );
+
+   for( auto& o : trx.operations ) db.current_fee_schedule().set_fee(o);
+   trx.validate();
+   set_expiration( db, trx );
+   processed_transaction ptx = PUSH_TX(db, trx, ~0);
+   const operation_result& op_result = ptx.operation_results.front();
+   trx.operations.clear();
+   verify_asset_supplies(db);
+   return db.get<liquidity_pool_object>( *op_result.get<generic_operation_result>().new_objects.begin() );
+}
+
+liquidity_pool_delete_operation database_fixture::make_liquidity_pool_delete_op( account_id_type account,
+                                                  liquidity_pool_id_type pool )const
+{
+   liquidity_pool_delete_operation op;
+   op.account = account;
+   op.pool = pool;
+   return op;
+}
+
+generic_operation_result database_fixture::delete_liquidity_pool( account_id_type account,
+                                                  liquidity_pool_id_type pool )
+{
+   liquidity_pool_delete_operation op = make_liquidity_pool_delete_op( account, pool );
+   trx.operations.clear();
+   trx.operations.push_back( op );
+
+   for( auto& o : trx.operations ) db.current_fee_schedule().set_fee(o);
+   trx.validate();
+   set_expiration( db, trx );
+   processed_transaction ptx = PUSH_TX(db, trx, ~0);
+   const operation_result& op_result = ptx.operation_results.front();
+   trx.operations.clear();
+   verify_asset_supplies(db);
+   return op_result.get<generic_operation_result>();
+}
+
+liquidity_pool_deposit_operation database_fixture::make_liquidity_pool_deposit_op( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_a,
+                                                  const asset& amount_b )const
+{
+   liquidity_pool_deposit_operation op;
+   op.account = account;
+   op.pool = pool;
+   op.amount_a = amount_a;
+   op.amount_b = amount_b;
+   return op;
+}
+
+generic_exchange_operation_result database_fixture::deposit_to_liquidity_pool( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_a,
+                                                  const asset& amount_b )
+{
+   liquidity_pool_deposit_operation op = make_liquidity_pool_deposit_op( account, pool, amount_a, amount_b );
+   trx.operations.clear();
+   trx.operations.push_back( op );
+
+   for( auto& o : trx.operations ) db.current_fee_schedule().set_fee(o);
+   trx.validate();
+   set_expiration( db, trx );
+   processed_transaction ptx = PUSH_TX(db, trx, ~0);
+   const operation_result& op_result = ptx.operation_results.front();
+   trx.operations.clear();
+   verify_asset_supplies(db);
+   return op_result.get<generic_exchange_operation_result>();
+}
+
+liquidity_pool_withdraw_operation database_fixture::make_liquidity_pool_withdraw_op( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& share_amount )const
+{
+   liquidity_pool_withdraw_operation op;
+   op.account = account;
+   op.pool = pool;
+   op.share_amount = share_amount;
+   return op;
+}
+
+generic_exchange_operation_result database_fixture::withdraw_from_liquidity_pool( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& share_amount )
+{
+   liquidity_pool_withdraw_operation op = make_liquidity_pool_withdraw_op( account, pool, share_amount );
+   trx.operations.clear();
+   trx.operations.push_back( op );
+
+   for( auto& o : trx.operations ) db.current_fee_schedule().set_fee(o);
+   trx.validate();
+   set_expiration( db, trx );
+   processed_transaction ptx = PUSH_TX(db, trx, ~0);
+   const operation_result& op_result = ptx.operation_results.front();
+   trx.operations.clear();
+   verify_asset_supplies(db);
+   return op_result.get<generic_exchange_operation_result>();
+}
+
+liquidity_pool_exchange_operation database_fixture::make_liquidity_pool_exchange_op( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_to_sell,
+                                                  const asset& min_to_receive )const
+{
+   liquidity_pool_exchange_operation op;
+   op.account = account;
+   op.pool = pool;
+   op.amount_to_sell = amount_to_sell;
+   op.min_to_receive = min_to_receive;
+   return op;
+}
+
+generic_exchange_operation_result database_fixture::exchange_with_liquidity_pool( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_to_sell,
+                                                  const asset& min_to_receive )
+{
+   liquidity_pool_exchange_operation op = make_liquidity_pool_exchange_op( account, pool, amount_to_sell,
+                                                                           min_to_receive );
+   trx.operations.clear();
+   trx.operations.push_back( op );
+
+   for( auto& o : trx.operations ) db.current_fee_schedule().set_fee(o);
+   trx.validate();
+   set_expiration( db, trx );
+   processed_transaction ptx = PUSH_TX(db, trx, ~0);
+   const operation_result& op_result = ptx.operation_results.front();
+   trx.operations.clear();
+   verify_asset_supplies(db);
+   return op_result.get<generic_exchange_operation_result>();
+}
+
+
 void database_fixture::enable_fees()
 {
    db.modify(global_property_id_type()(db), [](global_property_object& gpo)
@@ -1413,14 +1632,15 @@ void database_fixture::set_htlc_committee_parameters()
    std::shared_ptr<fee_schedule_type> new_fee_schedule = std::make_shared<fee_schedule_type>();
    new_fee_schedule->scale = GRAPHENE_100_PERCENT;
    // replace the old with the new
-   flat_map<uint64_t, graphene::chain::fee_parameters> params_map = get_htlc_fee_parameters();
+   flat_map<uint64_t, graphene::chain::fee_parameters> htlc_fees = get_htlc_fee_parameters();
    for(auto param : existing_fee_schedule.parameters)
    {
-      auto itr = params_map.find(param.which());
-      if (itr == params_map.end())
-         new_fee_schedule->parameters.insert(param);
-      else
-      {
+      auto itr = htlc_fees.find(param.which());
+      if (itr == htlc_fees.end()) {
+         // Only define fees for operations which are already forked in!
+         if (hardfork_visitor(db.head_block_time()).visit(param.which()))
+            new_fee_schedule->parameters.insert(param);
+      } else {
          new_fee_schedule->parameters.insert( (*itr).second);
       }
    }
@@ -1437,6 +1657,7 @@ void database_fixture::set_htlc_committee_parameters()
    uop.new_parameters.current_fees = new_fee_schedule;
    cop.proposed_ops.emplace_back(uop);
 
+   trx.operations.clear();
    trx.operations.push_back(cop);
    graphene::chain::processed_transaction proc_trx = db.push_transaction(trx);
    trx.clear();

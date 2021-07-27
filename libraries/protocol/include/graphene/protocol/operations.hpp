@@ -31,6 +31,7 @@
 #include <graphene/protocol/committee_member.hpp>
 #include <graphene/protocol/confidential.hpp>
 #include <graphene/protocol/fba.hpp>
+#include <graphene/protocol/liquidity_pool.hpp>
 #include <graphene/protocol/market.hpp>
 #include <graphene/protocol/proposal.hpp>
 #include <graphene/protocol/transfer.hpp>
@@ -108,8 +109,12 @@ namespace graphene { namespace protocol {
             property_update_operation,
             property_approve_operation,
             property_delete_operation,
-            asset_price_publish_operation
-
+            asset_price_publish_operation,
+            liquidity_pool_create_operation,
+            liquidity_pool_delete_operation,
+            liquidity_pool_deposit_operation,
+            liquidity_pool_withdraw_operation,
+            liquidity_pool_exchange_operation
          > operation;
 
    /// @} // operations group

@@ -36,6 +36,7 @@
 #include <graphene/chain/confidential_object.hpp>
 #include <graphene/chain/fba_object.hpp>
 #include <graphene/chain/global_property_object.hpp>
+#include <graphene/chain/liquidity_pool_object.hpp>
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/operation_history_object.hpp>
 #include <graphene/chain/proposal_object.hpp>
@@ -57,6 +58,7 @@
 #include <graphene/chain/committee_member_evaluator.hpp>
 #include <graphene/chain/confidential_evaluator.hpp>
 #include <graphene/chain/custom_evaluator.hpp>
+#include <graphene/chain/liquidity_pool_evaluator.hpp>
 #include <graphene/chain/market_evaluator.hpp>
 #include <graphene/chain/proposal_evaluator.hpp>
 #include <graphene/chain/transfer_evaluator.hpp>
@@ -193,6 +195,11 @@ void database::initialize_evaluators()
    register_evaluator<asset_limitation_create_evaluator>();
    register_evaluator<asset_limitation_update_evaluator>();
    register_evaluator<asset_price_publish_evaluator>();
+   register_evaluator<liquidity_pool_create_evaluator>();
+   register_evaluator<liquidity_pool_delete_evaluator>();
+   register_evaluator<liquidity_pool_deposit_evaluator>();
+   register_evaluator<liquidity_pool_withdraw_evaluator>();
+   register_evaluator<liquidity_pool_exchange_evaluator>();
 }
 
 void database::initialize_indexes()
@@ -204,18 +211,12 @@ void database::initialize_indexes()
    add_index< primary_index<asset_index, 13> >(); // 8192 assets per chunk
    add_index< primary_index<force_settlement_index> >();
 
-   auto acnt_index = add_index< primary_index<account_index, 20> >(); // ~1 million accounts per chunk
-   acnt_index->add_secondary_index<account_member_index>();
-   acnt_index->add_secondary_index<account_referrer_index>();
-
+   add_index< primary_index<account_index, 20> >(); // ~1 million accounts per chunk
    add_index< primary_index<committee_member_index, 8> >(); // 256 members per chunk
    add_index< primary_index<witness_index, 10> >(); // 1024 witnesses per chunk
    add_index< primary_index<limit_order_index > >();
    add_index< primary_index<call_order_index > >();
-
-   auto prop_index = add_index< primary_index<proposal_index > >();
-   prop_index->add_secondary_index<required_approval_index>();
-
+   add_index< primary_index<proposal_index > >();
    add_index< primary_index<withdraw_permission_index > >();
    add_index< primary_index<vesting_balance_index> >();
    add_index< primary_index<worker_index> >();
@@ -225,6 +226,7 @@ void database::initialize_indexes()
    add_index< primary_index<property_index> >();
    add_index< primary_index<asset_limitation_index> >();
    add_index< primary_index<asset_price_index> >();
+   add_index< primary_index<liquidity_pool_index> >();
 
    //Implementation object indexes
    add_index< primary_index<transaction_index                             > >();
