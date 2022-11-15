@@ -321,37 +321,37 @@
     "initial_vesting_balances": [],
     "initial_active_witnesses": 11,
     "initial_witness_candidates": [{
-        "owner_name": "int0",
+        "owner_name": "init0",
         "block_signing_key": "META17VEZDV1xoMNGpRiRSmrV5E7Wt8JV3vjMgrdAPV9m7WtjefarQs"
       },{
-        "owner_name": "int1",
+        "owner_name": "init1",
         "block_signing_key": "META17mGCMRFqVmCTyAGLh1xQq3uLFMxzZpky8AGxssdK6zBH8FU4Ws"
       },{
-        "owner_name": "int2",
+        "owner_name": "init2",
         "block_signing_key": "META16Kowebh3knSCo19CTDDoDqQYeXuBpuaq4vHn84kG48CENnjKy1"
       },{
-        "owner_name": "int3",
+        "owner_name": "init3",
         "block_signing_key": "META169KcSQAyFbtywDn1eX534gTWPFuC8XPpcoizQXdUeiUHRULnew"
       },{
-        "owner_name": "int4",
+        "owner_name": "init4",
         "block_signing_key": "META18i43uQ4sJANUx4njMH1fn7s9X9ZaZiP9PMNdxnWLCNUTZygiJ2"
       },{
-        "owner_name": "int5",
+        "owner_name": "init5",
         "block_signing_key": "META15RMFCDEGu1HVxktuPWhcv1Cj1qMpaSvcpDYSX283uutpREbKGc"
       },{
-        "owner_name": "int6",
+        "owner_name": "init6",
         "block_signing_key": "META15gtQWMSL8hy3wJariDMmEfRwiHggGvDLw9xQgKpVWJKfpy7GZH"
       },{
-        "owner_name": "int7",
+        "owner_name": "init7",
         "block_signing_key": "META17WN5XeV75Xj5Lkbc15ZWxVybwcpCY5Vw7wrPA3jfkaiakeL5cU"
       },{
-        "owner_name": "int8",
+        "owner_name": "init8",
         "block_signing_key": "META16CQijFseV76NJKHvuWeLgnoK2fEXaB758CsNMajADaa9R6yaFW"
       },{
-        "owner_name": "int9",
+        "owner_name": "init9",
         "block_signing_key": "META153DVuDDAx6xvDXjGPNUsFAGia46PqE5ALeBF412u7CFwQajiRd"
       },{
-        "owner_name": "int10",
+        "owner_name": "init10",
         "block_signing_key": "META17frNDetcEVc8T1KfMrcnauyyW9Yt4Ea1qRkyjDYAqzomgCXWbw"
       }
     ],
