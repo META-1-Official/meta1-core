@@ -17,7 +17,7 @@ META1 Core
 META1 Core is the META1 blockchain implementation and command-line interface.
 The web wallet is [META1 UI](https://github.com/META1CoinTrust/softlaunch-meta1-ui).
 
-Visit [meta1.io](https://meta1.io/) to learn about META1 and join the community.
+Visit [meta1coin.vision](https://meta1coin.vision/) to learn about META1 and join the community.
 
 For security issues and bug bounty program please leave an issue on corresponding repo of Meta1 GitHub.
 
