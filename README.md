@@ -23,9 +23,6 @@ For security issues and bug bounty program please leave an issue on correspondin
 
 Getting Started
 ---------------
-Build instructions and additional documentation are available in the
-[wiki](https://github.com/meta1cointrust/meta1-core/wiki).
-
 Meta1 Core software is guaranteed to work on Ubuntu 18.04 x64. 
 
 **Build Dependencies:**
