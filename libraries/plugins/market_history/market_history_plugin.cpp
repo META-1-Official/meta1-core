@@ -43,9 +43,8 @@ namespace detail
 class market_history_plugin_impl
 {
    public:
-      market_history_plugin_impl(market_history_plugin& _plugin)
+      explicit market_history_plugin_impl(market_history_plugin& _plugin)
       :_self( _plugin ) {}
-      virtual ~market_history_plugin_impl();
 
       /** this method is called as a callback after a block is applied
        * and will process/index all operations that were applied in the block.
@@ -54,7 +53,7 @@ class market_history_plugin_impl
 
       /// process all operations related to liquidity pools
       void update_liquidity_pool_histories( time_point_sec time, const operation_history_object& oho,
-                                            const liquidity_pool_ticker_meta_object*& lp_meta );
+                                            const lp_ticker_meta_object*& lp_meta );
 
       graphene::chain::database& database()
       {
@@ -294,9 +293,6 @@ struct operation_process_fill_order
    }
 };
 
-market_history_plugin_impl::~market_history_plugin_impl()
-{}
-
 void market_history_plugin_impl::update_market_histories( const signed_block& b )
 {
    graphene::chain::database& db = database();
@@ -306,8 +302,8 @@ void market_history_plugin_impl::update_market_histories( const signed_block& b 
    if( meta_idx.size() > 0 )
       _meta = &( *meta_idx.begin() );
 
-   const liquidity_pool_ticker_meta_object* _lp_meta = nullptr;
-   const auto& lp_meta_idx = db.get_index_type<simple_index<liquidity_pool_ticker_meta_object>>();
+   const lp_ticker_meta_object* _lp_meta = nullptr;
+   const auto& lp_meta_idx = db.get_index_type<simple_index<lp_ticker_meta_object>>();
    if( lp_meta_idx.size() > 0 )
       _lp_meta = &( *lp_meta_idx.begin() );
 
@@ -411,21 +407,20 @@ void market_history_plugin_impl::update_market_histories( const signed_block& b 
          else
          {
             liquidity_pool_ticker_id_type ticker_id( history_itr->pool.instance );
-            const liquidity_pool_ticker_object* ticker = db.find<liquidity_pool_ticker_object>( ticker_id );
+            const liquidity_pool_ticker_object* ticker = db.find( ticker_id );
             if( ticker != nullptr ) // should always be true
             {
                const operation_history_object& oho = history_itr->op;
                if( oho.op.is_type< liquidity_pool_deposit_operation >() )
                {
-                  auto& op = oho.op.get< liquidity_pool_deposit_operation >();
                   auto& result = oho.result.get< generic_exchange_operation_result >();
-                  db.modify( *ticker, [&op,&result]( liquidity_pool_ticker_object& t ) {
+                  db.modify( *ticker, [&result]( liquidity_pool_ticker_object& t ) {
                      t._24h_deposit_count -= 1;
-                     t._24h_deposit_amount_a -= op.amount_a.amount.value;
-                     t._24h_deposit_amount_b -= op.amount_b.amount.value;
+                     t._24h_deposit_amount_a -= result.paid.front().amount.value;
+                     t._24h_deposit_amount_b -= result.paid.back().amount.value;
                      t._24h_deposit_share_amount -= result.received.front().amount.value;
-                     t._24h_balance_delta_a -= op.amount_a.amount.value;
-                     t._24h_balance_delta_b -= op.amount_b.amount.value;
+                     t._24h_balance_delta_a -= result.paid.front().amount.value;
+                     t._24h_balance_delta_b -= result.paid.back().amount.value;
                   });
                }
                else if( oho.op.is_type< liquidity_pool_withdraw_operation >() )
@@ -480,7 +475,7 @@ void market_history_plugin_impl::update_market_histories( const signed_block& b 
       {
          if( history_itr->id != _lp_meta->rolling_min_lp_his_id ) // if rolled out some
          {
-            db.modify( *_lp_meta, [history_itr]( liquidity_pool_ticker_meta_object& mtm ) {
+            db.modify( *_lp_meta, [history_itr]( lp_ticker_meta_object& mtm ) {
                mtm.rolling_min_lp_his_id = history_itr->id;
                mtm.skip_min_lp_his_id = false;
             });
@@ -491,7 +486,7 @@ void market_history_plugin_impl::update_market_histories( const signed_block& b 
          if( !_lp_meta->skip_min_lp_his_id
              || last_min_his_id != _lp_meta->rolling_min_lp_his_id ) // if rolled out some
          {
-            db.modify( *_lp_meta, [last_min_his_id]( liquidity_pool_ticker_meta_object& mtm ) {
+            db.modify( *_lp_meta, [last_min_his_id]( lp_ticker_meta_object& mtm ) {
                mtm.rolling_min_lp_his_id = last_min_his_id;
                mtm.skip_min_lp_his_id = true;
             });
@@ -535,7 +530,7 @@ struct get_liquidity_pool_id_visitor
 
 void market_history_plugin_impl::update_liquidity_pool_histories(
       time_point_sec time, const operation_history_object& oho,
-      const liquidity_pool_ticker_meta_object*& lp_meta )
+      const lp_ticker_meta_object*& lp_meta )
 { try {
 
    optional<liquidity_pool_id_type> pool;
@@ -579,10 +574,9 @@ void market_history_plugin_impl::update_liquidity_pool_histories(
       // save a reference to the ticker meta object
       if( lp_meta == nullptr )
       {
-         const auto& lp_meta_idx = db.get_index_type<simple_index<liquidity_pool_ticker_meta_object>>();
+         const auto& lp_meta_idx = db.get_index_type<simple_index<lp_ticker_meta_object>>();
          if( lp_meta_idx.size() == 0 )
-            lp_meta = &db.create<liquidity_pool_ticker_meta_object>( [&new_his_obj](
-                                      liquidity_pool_ticker_meta_object& lptm ) {
+            lp_meta = &db.create<lp_ticker_meta_object>( [&new_his_obj]( lp_ticker_meta_object& lptm ) {
                lptm.rolling_min_lp_his_id = new_his_obj.id;
                lptm.skip_min_lp_his_id = false;
             });
@@ -637,24 +631,23 @@ void market_history_plugin_impl::update_liquidity_pool_histories(
       else
       {
          liquidity_pool_ticker_id_type ticker_id( pool->instance );
-         const liquidity_pool_ticker_object* ticker = db.find<liquidity_pool_ticker_object>( ticker_id );
+         const liquidity_pool_ticker_object* ticker = db.find( ticker_id );
          if( ticker != nullptr )
          {
             if( oho.op.is_type< liquidity_pool_deposit_operation >() )
             {
-               auto& op = oho.op.get< liquidity_pool_deposit_operation >();
                auto& result = oho.result.get< generic_exchange_operation_result >();
 
-               db.modify( *ticker, [&op,&result]( liquidity_pool_ticker_object& t ) {
+               db.modify( *ticker, [&result]( liquidity_pool_ticker_object& t ) {
                   t._24h_deposit_count += 1;
-                  t._24h_deposit_amount_a += op.amount_a.amount.value;
-                  t._24h_deposit_amount_b += op.amount_b.amount.value;
+                  t._24h_deposit_amount_a += result.paid.front().amount.value;
+                  t._24h_deposit_amount_b += result.paid.back().amount.value;
                   t._24h_deposit_share_amount += result.received.front().amount.value;
-                  t._24h_balance_delta_a += op.amount_a.amount.value;
-                  t._24h_balance_delta_b += op.amount_b.amount.value;
+                  t._24h_balance_delta_a += result.paid.front().amount.value;
+                  t._24h_balance_delta_b += result.paid.back().amount.value;
                   t.total_deposit_count += 1;
-                  t.total_deposit_amount_a += op.amount_a.amount.value;
-                  t.total_deposit_amount_b += op.amount_b.amount.value;
+                  t.total_deposit_amount_a += result.paid.front().amount.value;
+                  t.total_deposit_amount_b += result.paid.back().amount.value;
                   t.total_deposit_share_amount += result.received.front().amount.value;
                });
 
@@ -731,18 +724,14 @@ void market_history_plugin_impl::update_liquidity_pool_histories(
 } // end namespace detail
 
 
-
-
-
-
-market_history_plugin::market_history_plugin() :
-   my( new detail::market_history_plugin_impl(*this) )
+market_history_plugin::market_history_plugin(graphene::app::application& app) :
+   plugin(app),
+   my( std::make_unique<detail::market_history_plugin_impl>(*this) )
 {
+   // Nothing else to do
 }
 
-market_history_plugin::~market_history_plugin()
-{
-}
+market_history_plugin::~market_history_plugin() = default;
 
 std::string market_history_plugin::plugin_name()const
 {
@@ -776,28 +765,29 @@ void market_history_plugin::plugin_set_program_options(
 
 void market_history_plugin::plugin_initialize(const boost::program_options::variables_map& options)
 { try {
-   database().applied_block.connect( [this]( const signed_block& b){ my->update_market_histories(b); } );
+   // connect with group 0 to process before some special steps (e.g. snapshot or next_object_id)
+   database().applied_block.connect( 0, [this]( const signed_block& b){ my->update_market_histories(b); } );
 
    database().add_index< primary_index< bucket_index  > >();
    database().add_index< primary_index< history_index  > >();
-   database().add_index< primary_index< market_ticker_index  > >();
+   database().add_index< primary_index< market_ticker_index, 8 > >(); // 256 markets per chunk
    database().add_index< primary_index< simple_index< market_ticker_meta_object > > >();
 
    database().add_index< primary_index< liquidity_pool_history_index > >();
-   database().add_index< primary_index< simple_index< liquidity_pool_ticker_meta_object > > >();
+   database().add_index< primary_index< simple_index< lp_ticker_meta_object > > >();
    database().add_index< primary_index< liquidity_pool_ticker_index, 8 > >(); // 256 pools per chunk
 
-   if( options.count( "bucket-size" ) == 1u )
+   if( options.count( "bucket-size" ) > 0 )
    {
       const std::string& buckets = options["bucket-size"].as<string>();
       my->_tracked_buckets = fc::json::from_string(buckets).as<flat_set<uint32_t>>(2);
       my->_tracked_buckets.erase( 0 );
    }
-   if( options.count( "history-per-size" ) == 1u )
+   if( options.count( "history-per-size" ) > 0 )
       my->_maximum_history_per_bucket_size = options["history-per-size"].as<uint32_t>();
-   if( options.count( "max-order-his-records-per-market" ) == 1u )
+   if( options.count( "max-order-his-records-per-market" ) > 0 )
       my->_max_order_his_records_per_market = options["max-order-his-records-per-market"].as<uint32_t>();
-   if( options.count( "max-order-his-seconds-per-market" ) == 1u )
+   if( options.count( "max-order-his-seconds-per-market" ) > 0 )
       my->_max_order_his_seconds_per_market = options["max-order-his-seconds-per-market"].as<uint32_t>();
 } FC_CAPTURE_AND_RETHROW() }
 

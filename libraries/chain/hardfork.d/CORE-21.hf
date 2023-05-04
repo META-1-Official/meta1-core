@@ -1,4 +1,0 @@
-// Smooth allocation in Core
-#ifndef HARDFORK_CORE_21_TIME
-#define HARDFORK_CORE_21_TIME (fc::time_point_sec( 1591275600 )) // 2020-06-04T13:00:00Z
-#endif

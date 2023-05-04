@@ -169,6 +169,33 @@ BOOST_AUTO_TEST_CASE( price_test )
     BOOST_CHECK(a == c);
     BOOST_CHECK(!(b == c));
 
+    BOOST_CHECK_THROW( price( asset(-1), asset(1, asset_id_type(1)) ).validate(), fc::exception );
+    BOOST_CHECK_THROW( price( asset(0), asset(1, asset_id_type(1)) ).validate(), fc::exception );
+    BOOST_CHECK_THROW( price( asset(1), asset(0, asset_id_type(1)) ).validate(), fc::exception );
+    BOOST_CHECK_THROW( price( asset(1), asset(-1, asset_id_type(1)) ).validate(), fc::exception );
+    BOOST_CHECK_THROW( price( asset(1), asset(1) ).validate(), fc::exception );
+    BOOST_CHECK_THROW( price( asset(1, asset_id_type(1)), asset(1, asset_id_type(1)) ).validate(), fc::exception );
+
+    constexpr int64_t max_amount = GRAPHENE_MAX_SHARE_SUPPLY;
+    constexpr int64_t too_big_amount = GRAPHENE_MAX_SHARE_SUPPLY + 1;
+
+    price( asset(1), asset(max_amount, asset_id_type(1)) ).validate();
+    price( asset(max_amount), asset(1, asset_id_type(1)) ).validate();
+    price( asset(max_amount), asset(max_amount, asset_id_type(1)) ).validate();
+    price( asset(1), asset(max_amount, asset_id_type(1)) ).validate(true);
+    price( asset(max_amount), asset(1, asset_id_type(1)) ).validate(true);
+    price( asset(max_amount), asset(max_amount, asset_id_type(1)) ).validate(true);
+
+    price( asset(1), asset(too_big_amount, asset_id_type(1)) ).validate();
+    price( asset(too_big_amount), asset(1, asset_id_type(1)) ).validate();
+    price( asset(too_big_amount), asset(too_big_amount, asset_id_type(1)) ).validate();
+    BOOST_CHECK_THROW( price( asset(1), asset(too_big_amount, asset_id_type(1)) ).validate(true),
+                       fc::exception );
+    BOOST_CHECK_THROW( price( asset(too_big_amount), asset(1, asset_id_type(1)) ).validate(true),
+                       fc::exception );
+    BOOST_CHECK_THROW( price( asset(too_big_amount), asset(too_big_amount, asset_id_type(1)) ).validate(true),
+                       fc::exception );
+
     GRAPHENE_REQUIRE_THROW( price(asset(1),  asset(1)) * ratio_type(1,1), fc::exception );
     GRAPHENE_REQUIRE_THROW( price(asset(0),  asset(1, asset_id_type(1))) * ratio_type(1,1), fc::exception );
     GRAPHENE_REQUIRE_THROW( price(asset(-1), asset(1, asset_id_type(1))) * ratio_type(1,1), fc::exception );
@@ -222,43 +249,10 @@ BOOST_AUTO_TEST_CASE( price_test )
     price less_than_max = price_max(0,1);
     less_than_max.quote.amount = 11;
     BOOST_CHECK( less_than_max * ratio_type(7,1) == price(asset(less_than_max.base.amount*7/11),asset(1,asset_id_type(1))) );
-
-   /**
-    * Test the particular algorithmic implementation within the price operator *
-    *
-    * The particular inputs of
-    *
-    * (a) 50000000000000000 satoshi META1 / X satoshi ASSET 1
-    * (b) a multiplying fraction of of 7/1
-    * (c) GRAPHENE_MAX_SHARE_SUPPLY = 50000000000000000
-    *
-    * is provided to the price operator *.
-    *
-    * 1. price operator * performs the multiplication of the fraction
-    *    while protecting against overflows of GRAPHENE_MAX_SHARE_SUPPLY with bitshifting to the right (>>)
-    *
-    * 2. The overflow protection loop also uses fc::rational class which, when possible,
-    *    further reduces the fraction by dividing by a greatest common denominator (GCD).
-    */
-    less_than_max.quote.amount = 51292131419;
-    /**
-     * The bit-shifting within operator * changes the numerator and denominators with the following steps
-     *
-     * Initial: 350000000000000000  / 51292131419
-     * Shrinked: 175000000000000000 / 25646065709
-     * Shrinked: 43750000000000000 / 6411516427
-     */
-    BOOST_CHECK( less_than_max * ratio_type(7,1) == price(asset((less_than_max.base.amount.value*7>>2)),asset((less_than_max.quote.amount.value>>2),asset_id_type(1))) );
-
-    less_than_max.quote.amount = 151292131419;
-   /**
-    * The bit-shifting within operator * changes the numerator and denominators with the following steps
-    *
-    * Initial:350000000000000000 ?(1) / 151292131419
-    * Shrinked:175000000000000000 ?(1) / 75646065709
-    * Shrinked:43750000000000000 ?(0) / 18911516427
-    */
-    BOOST_CHECK( less_than_max * ratio_type(7,1) == price(asset(less_than_max.base.amount.value*7>>2),asset(less_than_max.quote.amount.value>>2,asset_id_type(1))) );
+    less_than_max.quote.amount = 92131419;
+    BOOST_CHECK( less_than_max * ratio_type(7,1) == price(asset(less_than_max.base.amount*7/92131419),asset(1,asset_id_type(1))) );
+    less_than_max.quote.amount = 192131419;
+    BOOST_CHECK( less_than_max * ratio_type(7,1) == price(asset(less_than_max.base.amount.value*7>>3),asset(192131419>>3,asset_id_type(1))) );
 
     price more_than_min = price_min(0,1);
     more_than_min.base.amount = 11;
@@ -324,7 +318,29 @@ BOOST_AUTO_TEST_CASE( price_test )
     dummy.maximum_short_squeeze_ratio = 1234;
     dummy.settlement_price = price(asset(1000), asset(2000, asset_id_type(1)));
     price_feed dummy2 = dummy;
-    BOOST_CHECK(dummy == dummy2);
+    price_feed dummy3 = dummy;
+    dummy3.core_exchange_rate = price( asset(11), asset(13, asset_id_type(1)) );
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy ) );
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy2 ) );
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy3 ) );
+    dummy.maximum_short_squeeze_ratio = 1235;
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy ) );
+    BOOST_CHECK( !dummy.margin_call_params_equal( dummy2 ) );
+    BOOST_CHECK( !dummy.margin_call_params_equal( dummy3 ) );
+    dummy2.maximum_short_squeeze_ratio = 1235;
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy ) );
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy2 ) );
+    BOOST_CHECK( !dummy.margin_call_params_equal( dummy3 ) );
+    dummy2.maintenance_collateral_ratio = 1003;
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy ) );
+    BOOST_CHECK( !dummy.margin_call_params_equal( dummy2 ) );
+    BOOST_CHECK( !dummy.margin_call_params_equal( dummy3 ) );
+    dummy3.maximum_short_squeeze_ratio = 1235;
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy3 ) );
+    dummy3.settlement_price = price( asset(1), asset(3, asset_id_type(1)) );
+    BOOST_CHECK( !dummy.margin_call_params_equal( dummy3 ) );
+    dummy3.settlement_price = price( asset(1), asset(2, asset_id_type(1)) );
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy3 ) );
 }
 
 BOOST_AUTO_TEST_CASE( price_multiplication_test )

@@ -31,7 +31,6 @@
 #include <graphene/chain/asset_object.hpp>
 #include <graphene/chain/account_object.hpp>
 #include <graphene/chain/fba_object.hpp>
-#include <graphene/chain/property_object.hpp>
 #include <graphene/chain/committee_member_object.hpp>
 #include <graphene/chain/market_evaluator.hpp>
 #include <graphene/protocol/fee_schedule.hpp>
@@ -106,7 +105,7 @@ database& generic_evaluator::db()const { return trx_state->db(); }
    void generic_evaluator::pay_fba_fee( uint64_t fba_id )
    {
       database& d = db();
-      const fba_accumulator_object& fba = d.get< fba_accumulator_object >( fba_accumulator_id_type( fba_id ) );
+      const fba_accumulator_object& fba = d.get( fba_accumulator_id_type( fba_id ) );
       if( !fba.is_configured(d) )
       {
          generic_evaluator::pay_fee();

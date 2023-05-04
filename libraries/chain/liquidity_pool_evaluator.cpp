@@ -127,7 +127,7 @@ void_result liquidity_pool_deposit_evaluator::do_evaluate(const liquidity_pool_d
 
    const asset_object& share_asset_obj = _pool->share_asset(d);
 
-//   FC_ASSERT( share_asset_obj.can_create_new_supply(), "Can not create new supply for the share asset" );
+   FC_ASSERT( share_asset_obj.can_create_new_supply(), "Can not create new supply for the share asset" );
 
    if( _pool->balance_a == 0 ) // which implies that _pool->balance_b == 0
    {
@@ -314,6 +314,7 @@ void_result liquidity_pool_exchange_evaluator::do_evaluate(const liquidity_pool_
               || ( op.amount_to_sell.asset_id == _pool->asset_b && op.min_to_receive.asset_id == _pool->asset_a ),
               "Asset type mismatch" );
 
+
    const asset_object& asset_obj_a = _pool->asset_a(d);
    FC_ASSERT( is_authorized_asset( d, *fee_paying_account, asset_obj_a ),
               "The account is unauthorized by asset A" );
@@ -321,6 +322,38 @@ void_result liquidity_pool_exchange_evaluator::do_evaluate(const liquidity_pool_
    const asset_object& asset_obj_b = _pool->asset_b(d);
    FC_ASSERT( is_authorized_asset( d, *fee_paying_account, asset_obj_b ),
               "The account is unauthorized by asset B" );
+
+   if( HARDFORK_CORE_2350_PASSED( d.head_block_time() ) )
+   {
+      if( !asset_obj_a.options.whitelist_markets.empty() )
+      {
+         FC_ASSERT(    asset_obj_a.options.whitelist_markets.find(_pool->asset_b)
+                    != asset_obj_a.options.whitelist_markets.end(),
+                    "The ${a}:${b} market has not been whitelisted by asset ${a}",
+                    ("a", asset_obj_a.symbol) ("b", asset_obj_b.symbol) );
+      }
+      if( !asset_obj_a.options.blacklist_markets.empty() )
+      {
+         FC_ASSERT(    asset_obj_a.options.blacklist_markets.find(_pool->asset_b)
+                    == asset_obj_a.options.blacklist_markets.end(),
+                    "The ${a}:${b} market has been blacklisted by asset ${a}",
+                    ("a", asset_obj_a.symbol) ("b", asset_obj_b.symbol) );
+      }
+      if( !asset_obj_b.options.whitelist_markets.empty() )
+      {
+         FC_ASSERT(    asset_obj_b.options.whitelist_markets.find(_pool->asset_a)
+                    != asset_obj_b.options.whitelist_markets.end(),
+                    "The ${a}:${b} market has not been whitelisted by asset ${b}",
+                    ("a", asset_obj_a.symbol) ("b", asset_obj_b.symbol) );
+      }
+      if( !asset_obj_b.options.blacklist_markets.empty() )
+      {
+         FC_ASSERT(    asset_obj_b.options.blacklist_markets.find(_pool->asset_a)
+                    == asset_obj_b.options.blacklist_markets.end(),
+                    "The ${a}:${b} market has been blacklisted by asset ${b}",
+                    ("a", asset_obj_a.symbol) ("b", asset_obj_b.symbol) );
+      }
+   }
 
    _pool_receives_asset = ( op.amount_to_sell.asset_id == _pool->asset_a ? &asset_obj_a : &asset_obj_b );
 
@@ -358,7 +391,9 @@ void_result liquidity_pool_exchange_evaluator::do_evaluate(const liquidity_pool_
    FC_ASSERT( _taker_market_fee <= _pool_pays, "Market fee should not be greater than the amount to receive" );
    _account_receives = _pool_pays - _taker_market_fee;
 
-   FC_ASSERT( _account_receives.amount >= op.min_to_receive.amount, "Unable to exchange at expected price" );
+   GRAPHENE_ASSERT( _account_receives.amount >= op.min_to_receive.amount,
+                    liquidity_pool_exchange_unfillable_price,
+                    "Unable to exchange at expected price" );
 
    _pool_taker_fee = asset( static_cast<int64_t>( pool_taker_fee ), op.min_to_receive.asset_id );
 
@@ -374,7 +409,10 @@ generic_exchange_operation_result liquidity_pool_exchange_evaluator::do_apply(
    d.adjust_balance( op.account, -op.amount_to_sell );
    d.adjust_balance( op.account, _account_receives );
 
-   // TODO whose registrar and referrer should receive the shared maker market fee?
+   // For _pool_receives_asset, if market fee sharing is enabled,
+   // the share asset owner's registrar and referrer will get the shared maker market fee.
+   // For _pool_pays_asset, if market fee sharing is enabled,
+   // the trader's registrar and referrer will get the shared taker market fee.
    d.pay_market_fees( &_pool->share_asset(d).issuer(d), *_pool_receives_asset, op.amount_to_sell, true,
                       _maker_market_fee );
    d.pay_market_fees( fee_paying_account, *_pool_pays_asset, _pool_pays, false, _taker_market_fee );
@@ -382,7 +420,7 @@ generic_exchange_operation_result liquidity_pool_exchange_evaluator::do_apply(
    const auto old_virtual_value = _pool->virtual_value;
    if( op.amount_to_sell.asset_id == _pool->asset_a )
    {
-      d.modify( *_pool, [&op,this]( liquidity_pool_object& lpo ){
+      d.modify( *_pool, [this]( liquidity_pool_object& lpo ){
          lpo.balance_a += _pool_receives.amount;
          lpo.balance_b -= _pool_pays.amount;
          lpo.update_virtual_value();
@@ -390,7 +428,7 @@ generic_exchange_operation_result liquidity_pool_exchange_evaluator::do_apply(
    }
    else
    {
-      d.modify( *_pool, [&op,this]( liquidity_pool_object& lpo ){
+      d.modify( *_pool, [this]( liquidity_pool_object& lpo ){
          lpo.balance_b += _pool_receives.amount;
          lpo.balance_a -= _pool_pays.amount;
          lpo.update_virtual_value();

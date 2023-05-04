@@ -102,7 +102,7 @@
    catch( ... )                                                               \
    {                                                                          \
       wlog( "Caught unexpected exception in plugin" );                        \
-   }                                                                          \
+   }
 
 namespace graphene { namespace chain {
 
@@ -212,6 +212,9 @@ namespace graphene { namespace chain {
    //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( htlc_create_operation )
    //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( htlc_redeem_operation )
    //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( htlc_extend_operation )
+
+   GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( liquidity_pool_exchange );
+   GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( unfillable_price, liquidity_pool_exchange, 1 )
 
    #define GRAPHENE_RECODE_EXC( cause_type, effect_type ) \
       catch( const cause_type& e ) \

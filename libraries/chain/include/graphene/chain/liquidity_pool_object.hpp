@@ -41,12 +41,9 @@ using namespace graphene::db;
  *  @ingroup protocol
  *
  */
-class liquidity_pool_object : public abstract_object<liquidity_pool_object>
+class liquidity_pool_object : public abstract_object<liquidity_pool_object, protocol_ids, liquidity_pool_object_type>
 {
    public:
-      static constexpr uint8_t space_id = protocol_ids;
-      static constexpr uint8_t type_id  = liquidity_pool_object_type;
-
       asset_id_type   asset_a;                     ///< Type of the first asset in the pool
       asset_id_type   asset_b;                     ///< Type of the second asset in the pool
       share_type      balance_a;                   ///< The balance of the first asset in the pool
@@ -107,6 +104,7 @@ typedef generic_index<liquidity_pool_object, liquidity_pool_multi_index_type> li
 
 MAP_OBJECT_ID_TO_TYPE( graphene::chain::liquidity_pool_object )
 
+// Note: this is left here but not moved to a cpp file due to the extended_liquidity_pool_object struct in API.
 FC_REFLECT_DERIVED( graphene::chain::liquidity_pool_object, (graphene::db::object),
                     (asset_a)
                     (asset_b)
