@@ -99,13 +99,6 @@ namespace graphene { namespace protocol {
       vector<asset> fees;
    };
 
-   typedef fc::static_variant <
-         void_result,
-         object_id_type,
-         asset,
-         generic_operation_result,
-         generic_exchange_operation_result
-      > operation_result;
    struct extendable_operation_result_dtl
    {
       optional<flat_set<account_id_type>> impacted_accounts;
