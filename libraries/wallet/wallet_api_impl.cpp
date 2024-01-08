@@ -58,6 +58,13 @@ namespace graphene { namespace wallet { namespace detail {
         _remote_net_broadcast(rapi->network_broadcast()),
         _remote_hist(rapi->history())
    {
+      try {
+         _custom_operations = rapi->custom_operations();
+      }
+      catch(const fc::exception& e)
+      {
+         wlog("Custom operations API is not active on server.");
+      }
       chain_id_type remote_chain_id = _remote_db->get_chain_id();
       if( remote_chain_id != _chain_id )
       {
@@ -108,8 +115,8 @@ namespace graphene { namespace wallet { namespace detail {
       result["next_maintenance_time"] =
             fc::get_approximate_relative_time_string(dynamic_props.next_maintenance_time);
       result["chain_id"] = chain_props.chain_id;
-      std::stringstream participation;
-      participation << std::fixed << std::setprecision(2) << (100.0*fc::popcount(dynamic_props.recent_slots_filled)) / 128.0;
+      stringstream participation;
+      participation << fixed << std::setprecision(2) << (100.0*fc::popcount(dynamic_props.recent_slots_filled)) / 128.0;
       result["participation"] = participation.str();
       result["active_witnesses"] = fc::variant(global_props.active_witnesses, GRAPHENE_MAX_NESTED_OBJECTS);
       result["active_committee_members"] =
@@ -181,7 +188,7 @@ namespace graphene { namespace wallet { namespace detail {
       fc::async([this]{resync();}, "Resync after block");
    }
 
-   void wallet_api_impl::set_operation_fees( signed_transaction& tx, const fee_schedule& s  )
+   void wallet_api_impl::set_operation_fees( signed_transaction& tx, const fee_schedule& s ) const
    {
       for( auto& op : tx.operations )
          s.set_fee(op);
@@ -262,7 +269,7 @@ namespace graphene { namespace wallet { namespace detail {
       while( fc::exists(dest_path) )
       {
          ++suffix;
-         dest_path = destination_filename + "-" + std::to_string( suffix ) + _wallet_filename_extension;
+         dest_path = destination_filename + "-" + to_string( suffix ) + _wallet_filename_extension;
       }
       wlog( "backing up wallet ${src} to ${dest}",
             ("src", src_path)
@@ -334,7 +341,7 @@ namespace graphene { namespace wallet { namespace detail {
          for( const fc::optional<graphene::chain::account_object>& optional_account : owner_account_objects )
             if (optional_account)
             {
-               std::string account_id = account_id_to_string(optional_account->id);
+               auto account_id = std::string(optional_account->id);
                fc::optional<witness_object> witness_obj = _remote_db->get_witness_by_account(account_id);
                if (witness_obj)
                   claim_registered_witness(optional_account->name);
@@ -379,7 +386,7 @@ namespace graphene { namespace wallet { namespace detail {
          {
             assert( it != _wallet.my_accounts.end() );
             old_accounts.push_back( *it );
-            std::string account_id = account_id_to_string(old_accounts.back().id);
+            auto account_id = std::string(old_accounts.back().id);
             account_ids_to_send.push_back( account_id );
             ++it;
          }

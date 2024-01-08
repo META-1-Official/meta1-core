@@ -29,15 +29,17 @@
 namespace graphene { namespace protocol { 
 
    /**
-    * @brief Claim a balance in a @ref balance_object
+    * @brief Claim a balance in a @ref graphene::chain::balance_object
     *
-    * This operation is used to claim the balance in a given @ref balance_object. If the balance object contains a
-    * vesting balance, @ref total_claimed must not exceed @ref balance_object::available at the time of evaluation. If
+    * This operation is used to claim the balance in a given @ref graphene::chain::balance_object.
+    * If the balance object contains a
+    * vesting balance, @ref total_claimed must not exceed @ref graphene::chain::balance_object::available
+    * at the time of evaluation. If
     * the object contains a non-vesting balance, @ref total_claimed must be the full balance of the object.
     */
    struct balance_claim_operation : public base_operation
    {
-      struct fee_parameters_type {};
+      struct fee_params_t {};
 
       asset             fee;
       account_id_type   deposit_to_account;
@@ -46,7 +48,7 @@ namespace graphene { namespace protocol {
       asset             total_claimed;
 
       account_id_type fee_payer()const { return deposit_to_account; }
-      share_type      calculate_fee(const fee_parameters_type& )const { return 0; }
+      share_type      calculate_fee(const fee_params_t& )const { return 0; }
       void            validate()const;
       void            get_required_authorities( vector<authority>& a )const
       {
@@ -56,7 +58,7 @@ namespace graphene { namespace protocol {
 
 } } // graphene::protocol
 
-FC_REFLECT( graphene::protocol::balance_claim_operation::fee_parameters_type,  )
+FC_REFLECT( graphene::protocol::balance_claim_operation::fee_params_t,  )
 FC_REFLECT( graphene::protocol::balance_claim_operation,
             (fee)(deposit_to_account)(balance_to_claim)(balance_owner_key)(total_claimed) )
 

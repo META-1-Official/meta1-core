@@ -26,6 +26,7 @@
 #include <graphene/chain/liquidity_pool_object.hpp>
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/proposal_object.hpp>
+#include <graphene/chain/chain_property_object.hpp>
 
 namespace graphene { namespace api_helper_indexes {
 
@@ -49,7 +50,7 @@ void amount_in_collateral_index::object_inserted( const object& objct )
          itr->second += o.collateral;
    }
 
-} FC_CAPTURE_AND_RETHROW( (objct) ); }
+} FC_CAPTURE_AND_RETHROW( (objct) ) } // GCOVR_EXCL_LINE
 
 void amount_in_collateral_index::object_removed( const object& objct )
 { try {
@@ -67,53 +68,57 @@ void amount_in_collateral_index::object_removed( const object& objct )
          itr->second -= o.collateral;
    }
 
-} FC_CAPTURE_AND_RETHROW( (objct) ); }
+} FC_CAPTURE_AND_RETHROW( (objct) ) } // GCOVR_EXCL_LINE
 
 void amount_in_collateral_index::about_to_modify( const object& objct )
 { try {
    object_removed( objct );
-} FC_CAPTURE_AND_RETHROW( (objct) ); }
+} FC_CAPTURE_AND_RETHROW( (objct) ) } // GCOVR_EXCL_LINE
 
 void amount_in_collateral_index::object_modified( const object& objct )
 { try {
    object_inserted( objct );
-} FC_CAPTURE_AND_RETHROW( (objct) ); }
+} FC_CAPTURE_AND_RETHROW( (objct) ) } // GCOVR_EXCL_LINE
 
 share_type amount_in_collateral_index::get_amount_in_collateral( const asset_id_type& asst )const
 { try {
    auto itr = in_collateral.find( asst );
    if( itr == in_collateral.end() ) return 0;
    return itr->second;
-} FC_CAPTURE_AND_RETHROW( (asst) ); }
+} FC_CAPTURE_AND_RETHROW( (asst) ) } // GCOVR_EXCL_LINE
 
 share_type amount_in_collateral_index::get_backing_collateral( const asset_id_type& asst )const
 { try {
    auto itr = backing_collateral.find( asst );
    if( itr == backing_collateral.end() ) return 0;
    return itr->second;
-} FC_CAPTURE_AND_RETHROW( (asst) ); }
+} FC_CAPTURE_AND_RETHROW( (asst) ) } // GCOVR_EXCL_LINE
 
 void asset_in_liquidity_pools_index::object_inserted( const object& objct )
 { try {
-   const liquidity_pool_object& o = static_cast<const liquidity_pool_object&>( objct );
-   asset_in_pools_map[ o.asset_a ].insert( o.id ); // Note: [] operator will create an entry if not found
-   asset_in_pools_map[ o.asset_b ].insert( o.id );
-} FC_CAPTURE_AND_RETHROW( (objct) ); }
+   const auto& o = static_cast<const liquidity_pool_object&>( objct );
+   const liquidity_pool_id_type pool_id = o.get_id();
+   asset_in_pools_map[ o.asset_a ].insert( pool_id ); // Note: [] operator will create an entry if not found
+   asset_in_pools_map[ o.asset_b ].insert( pool_id );
+} FC_CAPTURE_AND_RETHROW( (objct) ) } // GCOVR_EXCL_LINE
 
 void asset_in_liquidity_pools_index::object_removed( const object& objct )
 { try {
-   const liquidity_pool_object& o = static_cast<const liquidity_pool_object&>( objct );
-   asset_in_pools_map[ o.asset_a ].erase( o.id );
-   asset_in_pools_map[ o.asset_b ].erase( o.id );
+   const auto& o = static_cast<const liquidity_pool_object&>( objct );
+   const liquidity_pool_id_type pool_id = o.get_id();
+   asset_in_pools_map[ o.asset_a ].erase( pool_id );
+   asset_in_pools_map[ o.asset_b ].erase( pool_id );
    // Note: do not erase entries with an empty set from the map in order to avoid read/write race conditions
-} FC_CAPTURE_AND_RETHROW( (objct) ); }
+} FC_CAPTURE_AND_RETHROW( (objct) ) } // GCOVR_EXCL_LINE
 
 void asset_in_liquidity_pools_index::about_to_modify( const object& objct )
 {
+   // this secondary index has no interest in the modifications, nothing to do here
 }
 
 void asset_in_liquidity_pools_index::object_modified( const object& objct )
 {
+   // this secondary index has no interest in the modifications, nothing to do here
 }
 
 const flat_set<liquidity_pool_id_type>& asset_in_liquidity_pools_index::get_liquidity_pools_by_asset(
@@ -131,7 +136,7 @@ namespace detail
 class api_helper_indexes_impl
 {
    public:
-      api_helper_indexes_impl(api_helper_indexes& _plugin)
+      explicit api_helper_indexes_impl(api_helper_indexes& _plugin)
          : _self( _plugin )
       {  }
 
@@ -140,22 +145,20 @@ class api_helper_indexes_impl
          return _self.database();
       }
 
-      api_helper_indexes& _self;
-
    private:
-
+      api_helper_indexes& _self;
 };
 
 } // end namespace detail
 
-api_helper_indexes::api_helper_indexes() :
-   my( new detail::api_helper_indexes_impl(*this) )
+api_helper_indexes::api_helper_indexes(graphene::app::application& app) :
+   plugin(app),
+   my( std::make_unique<detail::api_helper_indexes_impl>(*this) )
 {
+   // Nothing else to do
 }
 
-api_helper_indexes::~api_helper_indexes()
-{
-}
+api_helper_indexes::~api_helper_indexes() = default;
 
 std::string api_helper_indexes::plugin_name()const
 {
@@ -198,6 +201,55 @@ void api_helper_indexes::plugin_startup()
    for( const auto& pool : database().get_index_type<liquidity_pool_index>().indices() )
       asset_in_liquidity_pools_idx->object_inserted( pool );
 
+   next_object_ids_idx = database().add_secondary_index< primary_index<simple_index<chain_property_object>>,
+                                                        next_object_ids_index >();
+   refresh_next_ids();
+   // connect with no group specified to process after the ones with a group specified
+   database().applied_block.connect( [this]( const chain::signed_block& )
+   {
+      refresh_next_ids();
+      _next_ids_map_initialized = true;
+   });
 }
+
+void api_helper_indexes::refresh_next_ids()
+{
+   const auto& db = database();
+   if( _next_ids_map_initialized )
+   {
+      for( auto& item : next_object_ids_idx->_next_ids )
+      {
+         item.second = db.get_index( item.first.first, item.first.second ).get_next_id();
+      }
+      return;
+   }
+
+   // Assuming that all indexes have been created when processing the first block,
+   // for better performance, only do this twice, one on plugin startup, the other on the first block.
+   size_t count = 0;
+   size_t failed_count = 0;
+   for( uint8_t space = 0; space < chain::database::_index_size; ++space )
+   {
+      for( uint8_t type = 0; type < chain::database::_index_size; ++type )
+      {
+         try
+         {
+            const auto& idx = db.get_index( space, type );
+            next_object_ids_idx->_next_ids[ std::make_pair( space, type ) ] = idx.get_next_id();
+            ++count;
+         }
+         catch( const fc::exception& )
+         {
+            ++failed_count;
+         }
+      }
+   }
+   dlog( "${count} indexes detected, ${failed_count} not found", ("count",count)("failed_count",failed_count) );
+}
+
+object_id_type next_object_ids_index::get_next_id( uint8_t space_id, uint8_t type_id ) const
+{ try {
+   return _next_ids.at( std::make_pair( space_id, type_id ) );
+} FC_CAPTURE_AND_RETHROW( (space_id)(type_id) ) } // GCOVR_EXCL_LINE
 
 } }

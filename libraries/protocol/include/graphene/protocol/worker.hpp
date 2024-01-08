@@ -31,9 +31,10 @@ namespace graphene { namespace protocol {
     * @defgroup workers The Blockchain Worker System
     * @ingroup operations
     *
-    * Graphene blockchains allow the creation of special "workers" which are elected positions paid by the blockchain
+    * BitShares blockchains allow the creation of special "workers" which are elected positions paid by the blockchain
     * for services they provide. There may be several types of workers, and the semantics of how and when they are paid
-    * are defined by the @ref worker_type_enum enumeration. All workers are elected by core stakeholder approval, by
+    * are defined by the @ref graphene::chain::worker_type enumeration.
+    * All workers are elected by core stakeholder approval, by
     * voting for or against them.
     *
     * Workers are paid from the blockchain's daily budget if their total approval (votes for - votes against) is
@@ -77,7 +78,7 @@ namespace graphene { namespace protocol {
     */
    struct worker_create_operation : public base_operation
    {
-      struct fee_parameters_type { uint64_t fee = 5000*GRAPHENE_BLOCKCHAIN_PRECISION; };
+      struct fee_params_t { uint64_t fee = 5000*GRAPHENE_BLOCKCHAIN_PRECISION; };
 
       asset                fee;
       account_id_type      owner;
@@ -101,9 +102,9 @@ FC_REFLECT( graphene::protocol::burn_worker_initializer, )
 FC_REFLECT( graphene::protocol::refund_worker_initializer, )
 FC_REFLECT_TYPENAME( graphene::protocol::worker_initializer )
 
-FC_REFLECT( graphene::protocol::worker_create_operation::fee_parameters_type, (fee) )
+FC_REFLECT( graphene::protocol::worker_create_operation::fee_params_t, (fee) )
 FC_REFLECT( graphene::protocol::worker_create_operation,
             (fee)(owner)(work_begin_date)(work_end_date)(daily_pay)(name)(url)(initializer) )
 
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::worker_create_operation::fee_parameters_type )
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::worker_create_operation::fee_params_t )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::worker_create_operation )

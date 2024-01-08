@@ -138,6 +138,10 @@ namespace graphene { namespace chain {
    GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( receiving_asset_unauthorized, limit_order_create, 5 )
    GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( insufficient_balance, limit_order_create, 6 )
 
+   GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( limit_order_update );
+   GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( nonexist_order, limit_order_update, 1 )
+   GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( owner_mismatch, limit_order_update, 2 )
+
    GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( limit_order_cancel );
    GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( nonexist_order, limit_order_cancel, 1 )
    GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( owner_mismatch, limit_order_cancel, 2 )
@@ -212,6 +216,9 @@ namespace graphene { namespace chain {
    //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( htlc_create_operation )
    //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( htlc_redeem_operation )
    //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( htlc_extend_operation )
+
+   GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( liquidity_pool_exchange );
+   GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( unfillable_price, liquidity_pool_exchange, 1 )
 
    #define GRAPHENE_RECODE_EXC( cause_type, effect_type ) \
       catch( const cause_type& e ) \

@@ -21,7 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <algorithm>
 #include <graphene/protocol/fee_schedule.hpp>
 
 #include <fc/io/raw.hpp>
@@ -31,77 +30,29 @@
 
 namespace graphene { namespace protocol {
 
-   fee_schedule::fee_schedule()
-   {
-   }
-
-   fee_schedule fee_schedule::get_default()
+   fee_schedule fee_schedule::get_default_impl()
    {
       fee_schedule result;
-      for( int i = 0; i < fee_parameters().count(); ++i )
+      const auto count = fee_parameters::count();
+      result.parameters.reserve(count);
+      for( size_t i = 0; i < count; ++i )
       {
-         fee_parameters x; x.set_which(i);
+         fee_parameters x;
+         x.set_which(i);
          result.parameters.insert(x);
       }
       return result;
    }
 
-   struct fee_schedule_validate_visitor
+   const fee_schedule& fee_schedule::get_default()
    {
-      typedef void result_type;
-
-      template<typename T>
-      void operator()( const T& p )const
-      {
-         //p.validate();
-      }
-   };
-
-   void fee_schedule::validate()const
-   {
-      for( const auto& f : parameters )
-         f.visit( fee_schedule_validate_visitor() );
+      static const auto result = get_default_impl();
+      return result;
    }
-
-   struct calc_fee_visitor
-   {
-      typedef uint64_t result_type;
-
-      const fee_schedule& param;
-      const int current_op;
-      calc_fee_visitor( const fee_schedule& p, const operation& op ):param(p),current_op(op.which()){}
-
-      template<typename OpType>
-      result_type operator()( const OpType& op )const
-      {
-         try {
-            return op.calculate_fee( param.get<OpType>() ).value;
-         } catch (fc::assert_exception& e) {
-             fee_parameters params; params.set_which(current_op);
-             auto itr = param.parameters.find(params);
-             if( itr != param.parameters.end() ) params = *itr;
-             return op.calculate_fee( params.get<typename OpType::fee_parameters_type>() ).value;
-         }
-      }
-   };
-
-   struct set_fee_visitor
-   {
-      typedef void result_type;
-      asset _fee;
-
-      set_fee_visitor( asset f ):_fee(f){}
-
-      template<typename OpType>
-      void operator()( OpType& op )const
-      {
-         op.fee = _fee;
-      }
-   };
 
    struct zero_fee_visitor
    {
-      typedef void result_type;
+      using result_type = void;
 
       template<typename ParamType>
       result_type operator()(  ParamType& op )const
@@ -185,5 +136,3 @@ namespace graphene { namespace protocol {
    }
 
 } } // graphene::protocol
-
-GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::protocol::fee_schedule )

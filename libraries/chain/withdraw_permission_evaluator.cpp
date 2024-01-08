@@ -31,12 +31,12 @@
 
 namespace graphene { namespace chain {
 
-void_result withdraw_permission_create_evaluator::do_evaluate(const operation_type& op)
+void_result withdraw_permission_create_evaluator::do_evaluate(const operation_type& op)const
 { try {
    database& d = db();
-   FC_ASSERT(d.find_object(op.withdraw_from_account));
-   FC_ASSERT(d.find_object(op.authorized_account));
-   FC_ASSERT(d.find_object(op.withdrawal_limit.asset_id));
+   FC_ASSERT(d.find(op.withdraw_from_account));
+   FC_ASSERT(d.find(op.authorized_account));
+   FC_ASSERT(d.find(op.withdrawal_limit.asset_id));
    FC_ASSERT(op.period_start_time > d.head_block_time());
    FC_ASSERT(op.period_start_time + op.periods_until_expiration * op.withdrawal_period_sec > d.head_block_time());
    FC_ASSERT(op.withdrawal_period_sec >= d.get_global_properties().parameters.block_interval);
@@ -44,7 +44,7 @@ void_result withdraw_permission_create_evaluator::do_evaluate(const operation_ty
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (op) ) }
 
-object_id_type withdraw_permission_create_evaluator::do_apply(const operation_type& op)
+object_id_type withdraw_permission_create_evaluator::do_apply(const operation_type& op)const
 { try {
    return db().create<withdraw_permission_object>([&op](withdraw_permission_object& p) {
       p.withdraw_from_account = op.withdraw_from_account;
@@ -56,7 +56,8 @@ object_id_type withdraw_permission_create_evaluator::do_apply(const operation_ty
    }).id;
 } FC_CAPTURE_AND_RETHROW( (op) ) }
 
-void_result withdraw_permission_claim_evaluator::do_evaluate(const withdraw_permission_claim_evaluator::operation_type& op)
+void_result withdraw_permission_claim_evaluator::do_evaluate(
+      const withdraw_permission_claim_evaluator::operation_type& op)const
 { try {
    const database& d = db();
    time_point_sec head_block_time = d.head_block_time();
@@ -79,8 +80,8 @@ void_result withdraw_permission_claim_evaluator::do_evaluate(const withdraw_perm
 
    const account_object& to    = permit.authorized_account(d);
    FC_ASSERT( is_authorized_asset( d, to, _asset ),
-              "Account ${acct} '${name}' is unauthorized to transact asset ${a} '${sym}' due to whitelist / blacklist",
-              ("acct", to.id)("name", to.name)("a", _asset.id)("sym", _asset.symbol) );
+         "Account ${acct} '${name}' is unauthorized to transact asset ${a} '${sym}' due to whitelist / blacklist",
+         ("acct", to.id)("name", to.name)("a", _asset.id)("sym", _asset.symbol) );
 
    const account_object& from  = op.withdraw_from_account(d);
    bool from_is_authorized = ( is_authorized_asset( d, from, _asset ) );
@@ -91,7 +92,8 @@ void_result withdraw_permission_claim_evaluator::do_evaluate(const withdraw_perm
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (op) ) }
 
-void_result withdraw_permission_claim_evaluator::do_apply(const withdraw_permission_claim_evaluator::operation_type& op)
+void_result withdraw_permission_claim_evaluator::do_apply(
+      const withdraw_permission_claim_evaluator::operation_type& op)const
 { try {
    database& d = db();
 
@@ -108,6 +110,56 @@ void_result withdraw_permission_claim_evaluator::do_apply(const withdraw_permiss
    d.adjust_balance(op.withdraw_from_account, -op.amount_to_withdraw);
    d.adjust_balance(op.withdraw_to_account, op.amount_to_withdraw);
 
+   return void_result();
+} FC_CAPTURE_AND_RETHROW( (op) ) }
+
+void_result withdraw_permission_update_evaluator::do_evaluate(
+      const withdraw_permission_update_evaluator::operation_type& op)const
+{ try {
+   database& d = db();
+
+   const withdraw_permission_object& permit = op.permission_to_update(d);
+   FC_ASSERT(permit.authorized_account == op.authorized_account);
+   FC_ASSERT(permit.withdraw_from_account == op.withdraw_from_account);
+   FC_ASSERT(d.find(op.withdrawal_limit.asset_id));
+   FC_ASSERT(op.period_start_time >= d.head_block_time());
+   FC_ASSERT(op.period_start_time + op.periods_until_expiration * op.withdrawal_period_sec > d.head_block_time());
+   FC_ASSERT(op.withdrawal_period_sec >= d.get_global_properties().parameters.block_interval);
+
+   return void_result();
+} FC_CAPTURE_AND_RETHROW( (op) ) }
+
+void_result withdraw_permission_update_evaluator::do_apply(
+      const withdraw_permission_update_evaluator::operation_type& op)const
+{ try {
+   database& d = db();
+
+   d.modify(op.permission_to_update(d), [&op](withdraw_permission_object& p) {
+      p.period_start_time = op.period_start_time;
+      p.expiration = op.period_start_time + op.periods_until_expiration * op.withdrawal_period_sec;
+      p.withdrawal_limit = op.withdrawal_limit;
+      p.withdrawal_period_sec = op.withdrawal_period_sec;
+   });
+
+   return void_result();
+} FC_CAPTURE_AND_RETHROW( (op) ) }
+
+void_result withdraw_permission_delete_evaluator::do_evaluate(
+      const withdraw_permission_delete_evaluator::operation_type& op)const
+{ try {
+   database& d = db();
+
+   const withdraw_permission_object& permit = op.withdrawal_permission(d);
+   FC_ASSERT(permit.authorized_account == op.authorized_account);
+   FC_ASSERT(permit.withdraw_from_account == op.withdraw_from_account);
+
+   return void_result();
+} FC_CAPTURE_AND_RETHROW( (op) ) }
+
+void_result withdraw_permission_delete_evaluator::do_apply(
+      const withdraw_permission_delete_evaluator::operation_type& op)const
+{ try {
+   db().remove(db().get(op.withdrawal_permission));
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (op) ) }
 
