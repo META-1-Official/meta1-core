@@ -12,7 +12,7 @@ namespace protocol
 //backed asset create smart contract
 struct asset_limitation_object_create_operation : public base_operation
 {
-    struct fee_parameters_type
+    struct fee_params_t
     {
         uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION;
     };
@@ -30,7 +30,7 @@ struct asset_limitation_object_create_operation : public base_operation
 //backed asset update smart contract
 struct asset_limitation_object_update_operation : public base_operation
 {
-    struct fee_parameters_type
+    struct fee_params_t
     {
         uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION;
     };
@@ -69,7 +69,7 @@ struct asset_limitation_object_update_operation : public base_operation
     */
    struct asset_price_publish_operation : public base_operation
    {
-      struct fee_parameters_type
+      struct fee_params_t
       {
          uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION;
       };
@@ -91,8 +91,8 @@ struct asset_limitation_object_update_operation : public base_operation
 } // namespace protocol
 } // namespace graphene
 
-FC_REFLECT(graphene::protocol::asset_limitation_object_create_operation::fee_parameters_type, (fee))
-FC_REFLECT(graphene::protocol::asset_limitation_object_update_operation::fee_parameters_type, (fee))
+FC_REFLECT(graphene::protocol::asset_limitation_object_create_operation::fee_params_t, (fee))
+FC_REFLECT(graphene::protocol::asset_limitation_object_update_operation::fee_params_t, (fee))
 
 FC_REFLECT(graphene::protocol::asset_limitation_object_create_operation,
            (fee)(limit_symbol)(issuer)(extensions))
@@ -101,13 +101,13 @@ FC_REFLECT(graphene::protocol::asset_limitation_object_update_operation,
 
 FC_REFLECT(graphene::protocol::price_ratio, (numerator)(denominator))
 
-FC_REFLECT(graphene::protocol::asset_price_publish_operation::fee_parameters_type, (fee))
+FC_REFLECT(graphene::protocol::asset_price_publish_operation::fee_params_t, (fee))
 FC_REFLECT(graphene::protocol::asset_price_publish_operation,
            (fee)(fee_paying_account)(symbol)(usd_price)(extensions))
 
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_create_operation::fee_parameters_type)
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_update_operation::fee_parameters_type)
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_price_publish_operation::fee_parameters_type)
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_create_operation::fee_params_t)
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_update_operation::fee_params_t)
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_price_publish_operation::fee_params_t)
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_create_operation)
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION(graphene::protocol::asset_limitation_object_update_operation)
