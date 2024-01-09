@@ -146,7 +146,6 @@ namespace graphene { namespace chain {
          /// The ID of the liquidity pool if the asset is the share asset of a liquidity pool
          optional<liquidity_pool_id_type> for_liquidity_pool;
 
-         asset_id_type get_id()const { return id; }
          /// The block number when the asset object was created
          uint32_t       creation_block_num = 0;
          /// The time when the asset object was created

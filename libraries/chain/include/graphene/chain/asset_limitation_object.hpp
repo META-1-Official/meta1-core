@@ -9,7 +9,7 @@ namespace chain
 {
 using namespace graphene::db;
 
-class asset_limitation_object : public graphene::db::abstract_object<asset_limitation_object>
+class asset_limitation_object : public graphene::db::abstract_object<asset_limitation_object,protocol_ids, impl_transaction_history_object_type>
 {
 public:
     static const uint8_t space_id = protocol_ids;
@@ -20,8 +20,6 @@ public:
 
     // The cumulative sell limit for an asset that is backed by other properties
     uint64_t cumulative_sell_limit = 0;
-
-    asset_limitation_id_type get_id() const { return id; }
 };
 
 struct by_limit_symbol;
