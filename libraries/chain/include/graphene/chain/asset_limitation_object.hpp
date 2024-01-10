@@ -34,7 +34,7 @@ typedef generic_index<asset_limitation_object, asset_limitation_index_type> asse
    /**
     * Price of an external asset
     */
-   class asset_price : public graphene::db::abstract_object<asset_price> {
+   class asset_price : public graphene::db::abstract_object<asset_price, implementation_ids, impl_asset_price_object_type> {
    public:
       static const uint8_t space_id = implementation_ids;
       static const uint8_t type_id = impl_asset_price_object_type;
