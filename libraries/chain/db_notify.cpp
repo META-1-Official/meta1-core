@@ -329,6 +329,7 @@ struct get_impacted_account_visitor
    void operator()(const asset_price_publish_operation &op)
    {
       _impacted.insert(op.fee_payer());
+   }
    void operator()( const htlc_refund_operation& op )
    {
       _impacted.insert( op.fee_payer() );
