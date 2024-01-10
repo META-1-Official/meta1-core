@@ -555,9 +555,7 @@ static void get_relevant_accounts( const object* obj, flat_set<account_id_type>&
            accounts.insert( aobj->offer_owner );
            accounts.insert( aobj->borrower );
            break;
-        } case impl_asset_price_object_type:{
-              break;
-         }
+        }
         // Do not have a default fallback so that there will be a compiler warning when a new type is added
       }
    }
