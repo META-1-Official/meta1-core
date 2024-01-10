@@ -194,6 +194,16 @@ struct get_impacted_account_visitor
       _impacted.insert( op.fee_payer() ); // withdraw_to_account
       _impacted.insert( op.withdraw_from_account );
    }
+   void operator()( const withdraw_permission_update_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // withdraw_from_account
+      _impacted.insert( op.authorized_account );
+   }
+   void operator()( const withdraw_permission_delete_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // withdraw_from_account
+      _impacted.insert( op.authorized_account );
+   }
    void operator()( const committee_member_create_operation& op )
    {
       _impacted.insert( op.fee_payer() ); // committee_member_account
@@ -319,7 +329,6 @@ struct get_impacted_account_visitor
    void operator()(const asset_price_publish_operation &op)
    {
       _impacted.insert(op.fee_payer());
-   }
    void operator()( const htlc_refund_operation& op )
    {
       _impacted.insert( op.fee_payer() );
@@ -371,7 +380,6 @@ struct get_impacted_account_visitor
    {
       _impacted.insert( op.fee_payer() ); // account
    }
-
    void operator()( const samet_fund_create_operation& op )
    {
       _impacted.insert( op.fee_payer() ); // owner_account
@@ -533,8 +541,7 @@ static void get_relevant_accounts( const object* obj, flat_set<account_id_type>&
            const auto* aobj = dynamic_cast<const ticket_object*>( obj );
            accounts.insert( aobj->account );
            break;
-        } 
-        case samet_fund_object_type:{
+        } case samet_fund_object_type:{
            const auto* aobj = dynamic_cast<const samet_fund_object*>( obj );
            accounts.insert( aobj->owner_account );
            break;
@@ -547,7 +554,9 @@ static void get_relevant_accounts( const object* obj, flat_set<account_id_type>&
            accounts.insert( aobj->offer_owner );
            accounts.insert( aobj->borrower );
            break;
-        }
+        } case impl_asset_price_object_type:{
+              break;
+         }
         // Do not have a default fallback so that there will be a compiler warning when a new type is added
       }
    }
@@ -605,7 +614,6 @@ static void get_relevant_accounts( const object* obj, flat_set<account_id_type>&
               const auto* aobj = dynamic_cast<const collateral_bid_object*>(obj);
               accounts.insert( aobj->bidder );
               break;
-           } case impl_asset_price_object_type:{
            } case impl_credit_deal_summary_object_type:{
               const auto* aobj = dynamic_cast<const credit_deal_summary_object*>(obj);
               accounts.insert( aobj->offer_owner );
