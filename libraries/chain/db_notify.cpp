@@ -533,9 +533,7 @@ static void get_relevant_accounts( const object* obj, flat_set<account_id_type>&
            const auto* aobj = dynamic_cast<const ticket_object*>( obj );
            accounts.insert( aobj->account );
            break;
-        } case liquidity_pool_object_type:
-           // no account info in the object although it does have an owner
-           break;
+        } 
         case samet_fund_object_type:{
            const auto* aobj = dynamic_cast<const samet_fund_object*>( obj );
            accounts.insert( aobj->owner_account );
