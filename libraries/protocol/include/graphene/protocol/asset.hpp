@@ -89,12 +89,8 @@ namespace graphene { namespace protocol {
          return asset( a.amount + b.amount, a.asset_id );
       }
 
-      static share_type scaled_precision( uint8_t precision )
-      {
-         FC_ASSERT( precision < 19 );
-         return scaled_precision_lut[ precision ];
-      }
-
+      static share_type scaled_precision( uint8_t precision );
+      
       asset multiply_and_round_up( const price& p )const; ///< Multiply and round up
    };
 
