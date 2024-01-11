@@ -230,8 +230,6 @@ void_result asset_create_evaluator::do_evaluate( const asset_create_operation& o
    auto asset_symbol_itr = asset_indx.find( op.symbol );
    FC_ASSERT( asset_symbol_itr == asset_indx.end() );
 
-   // Define now from the current block time
-   const time_point_sec now = d.head_block_time();
    // This must remain due to "BOND.CNY" being allowed before this HF
    if( now > HARDFORK_385_TIME )
    {
