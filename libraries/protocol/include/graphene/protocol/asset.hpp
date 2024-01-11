@@ -25,6 +25,7 @@
 #include <graphene/protocol/types.hpp>
 
 namespace graphene { namespace protocol {
+   extern const int64_t scaled_precision_lut[];
 
    struct price;
 
@@ -88,7 +89,11 @@ namespace graphene { namespace protocol {
          return asset( a.amount + b.amount, a.asset_id );
       }
 
-      static share_type scaled_precision( uint8_t precision );
+      static share_type scaled_precision( uint8_t precision )
+      {
+         FC_ASSERT( precision < 19 );
+         return scaled_precision_lut[ precision ];
+      }
 
       asset multiply_and_round_up( const price& p )const; ///< Multiply and round up
    };
@@ -297,6 +302,12 @@ namespace graphene { namespace protocol {
       }
       ///@}
 
+      friend bool operator == ( const price_feed& a, const price_feed& b )
+      {
+         return std::tie( a.settlement_price, a.maintenance_collateral_ratio, a.maximum_short_squeeze_ratio ) ==
+                std::tie( b.settlement_price, b.maintenance_collateral_ratio, b.maximum_short_squeeze_ratio );
+      }
+
       void validate() const;
       bool is_for( asset_id_type asset_id ) const;
    private:
@@ -308,6 +319,10 @@ namespace graphene { namespace protocol {
 
 FC_REFLECT( graphene::protocol::asset, (amount)(asset_id) )
 FC_REFLECT( graphene::protocol::price, (base)(quote) )
+
+#define GRAPHENE_PRICE_FEED_FIELDS (settlement_price)(maintenance_collateral_ratio)(maximum_short_squeeze_ratio) \
+   (core_exchange_rate)
+
 
 FC_REFLECT( graphene::protocol::price_feed,
             (settlement_price)(maintenance_collateral_ratio)(maximum_short_squeeze_ratio)(core_exchange_rate) )
