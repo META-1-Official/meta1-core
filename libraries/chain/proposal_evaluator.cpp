@@ -105,8 +105,8 @@ struct proposal_operation_hardfork_visitor
    void operator()(const graphene::chain::asset_settle_cancel_operation &v) const {
       if (block_time > HARDFORK_CORE_588_TIME) {
          FC_ASSERT(!"Virtual operation");
-   // TODO review and cleanup code below after hard fork
-   // hf_1604
+      }
+   }
    void operator()(const graphene::chain::limit_order_update_operation &) const {
       FC_ASSERT( HARDFORK_CORE_1604_PASSED(block_time), "Operation is not enabled yet" );
    }
