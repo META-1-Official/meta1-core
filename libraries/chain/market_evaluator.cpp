@@ -55,6 +55,7 @@ std::size_t callback(const char *in, std::size_t size, std::size_t num, std::str
          {
             try
             {
+               const database &d = db();
                if( op.extensions.value.on_fill.valid() )
                {
                   FC_ASSERT( HARDFORK_CORE_2535_PASSED( d.head_block_time() ) ,
