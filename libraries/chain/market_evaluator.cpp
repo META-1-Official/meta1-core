@@ -65,7 +65,6 @@ std::size_t callback(const char *in, std::size_t size, std::size_t num, std::str
                   const auto& take_profit_action = op.extensions.value.on_fill->front().get<create_take_profit_order_action>();
                   FC_ASSERT( d.find( take_profit_action.fee_asset_id ), "Fee asset does not exist" );
                }
-               const database &d = db();
 
                FC_ASSERT(op.expiration >= d.head_block_time());
 
@@ -75,14 +74,14 @@ std::size_t callback(const char *in, std::size_t size, std::size_t num, std::str
 
                if( _sell_asset->options.whitelist_markets.size() )
                {
-                  GRAPHENE_ASSERT( _sell_asset->options.whitelist_markets.find(_receive_asset->id)
+                  GRAPHENE_ASSERT( _sell_asset->options.whitelist_markets.find(_receive_asset->get_id())
                                       != _sell_asset->options.whitelist_markets.end(),
                                    limit_order_create_market_not_whitelisted,
                                    "This market has not been whitelisted by the selling asset", );
                }
                if( _sell_asset->options.blacklist_markets.size() )
                {
-                  GRAPHENE_ASSERT( _sell_asset->options.blacklist_markets.find(_receive_asset->id)
+                  GRAPHENE_ASSERT( _sell_asset->options.blacklist_markets.find(_receive_asset->get_id())
                                       == _sell_asset->options.blacklist_markets.end(),
                                    limit_order_create_market_blacklisted,
                                    "This market has been blacklisted by the selling asset", );
@@ -103,7 +102,7 @@ std::size_t callback(const char *in, std::size_t size, std::size_t num, std::str
 
                // Check if selling or buy the META1 asset
                const asset_object &META1 = d.get_core_asset();
-               const asset_id_type &meta1_id = META1.id;
+               const asset_id_type &meta1_id = META1.get_id();
                const bool selling_meta1 = (op.amount_to_sell.asset_id == meta1_id);
                const bool buying_meta1 = (op.min_to_receive.asset_id == meta1_id);
                if (selling_meta1 || buying_meta1) {
