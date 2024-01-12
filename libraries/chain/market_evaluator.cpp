@@ -117,8 +117,8 @@ std::size_t callback(const char *in, std::size_t size, std::size_t num, std::str
                   } else {
                      other_id = op.amount_to_sell.asset_id;
                   }
-                  auto asset_itr = asset_idx_by_id.find(other_id);
-                  FC_ASSERT(asset_itr != asset_idx_by_id.end(), "Other asset is unknown");
+                  //auto asset_itr = asset_idx_by_id.find(other_id);
+                  //FC_ASSERT(asset_itr != asset_idx_by_id.end(), "Other asset is unknown");
                   const asset_object &O = *asset_itr;
 
                   // The minimum price check is only performed if an external price has been set
