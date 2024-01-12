@@ -56,6 +56,13 @@ struct hardfork_visitor {
                                                   protocol::liquidity_pool_withdraw_operation,
                                                   protocol::liquidity_pool_exchange_operation >;
    using liquidity_pool_update_op = fc::typelist::list< protocol::liquidity_pool_update_operation >;
+   using property_ops = fc::typelist::list<protocol::property_create_operation,
+                                                protocol::property_delete_operation,
+                                                protocol::property_approve_operation>;
+   using property_update_op = fc::typelist::list< protocol::property_update_operation>;
+   using asset_limitation_ops = fc::typelist::list< protocol::asset_price_publish_operation,
+                                                    protocol::asset_limitation_object_create_operation>;
+   using asset_limitation_update_ops = fc::typelist::list< protocol::asset_limitation_object_update_operation>;
    using samet_fund_ops = fc::typelist::list< protocol::samet_fund_create_operation,
                                               protocol::samet_fund_delete_operation,
                                               protocol::samet_fund_update_operation,
@@ -103,6 +110,18 @@ struct hardfork_visitor {
    template<typename Op>
    std::enable_if_t<fc::typelist::contains<liquidity_pool_update_op, Op>(), bool>
    visit() { return HARDFORK_CORE_2604_PASSED(now); }
+   template<typename Op>
+   std::enable_if_t<fc::typelist::contains<property_update_op, Op>(), bool>
+   visit() { return true; }
+   template<typename Op>
+   std::enable_if_t<fc::typelist::contains<property_ops, Op>(), bool>
+   visit() { return true; }
+   template<typename Op>
+   std::enable_if_t<fc::typelist::contains<asset_limitation_ops, Op>(), bool>
+   visit() { return true; }
+   template<typename Op>
+   std::enable_if_t<fc::typelist::contains<asset_limitation_update_ops, Op>(), bool>
+   visit() { return true; }
    /// @}
 
    /// typelist::runtime::dispatch adaptor
