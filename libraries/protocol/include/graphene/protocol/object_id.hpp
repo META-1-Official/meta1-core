@@ -162,10 +162,8 @@ namespace graphene { namespace db {
       friend bool  operator == ( const fc::unsigned_int& a, const object_id& b ) { return a == b.instance; }
       friend bool  operator != ( const fc::unsigned_int& a, const object_id& b ) { return a != b.instance; }
 
-      friend bool  operator < ( const object_id& a, const object_id& b )
-      { return a.instance.value < b.instance.value; }
-      friend bool  operator > ( const object_id& a, const object_id& b )
-      { return a.instance.value > b.instance.value; }
+      friend bool  operator < ( const object_id& a, const object_id& b ) { return a.instance.value < b.instance.value; }
+      friend bool  operator > ( const object_id& a, const object_id& b ) { return a.instance.value > b.instance.value; }
 
       friend size_t hash_value( const object_id& v ) { return std::hash<uint64_t>()(v.instance.value); }
 
