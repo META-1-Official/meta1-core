@@ -43,6 +43,20 @@
 
 namespace graphene { namespace net
   {
+    struct firewall_check_state_data
+    {
+      node_id_t        expected_node_id;
+      fc::ip::endpoint endpoint_to_test;
+
+      // if we're coordinating a firewall check for another node, these are the helper
+      // nodes we've already had do the test (if this structure is still relevant, that
+      // that means they have all had indeterminate results
+      std::set<node_id_t> nodes_already_tested;
+
+      // If we're a just a helper node, this is the node we report back to
+      // when we have a result
+      node_id_t        requesting_peer;
+    };
     class peer_connection;
     class peer_connection_delegate
     {
