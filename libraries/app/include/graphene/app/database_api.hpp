@@ -402,6 +402,30 @@ class database_api
        */
       uint64_t get_account_count()const;
 
+      ////////////////////
+      //  Backed Assets //
+      ////////////////////
+
+      vector<optional<property_object>> get_properties(const vector<uint32_t>& properties_ids)const;
+      bool is_property_exists(uint32_t property_id)const;
+      vector<property_object> get_all_properties() const;
+      vector<property_object>  get_properties_by_backed_asset_symbol(string symbol) const;
+      optional<property_object> get_property_by_id( uint32_t id )const;
+
+      /////////////////////
+      //Assets Limitation//
+      /////////////////////
+
+      bool is_asset_limitation_exists(string limit_symbol)const;
+      optional<asset_limitation_object> get_asset_limitaion_by_symbol( string limit_symbol )const;
+      /**
+       * @brief Get the cumulative asset limitation of a backed asset
+       * @param asset_symbol symbol names or IDs of the assets to retrieve
+       * @return USD-denominated value if the asset is recognized and if it is recognized backed asset,
+       * otherwise throws an exception
+       */
+      uint64_t get_asset_limitation_value( const string symbol_or_id )const;
+
       ////////////
       // Assets //
       ////////////
@@ -1521,7 +1545,6 @@ FC_API(graphene::app::database_api,
    (get_asset_count)
    (get_assets_by_issuer)
    (get_asset_id_from_string)
-   (get_published_asset_price)
 
     //backed asset
    (get_properties)
