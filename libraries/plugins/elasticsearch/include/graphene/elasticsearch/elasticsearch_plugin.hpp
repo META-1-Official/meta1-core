@@ -76,67 +76,8 @@ class elasticsearch_plugin : public graphene::app::plugin
 
    private:
       std::unique_ptr<detail::elasticsearch_plugin_impl> my;
-
-   private:
-      operation_history_object fromEStoOperation(variant source);
-      graphene::utilities::ES prepareHistoryQuery(string query);
 };
 
-
-struct operation_visitor
-{
-   typedef void result_type;
-
-   share_type fee_amount;
-   asset_id_type fee_asset;
-
-   asset_id_type transfer_asset_id;
-   share_type transfer_amount;
-   account_id_type transfer_from;
-   account_id_type transfer_to;
-
-   void operator()( const graphene::chain::transfer_operation& o )
-   {
-      fee_asset = o.fee.asset_id;
-      fee_amount = o.fee.amount;
-
-      transfer_asset_id = o.amount.asset_id;
-      transfer_amount = o.amount.amount;
-      transfer_from = o.from;
-      transfer_to = o.to;
-   }
-
-   object_id_type      fill_order_id;
-   account_id_type     fill_account_id;
-   asset_id_type       fill_pays_asset_id;
-   share_type          fill_pays_amount;
-   asset_id_type       fill_receives_asset_id;
-   share_type          fill_receives_amount;
-   double              fill_fill_price;
-   bool                fill_is_maker;
-
-   void operator()( const graphene::chain::fill_order_operation& o )
-   {
-      fee_asset = o.fee.asset_id;
-      fee_amount = o.fee.amount;
-
-      fill_order_id = o.order_id;
-      fill_account_id = o.account_id;
-      fill_pays_asset_id = o.pays.asset_id;
-      fill_pays_amount = o.pays.amount;
-      fill_receives_asset_id = o.receives.asset_id;
-      fill_receives_amount = o.receives.amount;
-      fill_fill_price = o.fill_price.to_real();
-      fill_is_maker = o.is_maker;
-   }
-
-   template<typename T>
-   void operator()( const T& o )
-   {
-      fee_asset = o.fee.asset_id;
-      fee_amount = o.fee.amount;
-   }
-};
 
 struct operation_history_struct {
    uint16_t trx_in_block;
