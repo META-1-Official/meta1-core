@@ -890,13 +890,12 @@ price_ratio wallet_api::get_published_asset_price(const std::string &symbol) con
 }
 
 
-signed_transaction create_asset( const string& issuer,
-                                       const string& symbol,
-                                       uint8_t precision,
-                                       const asset_options& common,
-                                       const optional<bitasset_options>& bitasset_opts,
-                                       bool broadcast = false )const
-
+signed_transaction wallet_api::create_asset( const string& issuer,
+                                             const string& symbol,
+                                             uint8_t precision,
+                                             const asset_options& common,
+                                             const optional<bitasset_options>& bitasset_opts,
+                                             bool broadcast )const
 {
    return my->create_asset(issuer, symbol, precision, common, bitasset_opts, broadcast);
 }
