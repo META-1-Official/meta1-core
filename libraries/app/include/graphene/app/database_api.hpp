@@ -307,9 +307,8 @@ class database_api
        *       @a api_limit_get_full_accounts_lists option. Exceeded objects need to be queried with other APIs.
        *
        */
-      map<string, full_account, std::less<>> get_full_accounts(
-            const vector<string>& names_or_ids,
-            const optional<bool>& subscribe = optional<bool>() )const;
+      std::map<string,full_account> get_full_accounts( const vector<string>& names_or_ids,
+                                                       optional<bool> subscribe = optional<bool>() );
 
       /**
        * @brief Returns vector of voting power sorted by reverse vp_active

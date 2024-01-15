@@ -527,7 +527,7 @@ vector<optional<property_object>> database_api_impl::get_properties(const vector
    std::transform(properties_ids.begin(), properties_ids.end(), std::back_inserter(result),
                   [this](uint32_t id) -> optional<property_object> {
                      const property_object *property = get_property_from_id(id);
-                     property_id_type property_id = property->id;
+                     property_id_type property_id = property->get_id();
                      if (auto o = _db.find(property_id))
                      {
                         subscribe_to_item(property_id);
@@ -606,7 +606,7 @@ optional<asset_limitation_object> database_api_impl::get_asset_limitaion_by_symb
 
    FC_ASSERT(asset_limitaion, "no such asset limitation");
 
-   asset_limitation_id_type asset_limitation_id = asset_limitaion->id;
+   asset_limitation_id_type asset_limitation_id = asset_limitaion->get_id();
    subscribe_to_item(asset_limitation_id); 
    return *asset_limitaion;
 }
@@ -670,14 +670,14 @@ vector<optional<account_object>> database_api_impl::get_accounts( const vector<s
    return result;
 }
 
-std::map<string, full_account, std::less<>> database_api::get_full_accounts( const vector<string>& names_or_ids,
-                                                                             const optional<bool>& subscribe )const
+std::map<string,full_account> database_api::get_full_accounts( const vector<string>& names_or_ids,
+                                                               optional<bool> subscribe )
 {
    return my->get_full_accounts( names_or_ids, subscribe );
 }
 
-std::map<std::string, full_account, std::less<>> database_api_impl::get_full_accounts(
-      const vector<std::string>& names_or_ids, const optional<bool>& subscribe )
+std::map<std::string, full_account> database_api_impl::get_full_accounts( const vector<std::string>& names_or_ids,
+                                                                          optional<bool> subscribe )
 {
    FC_ASSERT( _app_options, "Internal error" );
    const auto configured_limit = _app_options->api_limit_get_full_accounts;
@@ -687,7 +687,7 @@ std::map<std::string, full_account, std::less<>> database_api_impl::get_full_acc
 
    bool to_subscribe = get_whether_to_subscribe( subscribe );
 
-   std::map<std::string, full_account, std::less<>> results;
+   std::map<std::string, full_account> results;
 
    for (const std::string& account_name_or_id : names_or_ids)
    {
