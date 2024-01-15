@@ -81,11 +81,12 @@ std::string operation_printer::operator()(const transfer_to_blind_operation& op)
 }
 string operation_printer::operator()(const transfer_operation& op) const
 {
-   out << "Transfer " << wallet.get_asset(op.amount.asset_id).amount_to_pretty_string(op.amount)
+   out << "Transfer " << format_asset(op.amount)
        << " from " << wallet.get_account(op.from).name << " to " << wallet.get_account(op.to).name;
-   std::string memo;
-   if( op.memo )
-   
+   std::string memo = print_memo( op.memo );
+   print_fee(op.fee);
+   return memo;
+}
 
 std::string operation_printer::format_asset(const graphene::protocol::asset& a)const
 {

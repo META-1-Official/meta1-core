@@ -63,6 +63,7 @@ private:
 
    std::string format_asset(const graphene::protocol::asset& a) const;
    void print_fee(const graphene::protocol::asset& a) const;
+   std::string fee(const graphene::protocol::asset& a) const;
 
 public:
    operation_printer( std::ostream& out, const wallet_api_impl& wallet,
