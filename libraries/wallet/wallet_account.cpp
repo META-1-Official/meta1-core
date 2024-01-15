@@ -35,14 +35,6 @@
 
 namespace graphene { namespace wallet { namespace detail {
 
-   std::string wallet_api_impl::account_id_to_string(account_id_type id) const
-   {
-      std::string account_id = fc::to_string(id.space_id)
-                               + "." + fc::to_string(id.type_id)
-                               + "." + fc::to_string(id.instance.value);
-      return account_id;
-   }
-
    signed_transaction wallet_api_impl::register_account(string name, public_key_type owner,
          public_key_type active, string  registrar_account, string  referrer_account,
          uint32_t referrer_percent, bool broadcast )
