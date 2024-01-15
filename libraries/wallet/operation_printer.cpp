@@ -58,36 +58,6 @@ std::string operation_printer::fee(const graphene::protocol::asset& a)const {
    return "";
 }
 
-std::string operation_printer::operator()(const transfer_from_blind_operation& op)const
-{
-   auto a = wallet.get_asset( op.fee.asset_id );
-   auto receiver = wallet.get_account( op.to );
-
-   out <<  receiver.name
-       << " received " << a.amount_to_pretty_string( op.amount ) << " from blinded balance";
-   return "";
-}
-std::string operation_printer::operator()(const transfer_to_blind_operation& op)const
-{
-   auto fa = wallet.get_asset( op.fee.asset_id );
-   auto a = wallet.get_asset( op.amount.asset_id );
-   auto sender = wallet.get_account( op.from );
-
-   out <<  sender.name
-       << " sent " << a.amount_to_pretty_string( op.amount ) << " to " << op.outputs.size()
-       << " blinded balance" << (op.outputs.size()>1?"s":"")
-       << " fee: " << fa.amount_to_pretty_string( op.fee );
-   return "";
-}
-string operation_printer::operator()(const transfer_operation& op) const
-{
-   out << "Transfer " << format_asset(op.amount)
-       << " from " << wallet.get_account(op.from).name << " to " << wallet.get_account(op.to).name;
-   std::string memo = print_memo( op.memo );
-   print_fee(op.fee);
-   return memo;
-}
-
 std::string operation_printer::format_asset(const graphene::protocol::asset& a)const
 {
    return wallet.get_asset(a.asset_id).amount_to_pretty_string(a);
