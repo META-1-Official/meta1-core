@@ -102,17 +102,6 @@ database_fixture_base::~database_fixture_base()
       curl = curl_easy_init();
       curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
 
-   genesis_state.initial_timestamp = initial_timestamp;
-   genesis_state.max_core_supply = 100000000000000; // From "Genesis for softrelease"
-
-   if(current_test_name == "hf_935_test") {
-      genesis_state.initial_active_witnesses = 20;
-   }
-   else {
-      genesis_state.initial_active_witnesses = 10;
-      genesis_state.immutable_parameters.min_committee_member_count = INITIAL_COMMITTEE_MEMBER_COUNT;
-      genesis_state.immutable_parameters.min_witness_count = INITIAL_WITNESS_COUNT;
-   }
       graphene::utilities::ES es;
       es.curl = curl;
       es.elasticsearch_url = GRAPHENE_TESTING_ES_URL;
@@ -157,6 +146,7 @@ database_fixture_base::~database_fixture_base()
    }
 
 }
+
 
 void database_fixture_base::init_genesis( database_fixture_base& fixture )
 {
@@ -1275,7 +1265,7 @@ asset database_fixture_base::cancel_limit_order( const limit_order_object& order
   return processed.operation_results[0].get<asset>();
 }
 
-void database_fixture::delete_property( const property_object& property )
+void database_fixture_base::delete_property( const property_object& property )
 {
   property_delete_operation delete_property;
   delete_property.fee_paying_account = property.issuer;
@@ -1288,7 +1278,7 @@ void database_fixture::delete_property( const property_object& property )
   
 }
 
-void database_fixture::transfer(
+void database_fixture_base::transfer(
    account_id_type from,
    account_id_type to,
    const asset& amount,
@@ -2300,14 +2290,14 @@ vector< graphene::market_history::order_history_object > database_fixture_base::
    return result;
 }
 
-const property_object& database_fixture::get_property(uint32_t property_id) const
+const property_object& database_fixture_base::get_property(uint32_t property_id) const
 {
    const auto& idx = db.get_index_type<property_index>().indices().get<by_property_id>();
    const auto itr = idx.find(property_id);
    FC_ASSERT( itr != idx.end() );
    return *itr;
 }
-const asset_limitation_object& database_fixture::get_asset_limitation(string limit_symbol) const
+const asset_limitation_object& database_fixture_base::get_asset_limitation(string limit_symbol) const
 {
    const auto &idx = db.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
    auto itr = idx.find(limit_symbol);
@@ -2315,7 +2305,7 @@ const asset_limitation_object& database_fixture::get_asset_limitation(string lim
    return *itr;
 }
 
-flat_map< uint64_t, graphene::chain::fee_parameters > database_fixture::get_htlc_fee_parameters()
+flat_map< uint64_t, graphene::chain::fee_parameters > database_fixture_base::get_htlc_fee_parameters()
 {
    flat_map<uint64_t, graphene::chain::fee_parameters> ret_val;
 
@@ -2346,6 +2336,7 @@ flat_map< uint64_t, graphene::chain::fee_parameters > database_fixture_base::get
    ret_val[ ((operation)transfer_operation()).which() ] = transfer_param;
 
    return ret_val;
+}
 }
 
 void database_fixture_base::set_htlc_committee_parameters()
