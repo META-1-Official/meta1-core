@@ -430,6 +430,13 @@ class database_api
       ////////////
 
       /**
+      * @brief Get the published USD-price for a user-issued asset (UIA)
+      * @param symbol UIA symbol
+      * @return USD-price
+      */
+      price_ratio get_published_asset_price(const std::string &symbol) const;
+
+      /**
        * @brief Get asset ID from an asset symbol or ID
        * @param symbol_or_id symbol name or ID of the asset
        * @return asset ID
@@ -1544,6 +1551,7 @@ FC_API(graphene::app::database_api,
    (get_asset_count)
    (get_assets_by_issuer)
    (get_asset_id_from_string)
+   (get_published_asset_price)
 
     //backed asset
    (get_properties)
