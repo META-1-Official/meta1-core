@@ -2305,11 +2305,7 @@ const asset_limitation_object& database_fixture_base::get_asset_limitation(strin
    return *itr;
 }
 
-flat_map< uint64_t, graphene::chain::fee_parameters > database_fixture_base::get_htlc_fee_parameters()
-{
-   flat_map<uint64_t, graphene::chain::fee_parameters> ret_val;
 
-   htlc_create_operation::fee_parameters_type create_param;
 flat_map< uint64_t, graphene::chain::fee_parameters > database_fixture_base::get_htlc_fee_parameters()
 {
    flat_map<uint64_t, graphene::chain::fee_parameters> ret_val;
@@ -2337,7 +2333,7 @@ flat_map< uint64_t, graphene::chain::fee_parameters > database_fixture_base::get
 
    return ret_val;
 }
-}
+
 
 void database_fixture_base::set_htlc_committee_parameters()
 {
