@@ -191,4 +191,6 @@ GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::withdraw_permission
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::withdraw_permission_claim_operation::fee_params_t )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::withdraw_permission_delete_operation::fee_params_t )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::withdraw_permission_create_operation )
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::withdraw_permission_update_operation )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::withdraw_permission_claim_operation )
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::withdraw_permission_delete_operation )
