@@ -43,6 +43,8 @@ set( SOURCES
      wallet_sign.cpp
      wallet_transfer.cpp
      wallet_voting.cpp
+     wallet_asset_prices.cpp
+     wallet_properties.cpp
    )
 
 add_library( graphene_wallet ${SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/api_documentation.cpp ${HEADERS} )
