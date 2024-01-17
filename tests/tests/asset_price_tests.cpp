@@ -528,15 +528,15 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
          // Initialize the assets
          create_user_issued_asset("BTC");
          asset_object BTC = get_asset("BTC");
-         const asset_id_type BTC_ID = BTC.id;
+         const auto BTC_ID = BTC.get_id();
          asset_object META1 = get_asset(GRAPHENE_SYMBOL);
-         const asset_id_type META1_ID = META1.id;
+         const auto META1_ID = META1.get_id();
 
          account_object issuer_account = get_account("meta1");
 
          // Fund the actors
          const asset alice_initial_meta1 = META1.amount(5000 * asset::scaled_precision(META1.precision).value);
-         transfer(committee_account, alice.id, alice_initial_meta1);
+         transfer(committee_account, alice.get_id(), alice_initial_meta1);
          BOOST_CHECK_EQUAL(get_balance(alice, META1), alice_initial_meta1.amount.value);
          verify_asset_supplies(db);
 
@@ -821,15 +821,15 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
          // Initialize the assets
          create_user_issued_asset("BTC");
          asset_object BTC = get_asset("BTC");
-         const asset_id_type BTC_ID = BTC.id;
+         const auto BTC_ID = BTC.get_id();
          asset_object META1 = get_asset(GRAPHENE_SYMBOL);
-         const asset_id_type META1_ID = META1.id;
+         const auto META1_ID = META1.get_id();
 
          account_object issuer_account = get_account("meta1");
 
          // Fund the actors
          const asset alice_initial_meta1 = META1.amount(5000 * asset::scaled_precision(META1.precision).value);
-         transfer(committee_account, alice.id, alice_initial_meta1);
+         transfer(committee_account, alice.get_id(), alice_initial_meta1);
          BOOST_CHECK_EQUAL(get_balance(alice, META1), alice_initial_meta1.amount.value);
          verify_asset_supplies(db);
 
@@ -1107,16 +1107,16 @@ BOOST_FIXTURE_TEST_SUITE(asset_price_tests, meta1_fixture)
             processed_transaction ptx = PUSH_TX(db, trx, ~0);
          }
          asset_object LARGE = get_asset("LARGE");
-         const asset_id_type LARGE_ID = LARGE.id;
+         const asset_id_type LARGE_ID = LARGE.get_id();
          asset_object META1 = get_asset(GRAPHENE_SYMBOL);
-         const asset_id_type META1_ID = META1.id;
+         const asset_id_type META1_ID = META1.get_id();
 
          account_object issuer_account = get_account("meta1");
 
          // Fund the actors
          const asset alice_initial_meta1 = META1.amount(400000000 * asset::scaled_precision(META1.precision).value);
          trx.clear();
-         transfer(committee_account, alice.id, alice_initial_meta1);
+         transfer(committee_account, alice.get_id(), alice_initial_meta1);
          BOOST_CHECK_EQUAL(get_balance(alice, META1), alice_initial_meta1.amount.value);
          verify_asset_supplies(db);
 
