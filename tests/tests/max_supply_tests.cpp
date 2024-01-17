@@ -193,7 +193,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
                           GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
 
 
-      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement()); // No global settlement yet
+      BOOST_CHECK(!large_id(db).bitasset_data(db).is_globally_settled()); // No global settlement yet
 
 
       /**
@@ -219,7 +219,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        * Check the state
        */
       // A global settlement should have been triggered
-      BOOST_CHECK(large_id(db).bitasset_data(db).has_settlement());
+      BOOST_CHECK(large_id(db).bitasset_data(db).is_globally_settled());
    }
 
 
@@ -246,7 +246,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
                           GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
 
 
-      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement()); // No global settlement yet
+      BOOST_CHECK(!large_id(db).bitasset_data(db).is_globally_settled()); // No global settlement yet
 
 
       /**
@@ -286,7 +286,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        * Check the state
        */
       // A global settlement should have been triggered
-      BOOST_CHECK(large_id(db).bitasset_data(db).has_settlement());
+      BOOST_CHECK(large_id(db).bitasset_data(db).is_globally_settled());
    }
 
 
@@ -313,7 +313,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
                           GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
 
 
-      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement()); // No global settlement yet
+      BOOST_CHECK(!large_id(db).bitasset_data(db).is_globally_settled()); // No global settlement yet
 
 
       /**
@@ -359,7 +359,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        * Check the state
        */
       // A global settlement should have been triggered
-      BOOST_CHECK(large_id(db).bitasset_data(db).has_settlement());
+      BOOST_CHECK(large_id(db).bitasset_data(db).is_globally_settled());
    }
 
 
@@ -385,7 +385,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
       BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
                           GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
 
-      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement()); // No global settlement yet
+      BOOST_CHECK(!large_id(db).bitasset_data(db).is_globally_settled()); // No global settlement yet
 
 
       /**
@@ -424,7 +424,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        * Dan's margin call should be matched against his own limit order.
        */
       // A global settlement should have been triggered
-      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement());
+      BOOST_CHECK(!large_id(db).bitasset_data(db).is_globally_settled());
 
       // Confirm that the limit order no longer exists
       BOOST_CHECK(!db.find(dan_sell_order_id));
@@ -461,7 +461,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
       BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
                           GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
 
-      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement()); // No global settlement yet
+      BOOST_CHECK(!large_id(db).bitasset_data(db).is_globally_settled()); // No global settlement yet
 
 
       /**
@@ -506,7 +506,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        * Dan's margin call should be matched against his own limit order.
        */
       // A global settlement should have been triggered
-      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement());
+      BOOST_CHECK(!large_id(db).bitasset_data(db).is_globally_settled());
 
       // Confirm that the limit order no longer exists
       BOOST_CHECK(!db.find(dan_sell_order_id));
