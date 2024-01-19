@@ -261,7 +261,7 @@ void application_impl::reset_websocket_tls_server()
    _websocket_tls_server->start_accept();
 } FC_CAPTURE_AND_RETHROW() } // GCOVR_EXCL_LINE
 
-void application_impl::initialize(const fc::path& data_dir, shared_ptr<boost::program_options::variables_map> options)
+void application_impl::initialize(const fc::path& data_dir, std::shared_ptr<boost::program_options::variables_map> options)
 {
    _data_dir = data_dir;
    _options = options;
@@ -272,30 +272,36 @@ void application_impl::initialize(const fc::path& data_dir, shared_ptr<boost::pr
       fc::asio::default_io_service_scope::set_num_threads(num_threads);
    }
 
+   
    if( _options->count("force-validate") > 0 )
    {
       ilog( "All transaction signatures will be validated" );
       _force_validate = true;
    }
 
+   
    if ( _options->count("enable-subscribe-to-all") > 0 )
       _app_options.enable_subscribe_to_all = _options->at( "enable-subscribe-to-all" ).as<bool>();
 
    set_api_limit();
 
+   
    if( is_plugin_enabled( "market_history" ) )
       _app_options.has_market_history_plugin = true;
    else
       ilog("Market history plugin is not enabled");
 
+   
    if( is_plugin_enabled( "api_helper_indexes" ) )
       _app_options.has_api_helper_indexes_plugin = true;
    else
       ilog("API helper indexes plugin is not enabled");
 
+   
    if (_options->count("api-node-info") > 0)
       _node_info = _options->at("api-node-info").as<string>();
 
+   
    if( _options->count("api-access") > 0 )
    {
 
@@ -310,6 +316,7 @@ void application_impl::initialize(const fc::path& data_dir, shared_ptr<boost::pr
    }
    else
    {
+      
       // TODO:  Remove this generous default access policy
       // when the UI logs in properly
       _apiaccess = api_access();
@@ -322,110 +329,152 @@ void application_impl::initialize(const fc::path& data_dir, shared_ptr<boost::pr
       _apiaccess.permission_map["*"] = wild_access;
    }
 
+   
    initialize_plugins();
+   
 }
 
 void application_impl::set_api_limit() {
+   
+
+   
    if (_options->count("api-limit-get-account-history-operations") > 0) {
       _app_options.api_limit_get_account_history_operations =
             _options->at("api-limit-get-account-history-operations").as<uint32_t>();
    }
+
+   
    if(_options->count("api-limit-get-account-history") > 0){
       _app_options.api_limit_get_account_history =
             _options->at("api-limit-get-account-history").as<uint32_t>();
    }
+
+   
    if(_options->count("api-limit-get-grouped-limit-orders") > 0){
       _app_options.api_limit_get_grouped_limit_orders =
             _options->at("api-limit-get-grouped-limit-orders").as<uint32_t>();
    }
+
+   
    if(_options->count("api-limit-get-market-history") > 0){
       _app_options.api_limit_get_market_history =
             _options->at("api-limit-get-market-history").as<uint32_t>();
    }
+
+   
    if(_options->count("api-limit-get-relative-account-history") > 0){
       _app_options.api_limit_get_relative_account_history =
             _options->at("api-limit-get-relative-account-history").as<uint32_t>();
    }
+
+   
    if(_options->count("api-limit-get-account-history-by-operations") > 0){
       _app_options.api_limit_get_account_history_by_operations =
             _options->at("api-limit-get-account-history-by-operations").as<uint32_t>();
    }
+
+   
    if(_options->count("api-limit-get-asset-holders") > 0){
       _app_options.api_limit_get_asset_holders =
             _options->at("api-limit-get-asset-holders").as<uint32_t>();
    }
+
+   
    if(_options->count("api-limit-get-key-references") > 0){
       _app_options.api_limit_get_key_references =
             _options->at("api-limit-get-key-references").as<uint32_t>();
    }
+
+   
    if(_options->count("api-limit-get-htlc-by") > 0) {
       _app_options.api_limit_get_htlc_by =
             _options->at("api-limit-get-htlc-by").as<uint32_t>();
    }
+
+   
    if(_options->count("api-limit-get-full-accounts") > 0) {
       _app_options.api_limit_get_full_accounts =
             _options->at("api-limit-get-full-accounts").as<uint32_t>();
    }
+
+   
    if(_options->count("api-limit-get-full-accounts-lists") > 0) {
       _app_options.api_limit_get_full_accounts_lists =
             _options->at("api-limit-get-full-accounts-lists").as<uint32_t>();
    }
+
+   
    if(_options->count("api-limit-get-full-accounts-subscribe") > 0) {
       _app_options.api_limit_get_full_accounts_subscribe =
             _options->at("api-limit-get-full-accounts-subscribe").as<uint32_t>();
    }
+
+   
    if(_options->count("api-limit-get-top-voters") > 0) {
       _app_options.api_limit_get_top_voters =
             _options->at("api-limit-get-top-voters").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-call-orders") > 0) {
       _app_options.api_limit_get_call_orders =
             _options->at("api-limit-get-call-orders").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-settle-orders") > 0) {
       _app_options.api_limit_get_settle_orders =
             _options->at("api-limit-get-settle-orders").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-assets") > 0) {
       _app_options.api_limit_get_assets =
             _options->at("api-limit-get-assets").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-limit-orders") > 0){
       _app_options.api_limit_get_limit_orders =
             _options->at("api-limit-get-limit-orders").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-limit-orders-by-account") > 0){
       _app_options.api_limit_get_limit_orders_by_account =
             _options->at("api-limit-get-limit-orders-by-account").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-order-book") > 0){
       _app_options.api_limit_get_order_book =
             _options->at("api-limit-get-order-book").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-list-htlcs") > 0){
       _app_options.api_limit_list_htlcs =
             _options->at("api-limit-list-htlcs").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-lookup-accounts") > 0) {
       _app_options.api_limit_lookup_accounts =
             _options->at("api-limit-lookup-accounts").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-lookup-witness-accounts") > 0) {
       _app_options.api_limit_lookup_witness_accounts =
             _options->at("api-limit-lookup-witness-accounts").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-lookup-committee-member-accounts") > 0) {
       _app_options.api_limit_lookup_committee_member_accounts =
             _options->at("api-limit-lookup-committee-member-accounts").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-lookup-vote-ids") > 0) {
       _app_options.api_limit_lookup_vote_ids =
             _options->at("api-limit-lookup-vote-ids").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-account-limit-orders") > 0) {
       _app_options.api_limit_get_account_limit_orders =
             _options->at("api-limit-get-account-limit-orders").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-collateral-bids") > 0) {
       _app_options.api_limit_get_collateral_bids =
             _options->at("api-limit-get-collateral-bids").as<uint32_t>();
@@ -434,89 +483,115 @@ void application_impl::set_api_limit() {
       _app_options.api_limit_get_top_markets =
             _options->at("api-limit-get-top-markets").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-trade-history") > 0) {
       _app_options.api_limit_get_trade_history =
             _options->at("api-limit-get-trade-history").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-trade-history-by-sequence") > 0) {
       _app_options.api_limit_get_trade_history_by_sequence =
             _options->at("api-limit-get-trade-history-by-sequence").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-withdraw-permissions-by-giver") > 0) {
       _app_options.api_limit_get_withdraw_permissions_by_giver =
             _options->at("api-limit-get-withdraw-permissions-by-giver").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-withdraw-permissions-by-recipient") > 0) {
       _app_options.api_limit_get_withdraw_permissions_by_recipient =
             _options->at("api-limit-get-withdraw-permissions-by-recipient").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-tickets") > 0) {
       _app_options.api_limit_get_tickets =
             _options->at("api-limit-get-tickets").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-liquidity-pools") > 0) {
       _app_options.api_limit_get_liquidity_pools =
             _options->at("api-limit-get-liquidity-pools").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-liquidity-pool-history") > 0) {
       _app_options.api_limit_get_liquidity_pool_history =
             _options->at("api-limit-get-liquidity-pool-history").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-samet-funds") > 0) {
       _app_options.api_limit_get_samet_funds =
             _options->at("api-limit-get-samet-funds").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-credit-offers") > 0) {
       _app_options.api_limit_get_credit_offers =
             _options->at("api-limit-get-credit-offers").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-storage-info") > 0) {
       _app_options.api_limit_get_storage_info =
             _options->at("api-limit-get-storage-info").as<uint32_t>();
    }
-   if(_options->count("api-limit-list-htlcs")){
-      _app_options.api_limit_list_htlcs = _options->at("api-limit-list-htlcs").as<uint64_t>();
+   
+   if(_options->count("api-limit-list-htlcs") > 0){
+      _app_options.api_limit_list_htlcs = 
+            _options->at("api-limit-list-htlcs").as<uint32_t>();
    }
-   if(_options->count("api-limit-lookup-accounts")) {
-      _app_options.api_limit_lookup_accounts = _options->at("api-limit-lookup-accounts").as<uint64_t>();
+   
+   if(_options->count("api-limit-lookup-accounts") > 0) {
+      _app_options.api_limit_lookup_accounts = _options->at("api-limit-lookup-accounts").as<uint32_t>();
    }
-   if(_options->count("api-limit-lookup-witness-accounts")) {
-      _app_options.api_limit_lookup_witness_accounts = _options->at("api-limit-lookup-witness-accounts").as<uint64_t>();
+   
+   if(_options->count("api-limit-lookup-witness-accounts") > 0) {
+      _app_options.api_limit_lookup_witness_accounts = _options->at("api-limit-lookup-witness-accounts").as<uint32_t>();
    }
-   if(_options->count("api-limit-lookup-committee-member-accounts")) {
-      _app_options.api_limit_lookup_committee_member_accounts = _options->at("api-limit-lookup-committee-member-accounts").as<uint64_t>();
+   
+   if(_options->count("api-limit-lookup-committee-member-accounts") > 0) {
+      _app_options.api_limit_lookup_committee_member_accounts = _options->at("api-limit-lookup-committee-member-accounts").as<uint32_t>();
    }
-   if(_options->count("api-limit-lookup-vote-ids")) {
-      _app_options.api_limit_lookup_vote_ids = _options->at("api-limit-lookup-vote-ids").as<uint64_t>();
+   
+   if(_options->count("api-limit-lookup-vote-ids") > 0) {
+      _app_options.api_limit_lookup_vote_ids = _options->at("api-limit-lookup-vote-ids").as<uint32_t>();
    }
-   if(_options->count("api-limit-get-account-limit-orders")) {
-      _app_options.api_limit_get_account_limit_orders = _options->at("api-limit-get-account-limit-orders").as<uint64_t>();
+   
+   if(_options->count("api-limit-get-account-limit-orders") > 0) {
+      _app_options.api_limit_get_account_limit_orders = _options->at("api-limit-get-account-limit-orders").as<uint32_t>();
    }
-   if(_options->count("api-limit-get-collateral-bids")) {
-      _app_options.api_limit_get_collateral_bids = _options->at("api-limit-get-collateral-bids").as<uint64_t>();
+   
+   if(_options->count("api-limit-get-collateral-bids") > 0) {
+      _app_options.api_limit_get_collateral_bids = _options->at("api-limit-get-collateral-bids").as<uint32_t>();
    }
-   if(_options->count("api-limit-get-top-markets")) {
-      _app_options.api_limit_get_top_markets = _options->at("api-limit-get-top-markets").as<uint64_t>();
+   
+   if(_options->count("api-limit-get-top-markets") > 0) {
+      _app_options.api_limit_get_top_markets = _options->at("api-limit-get-top-markets").as<uint32_t>();
    }
-   if(_options->count("api-limit-get-trade-history")) {
-      _app_options.api_limit_get_trade_history = _options->at("api-limit-get-trade-history").as<uint64_t>();
+   
+   if(_options->count("api-limit-get-trade-history") > 0) {
+      _app_options.api_limit_get_trade_history = _options->at("api-limit-get-trade-history").as<uint32_t>();
    }
-   if(_options->count("api-limit-get-trade-history-by-sequence")) {
-      _app_options.api_limit_get_trade_history_by_sequence = _options->at("api-limit-get-trade-history-by-sequence").as<uint64_t>();
+   
+   if(_options->count("api-limit-get-trade-history-by-sequence") > 0) {
+      _app_options.api_limit_get_trade_history_by_sequence = _options->at("api-limit-get-trade-history-by-sequence").as<uint32_t>();
    }
-   if(_options->count("api-limit-get-withdraw-permissions-by-giver")) {
-      _app_options.api_limit_get_withdraw_permissions_by_giver = _options->at("api-limit-get-withdraw-permissions-by-giver").as<uint64_t>();
+   
+   if(_options->count("api-limit-get-withdraw-permissions-by-giver") > 0) {
+      _app_options.api_limit_get_withdraw_permissions_by_giver = _options->at("api-limit-get-withdraw-permissions-by-giver").as<uint32_t>();
    }
-   if(_options->count("api-limit-get-withdraw-permissions-by-recipient")) {
-      _app_options.api_limit_get_withdraw_permissions_by_recipient = _options->at("api-limit-get-withdraw-permissions-by-recipient").as<uint64_t>();
+   
+   if(_options->count("api-limit-get-withdraw-permissions-by-recipient") > 0) {
+      _app_options.api_limit_get_withdraw_permissions_by_recipient = _options->at("api-limit-get-withdraw-permissions-by-recipient").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-liquidity-pools") > 0) {
-      _app_options.api_limit_get_liquidity_pools = _options->at("api-limit-get-liquidity-pools").as<uint64_t>();
+      _app_options.api_limit_get_liquidity_pools = _options->at("api-limit-get-liquidity-pools").as<uint32_t>();
    }
+   
    if(_options->count("api-limit-get-liquidity-pool-history") > 0) {
       _app_options.api_limit_get_liquidity_pool_history =
-            _options->at("api-limit-get-liquidity-pool-history").as<uint64_t>();
+            _options->at("api-limit-get-liquidity-pool-history").as<uint32_t>();
    }
+   
 }
 
 graphene::chain::genesis_state_type application_impl::initialize_genesis_state() const
@@ -1398,6 +1473,7 @@ void application::initialize(const fc::path& data_dir,
                              std::shared_ptr<boost::program_options::variables_map> options) const
 {
    ilog( "Initializing application" );
+   ilog("let's go in");
    my->initialize( data_dir, options );
    ilog( "Done initializing application" );
 }
