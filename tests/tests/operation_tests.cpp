@@ -3151,10 +3151,29 @@ BOOST_AUTO_TEST_CASE( limit_order_fill_or_kill )
 
 } FC_LOG_AND_RETHROW() }
 
-/// Shameless code coverage plugging. Otherwise, these calls never happen.
-BOOST_AUTO_TEST_CASE(fill_order)
-{
-   try
+BOOST_AUTO_TEST_CASE( fill_order )
+{ try {
+   fill_order_operation o;
+   GRAPHENE_CHECK_THROW(o.validate(), fc::exception);
+   //o.calculate_fee(db.current_fee_schedule());
+} FC_LOG_AND_RETHROW() }
+
+BOOST_AUTO_TEST_CASE( witness_pay_test )
+{ try {
+
+   const share_type prec = asset::scaled_precision( asset_id_type()(db).precision );
+
+   // there is an immediate maintenance interval in the first block
+   //   which will initialize last_budget_time
+   generate_block();
+
+   // Make an account and upgrade it to prime, so that witnesses get some pay
+   create_account("nathan", init_account_pub_key);
+   transfer(account_id_type()(db), get_account("nathan"), asset(20000*prec));
+   transfer(account_id_type()(db), get_account("init3"), asset(20*prec));
+   generate_block();
+
+   auto last_witness_vbo_balance = [&]() -> share_type
    {
       const witness_object& wit = db.fetch_block_by_number(db.head_block_num())->witness(db);
       if( !wit.pay_vb.valid() )
@@ -3225,121 +3244,36 @@ BOOST_AUTO_TEST_CASE(fill_order)
       generate_block();
       BOOST_CHECK_EQUAL( last_witness_vbo_balance().value, 0 );
    }
-   FC_LOG_AND_RETHROW()
-}
+   BOOST_CHECK_EQUAL( db.head_block_time().sec_since_epoch() - pay_fee_time, 24u * block_interval );
 
-BOOST_AUTO_TEST_CASE(witness_pay_test)
-{
-   try
-   {
+   schedule_maint();
+   // The 80% lifetime referral fee went to the committee account, which burned it. Check that it's here.
+   BOOST_CHECK( core->reserved(db).value == 8000*prec );
+   generate_block();
+   BOOST_CHECK_EQUAL( core->reserved(db).value, 999999406 );
+   BOOST_CHECK_EQUAL( db.get_dynamic_global_properties().witness_budget.value, (int64_t)ref_budget );
+   // first witness paid from old budget (so no pay)
+   BOOST_CHECK_EQUAL( last_witness_vbo_balance().value, 0 );
+   // second witness finally gets paid!
+   generate_block();
+   BOOST_CHECK_EQUAL( last_witness_vbo_balance().value, (int64_t)witness_ppb );
+   BOOST_CHECK_EQUAL( db.get_dynamic_global_properties().witness_budget.value, (int64_t)(ref_budget - witness_ppb) );
 
-      const share_type prec = asset::scaled_precision(asset_id_type()(db).precision);
+   generate_block();
+   BOOST_CHECK_EQUAL( last_witness_vbo_balance().value, (int64_t)witness_ppb );
+   BOOST_CHECK_EQUAL( db.get_dynamic_global_properties().witness_budget.value, (int64_t)(ref_budget - 2 * witness_ppb) );
 
-      // there is an immediate maintenance interval in the first block
-      //   which will initialize last_budget_time
-      generate_block();
+   generate_block();
+   BOOST_CHECK_LT( last_witness_vbo_balance().value, (int64_t)witness_ppb );
+   BOOST_CHECK_EQUAL( last_witness_vbo_balance().value, (int64_t)(ref_budget - 2 * witness_ppb) );
+   BOOST_CHECK_EQUAL( db.get_dynamic_global_properties().witness_budget.value, 0 );
 
-      // Make an account and upgrade it to prime, so that witnesses get some pay
-      create_account("nathan", init_account_pub_key);
-      transfer(account_id_type()(db), get_account("nathan"), asset(20000 * prec));
-      transfer(account_id_type()(db), get_account("init3"), asset(20 * prec));
-      generate_block();
+   generate_block();
+   BOOST_CHECK_EQUAL( last_witness_vbo_balance().value, 0 );
+   BOOST_CHECK_EQUAL( db.get_dynamic_global_properties().witness_budget.value, 0 );
+   BOOST_CHECK_EQUAL(core->reserved(db).value, 999999406 );
 
-      auto last_witness_vbo_balance = [&]() -> share_type {
-         const witness_object &wit = db.fetch_block_by_number(db.head_block_num())->witness(db);
-         if (!wit.pay_vb.valid())
-            return 0;
-         return (*wit.pay_vb)(db).balance.amount;
-      };
-
-      const auto block_interval = db.get_global_properties().parameters.block_interval;
-      const asset_object *core = &asset_id_type()(db);
-      const account_object *nathan = &get_account("nathan");
-      enable_fees();
-      BOOST_CHECK_GT(db.current_fee_schedule().get<account_upgrade_operation>().membership_lifetime_fee, 0u);
-      // Based on the size of the reserve fund later in the test, the witness budget will be set to this value
-      const uint64_t ref_budget =
-          ((uint64_t(db.current_fee_schedule().get<account_upgrade_operation>().membership_lifetime_fee) * GRAPHENE_CORE_ASSET_CYCLE_RATE * 30 * block_interval) + ((uint64_t(1) << GRAPHENE_CORE_ASSET_CYCLE_RATE_BITS) - 1)) >> GRAPHENE_CORE_ASSET_CYCLE_RATE_BITS;
-      // change this if ref_budget changes
-      BOOST_CHECK_EQUAL(ref_budget, 594u);
-      const uint64_t witness_ppb = ref_budget * 10 / 23 + 1;
-      // change this if ref_budget changes
-      BOOST_CHECK_EQUAL(witness_ppb, 259u);
-      // following two inequalities need to hold for maximal code coverage
-      BOOST_CHECK_LT(witness_ppb * 2, ref_budget);
-      BOOST_CHECK_GT(witness_ppb * 3, ref_budget);
-
-      db.modify(db.get_global_properties(), [&](global_property_object &_gpo) {
-         _gpo.parameters.witness_pay_per_block = witness_ppb;
-      });
-
-      BOOST_CHECK_EQUAL(core->dynamic_asset_data_id(db).accumulated_fees.value, 0);
-      BOOST_TEST_MESSAGE("Upgrading account");
-      account_upgrade_operation uop;
-      uop.account_to_upgrade = nathan->get_id();
-      uop.upgrade_to_lifetime_member = true;
-      set_expiration(db, trx);
-      trx.operations.push_back(uop);
-      for (auto &op : trx.operations)
-         db.current_fee_schedule().set_fee(op);
-      trx.validate();
-      sign(trx, init_account_priv_key);
-      PUSH_TX(db, trx);
-      auto pay_fee_time = db.head_block_time().sec_since_epoch();
-      trx.clear();
-      BOOST_CHECK(get_balance(*nathan, *core) == 20000 * prec - account_upgrade_operation::fee_parameters_type().membership_lifetime_fee);
-      ;
-
-      generate_block();
-      nathan = &get_account("nathan");
-      core = &asset_id_type()(db);
-      BOOST_CHECK_EQUAL(last_witness_vbo_balance().value, 0);
-
-      auto schedule_maint = [&]() {
-         // now we do maintenance
-         db.modify(db.get_dynamic_global_properties(), [&](dynamic_global_property_object &_dpo) {
-            _dpo.next_maintenance_time = db.head_block_time() + 1;
-         });
-      };
-      BOOST_TEST_MESSAGE("Generating some blocks");
-
-      // generate some blocks
-      while (db.head_block_time().sec_since_epoch() - pay_fee_time < 24 * block_interval)
-      {
-         generate_block();
-         BOOST_CHECK_EQUAL(last_witness_vbo_balance().value, 0);
-      }
-      BOOST_CHECK_EQUAL(db.head_block_time().sec_since_epoch() - pay_fee_time, 24u * block_interval);
-
-      schedule_maint();
-      // The 80% lifetime referral fee went to the committee account, which burned it. Check that it's here.
-      BOOST_CHECK(core->reserved(db).value == 8000 * prec);
-      generate_block();
-      BOOST_CHECK_EQUAL(core->reserved(db).value, 999999406);
-      BOOST_CHECK_EQUAL(db.get_dynamic_global_properties().witness_budget.value, (int64_t)ref_budget);
-      // first witness paid from old budget (so no pay)
-      BOOST_CHECK_EQUAL(last_witness_vbo_balance().value, 0);
-      // second witness finally gets paid!
-      generate_block();
-      BOOST_CHECK_EQUAL(last_witness_vbo_balance().value, (int64_t)witness_ppb);
-      BOOST_CHECK_EQUAL(db.get_dynamic_global_properties().witness_budget.value, (int64_t)(ref_budget - witness_ppb));
-
-      generate_block();
-      BOOST_CHECK_EQUAL(last_witness_vbo_balance().value, (int64_t)witness_ppb);
-      BOOST_CHECK_EQUAL(db.get_dynamic_global_properties().witness_budget.value, (int64_t)(ref_budget - 2 * witness_ppb));
-
-      generate_block();
-      BOOST_CHECK_LT(last_witness_vbo_balance().value, (int64_t)witness_ppb);
-      BOOST_CHECK_EQUAL(last_witness_vbo_balance().value, (int64_t)(ref_budget - 2 * witness_ppb));
-      BOOST_CHECK_EQUAL(db.get_dynamic_global_properties().witness_budget.value, 0);
-
-      generate_block();
-      BOOST_CHECK_EQUAL(last_witness_vbo_balance().value, 0);
-      BOOST_CHECK_EQUAL(db.get_dynamic_global_properties().witness_budget.value, 0);
-      BOOST_CHECK_EQUAL(core->reserved(db).value, 999999406);
-   }
-   FC_LOG_AND_RETHROW()
-}
+} FC_LOG_AND_RETHROW() }
 
 /**
  *  Reserve asset test should make sure that all assets except bitassets
@@ -3825,265 +3759,79 @@ BOOST_AUTO_TEST_CASE( vesting_balance_withdraw_test )
 
    auto spin_vbo_clock = [&]( const vesting_balance_object& vbo, uint32_t dt_secs )
    {
-      INVOKE(create_uia);
+      // HACK:  This just modifies the DB creation record to be further
+      //    in the past
+      db.modify( vbo, [&]( vesting_balance_object& _vbo )
+      {
+         _vbo.policy.get<cdd_vesting_policy>().coin_seconds_earned_last_update -= dt_secs;
+      } );
+   };
 
-      const asset_object &core = asset_id_type()(db);
-      const asset_object &test_asset = get_asset(UIA_TEST_SYMBOL);
-
-      vesting_balance_create_operation op;
-      op.fee = core.amount(0);
-      op.creator = account_id_type();
-      op.owner = account_id_type();
-      op.amount = test_asset.amount(100);
-      //op.vesting_seconds = 60*60*24;
-      op.policy = cdd_vesting_policy_initializer{60 * 60 * 24};
-
-      // Fee must be non-negative
-      REQUIRE_OP_VALIDATION_SUCCESS(op, fee, core.amount(1));
-      REQUIRE_OP_VALIDATION_SUCCESS(op, fee, core.amount(0));
-      REQUIRE_OP_VALIDATION_FAILURE(op, fee, core.amount(-1));
-
-      // Amount must be positive
-      REQUIRE_OP_VALIDATION_SUCCESS(op, amount, core.amount(1));
-      REQUIRE_OP_VALIDATION_FAILURE(op, amount, core.amount(0));
-      REQUIRE_OP_VALIDATION_FAILURE(op, amount, core.amount(-1));
-
-      // Setup world state we will need to test actual evaluation
-      const account_object &alice_account = create_account("alice");
-      const account_object &bob_account = create_account("bob");
-
-      transfer(committee_account(db), alice_account, core.amount(100000));
-
-      op.creator = alice_account.get_id();
-      op.owner = alice_account.get_id();
-
-      account_id_type nobody = account_id_type(1234);
-
-      trx.operations.push_back(op);
-      // Invalid account_id's
-      REQUIRE_THROW_WITH_VALUE(op, creator, nobody);
-      REQUIRE_THROW_WITH_VALUE(op, owner, nobody);
-
-      // Insufficient funds
-      REQUIRE_THROW_WITH_VALUE(op, amount, core.amount(999999999));
-      // Alice can fund a bond to herself or to Bob
-      op.amount = core.amount(1000);
-      REQUIRE_OP_EVALUATION_SUCCESS(op, owner, alice_account.get_id());
-      REQUIRE_OP_EVALUATION_SUCCESS(op, owner, bob_account.get_id());
-   }
-   FC_LOG_AND_RETHROW()
-}
-
-BOOST_AUTO_TEST_CASE(vesting_balance_withdraw_test)
-{
-   try
+   auto create_vbo = [&](
+      account_id_type creator, account_id_type owner,
+      asset amount, uint32_t vesting_seconds, uint32_t elapsed_seconds
+      ) -> const vesting_balance_object&
    {
-      INVOKE(create_uia);
-      // required for head block time
-      generate_block();
+      transaction tx;
 
-      const asset_object &core = asset_id_type()(db);
-      const asset_object &test_asset = get_asset(UIA_TEST_SYMBOL);
+      vesting_balance_create_operation create_op;
+      create_op.fee = core.amount( 0 );
+      create_op.creator = creator;
+      create_op.owner = owner;
+      create_op.amount = amount;
+      create_op.policy = cdd_vesting_policy_initializer(vesting_seconds);
+      tx.operations.push_back( create_op );
+      set_expiration( db, tx );
 
-      vesting_balance_withdraw_operation op;
-      op.fee = core.amount(0);
-      op.vesting_balance = vesting_balance_id_type();
-      op.owner = account_id_type();
-      op.amount = test_asset.amount(100);
+      processed_transaction ptx = PUSH_TX( db,  tx, ~0  );
+      const vesting_balance_object& vbo = vesting_balance_id_type(
+         ptx.operation_results[0].get<object_id_type>())(db);
 
-      // Fee must be non-negative
-      REQUIRE_OP_VALIDATION_SUCCESS(op, fee, core.amount(1));
-      REQUIRE_OP_VALIDATION_SUCCESS(op, fee, core.amount(0));
-      REQUIRE_OP_VALIDATION_FAILURE(op, fee, core.amount(-1));
+      if( elapsed_seconds > 0 )
+         spin_vbo_clock( vbo, elapsed_seconds );
+      return vbo;
+   };
 
-      // Amount must be positive
-      REQUIRE_OP_VALIDATION_SUCCESS(op, amount, core.amount(1));
-      REQUIRE_OP_VALIDATION_FAILURE(op, amount, core.amount(0));
-      REQUIRE_OP_VALIDATION_FAILURE(op, amount, core.amount(-1));
-
-      // Setup world state we will need to test actual evaluation
-      const account_object &alice_account = create_account("alice");
-      const account_object &bob_account = create_account("bob");
-
-      transfer(committee_account(db), alice_account, core.amount(1000000));
-
-      auto spin_vbo_clock = [&](const vesting_balance_object &vbo, uint32_t dt_secs) {
-         // HACK:  This just modifies the DB creation record to be further
-         //    in the past
-         db.modify(vbo, [&](vesting_balance_object &_vbo) {
-            _vbo.policy.get<cdd_vesting_policy>().coin_seconds_earned_last_update -= dt_secs;
-         });
-      };
-
-      auto create_vbo = [&](
-                            account_id_type creator, account_id_type owner,
-                            asset amount, uint32_t vesting_seconds, uint32_t elapsed_seconds) -> const vesting_balance_object & {
-         transaction tx;
-
-         vesting_balance_create_operation create_op;
-         create_op.fee = core.amount(0);
-         create_op.creator = creator;
-         create_op.owner = owner;
-         create_op.amount = amount;
-         create_op.policy = cdd_vesting_policy_initializer(vesting_seconds);
-         tx.operations.push_back(create_op);
-         set_expiration(db, tx);
-
-         processed_transaction ptx = PUSH_TX(db, tx, ~0);
-         const vesting_balance_object &vbo = vesting_balance_id_type(
-             ptx.operation_results[0].get<object_id_type>())(db);
-
-         if (elapsed_seconds > 0)
-            spin_vbo_clock(vbo, elapsed_seconds);
-         return vbo;
-      };
-
-      auto top_up = [&]() {
-         trx.clear();
-         transfer(committee_account(db),
-                  alice_account,
-                  core.amount(1000000 - db.get_balance(alice_account, core).amount));
-         FC_ASSERT(db.get_balance(alice_account, core).amount == 1000000);
-         trx.clear();
-         trx.operations.push_back(op);
-      };
-
+   auto top_up = [&]()
+   {
       trx.clear();
-      trx.operations.push_back(op);
+      transfer( committee_account(db),
+         alice_account,
+         core.amount( 1000000 - db.get_balance( alice_account, core ).amount )
+         );
+      FC_ASSERT( db.get_balance( alice_account, core ).amount == 1000000 );
+      trx.clear();
+      trx.operations.push_back( op );
+   };
 
-      {
-         // Try withdrawing a single satoshi
-         const vesting_balance_object &vbo = create_vbo(
-             alice_account.id, alice_account.id, core.amount(10000), 1000, 0);
-
-         FC_ASSERT(db.get_balance(alice_account, core).amount == 990000);
-
-         op.vesting_balance = vbo.id;
-         op.owner = alice_account.id;
-
-         REQUIRE_THROW_WITH_VALUE(op, amount, core.amount(1));
-
-         // spin the clock and make sure we can withdraw 1/1000 in 1 second
-         spin_vbo_clock(vbo, 1);
-         // Alice shouldn't be able to withdraw 11, it's too much
-         REQUIRE_THROW_WITH_VALUE(op, amount, core.amount(11));
-         op.amount = core.amount(1);
-         // Bob shouldn't be able to withdraw anything
-         REQUIRE_THROW_WITH_VALUE(op, owner, bob_account.id);
-         // Shouldn't be able to get out different asset than was put in
-         REQUIRE_THROW_WITH_VALUE(op, amount, test_asset.amount(1));
-         // Withdraw the max, we are OK...
-         REQUIRE_OP_EVALUATION_SUCCESS(op, amount, core.amount(10));
-         FC_ASSERT(db.get_balance(alice_account, core).amount == 990010);
-         top_up();
-      }
-
-      // Make sure we can withdraw the correct amount after 999 seconds
-      {
-         const vesting_balance_object &vbo = create_vbo(
-             alice_account.id, alice_account.id, core.amount(10000), 1000, 999);
-
-         FC_ASSERT(db.get_balance(alice_account, core).amount == 990000);
+   trx.clear();
+   trx.operations.push_back( op );
 
    {
       // Try withdrawing a single satoshi
       const vesting_balance_object& vbo = create_vbo(
          alice_account.get_id(), alice_account.get_id(), core.amount( 10000 ), 1000, 0);
 
-      // Make sure we can withdraw the whole thing after 1000 seconds
-      {
-         const vesting_balance_object &vbo = create_vbo(
-             alice_account.id, alice_account.id, core.amount(10000), 1000, 1000);
+      FC_ASSERT( db.get_balance( alice_account,       core ).amount ==  990000 );
 
-         FC_ASSERT(db.get_balance(alice_account, core).amount == 990000);
+      op.vesting_balance = vbo.id;
+      op.owner = alice_account.id;
 
-         op.vesting_balance = vbo.id;
-         op.owner = alice_account.id;
-         // Withdraw one satoshi too much, no dice
-         REQUIRE_THROW_WITH_VALUE(op, amount, core.amount(10001));
-         // Withdraw just the right amount, success!
-         REQUIRE_OP_EVALUATION_SUCCESS(op, amount, core.amount(10000));
-         FC_ASSERT(db.get_balance(alice_account, core).amount == 1000000);
-      }
+      REQUIRE_THROW_WITH_VALUE( op, amount, core.amount(1) );
 
-      // Make sure that we can't withdraw a single extra satoshi no matter how old it is
-      {
-         const vesting_balance_object &vbo = create_vbo(
-             alice_account.id, alice_account.id, core.amount(10000), 1000, 123456);
-
-         FC_ASSERT(db.get_balance(alice_account, core).amount == 990000);
-
-         op.vesting_balance = vbo.id;
-         op.owner = alice_account.id;
-         // Withdraw one satoshi too much, no dice
-         REQUIRE_THROW_WITH_VALUE(op, amount, core.amount(10001));
-         // Withdraw just the right amount, success!
-         REQUIRE_OP_EVALUATION_SUCCESS(op, amount, core.amount(10000));
-         FC_ASSERT(db.get_balance(alice_account, core).amount == 1000000);
-      }
-
-      // Try withdrawing in three max installments:
-      //   5000 after  500      seconds
-      //   2000 after  400 more seconds
-      //   3000 after 1000 more seconds
-      {
-         const vesting_balance_object &vbo = create_vbo(
-             alice_account.id, alice_account.id, core.amount(10000), 1000, 0);
-
-         FC_ASSERT(db.get_balance(alice_account, core).amount == 990000);
-
-         op.vesting_balance = vbo.id;
-         op.owner = alice_account.id;
-         REQUIRE_THROW_WITH_VALUE(op, amount, core.amount(1));
-         spin_vbo_clock(vbo, 499);
-         REQUIRE_THROW_WITH_VALUE(op, amount, core.amount(5000));
-         spin_vbo_clock(vbo, 1);
-         REQUIRE_THROW_WITH_VALUE(op, amount, core.amount(5001));
-         REQUIRE_OP_EVALUATION_SUCCESS(op, amount, core.amount(5000));
-         FC_ASSERT(db.get_balance(alice_account, core).amount == 995000);
-
-         spin_vbo_clock(vbo, 399);
-         REQUIRE_THROW_WITH_VALUE(op, amount, core.amount(2000));
-         spin_vbo_clock(vbo, 1);
-         REQUIRE_THROW_WITH_VALUE(op, amount, core.amount(2001));
-         REQUIRE_OP_EVALUATION_SUCCESS(op, amount, core.amount(2000));
-         FC_ASSERT(db.get_balance(alice_account, core).amount == 997000);
-
-         spin_vbo_clock(vbo, 999);
-         REQUIRE_THROW_WITH_VALUE(op, amount, core.amount(3000));
-         spin_vbo_clock(vbo, 1);
-         REQUIRE_THROW_WITH_VALUE(op, amount, core.amount(3001));
-         REQUIRE_OP_EVALUATION_SUCCESS(op, amount, core.amount(3000));
-         FC_ASSERT(db.get_balance(alice_account, core).amount == 1000000);
-      }
-
-      //
-      // Increase by 10,000 csd / sec initially.
-      // After 500 seconds, we have 5,000,000 csd.
-      // Withdraw 2,000, we are now at 8,000 csd / sec.
-      // At 8,000 csd / sec, it will take us 625 seconds to mature.
-      //
-      {
-         const vesting_balance_object &vbo = create_vbo(
-             alice_account.id, alice_account.id, core.amount(10000), 1000, 0);
-
-         FC_ASSERT(db.get_balance(alice_account, core).amount == 990000);
-
-         op.vesting_balance = vbo.id;
-         op.owner = alice_account.id;
-         REQUIRE_THROW_WITH_VALUE(op, amount, core.amount(1));
-         spin_vbo_clock(vbo, 500);
-         REQUIRE_OP_EVALUATION_SUCCESS(op, amount, core.amount(2000));
-         FC_ASSERT(db.get_balance(alice_account, core).amount == 992000);
-
-         spin_vbo_clock(vbo, 624);
-         REQUIRE_THROW_WITH_VALUE(op, amount, core.amount(8000));
-         spin_vbo_clock(vbo, 1);
-         REQUIRE_THROW_WITH_VALUE(op, amount, core.amount(8001));
-         REQUIRE_OP_EVALUATION_SUCCESS(op, amount, core.amount(8000));
-         FC_ASSERT(db.get_balance(alice_account, core).amount == 1000000);
-      }
-      // TODO:  Test with non-core asset and Bob account
+      // spin the clock and make sure we can withdraw 1/1000 in 1 second
+      spin_vbo_clock( vbo, 1 );
+      // Alice shouldn't be able to withdraw 11, it's too much
+      REQUIRE_THROW_WITH_VALUE( op, amount, core.amount(11) );
+      op.amount = core.amount( 1 );
+      // Bob shouldn't be able to withdraw anything
+      REQUIRE_THROW_WITH_VALUE( op, owner, bob_account.id );
+      // Shouldn't be able to get out different asset than was put in
+      REQUIRE_THROW_WITH_VALUE( op, amount, test_asset.amount(1) );
+      // Withdraw the max, we are OK...
+      REQUIRE_OP_EVALUATION_SUCCESS( op, amount, core.amount(10) );
+      FC_ASSERT( db.get_balance( alice_account,       core ).amount ==  990010 );
+      top_up();
    }
 
    // Make sure we can withdraw the correct amount after 999 seconds
@@ -4198,7 +3946,6 @@ BOOST_AUTO_TEST_CASE(vesting_balance_withdraw_test)
    }
    // TODO:  Test with non-core asset and Bob account
 } FC_LOG_AND_RETHROW() }
-
 // TODO:  Write linear VBO tests
 
 BOOST_AUTO_TEST_SUITE_END()
