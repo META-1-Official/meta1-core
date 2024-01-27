@@ -1736,6 +1736,21 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
    }
 }
 
+static string encapsulate( const graphene::wallet::signed_message& msg )
+{
+   fc::stringstream encapsulated;
+   encapsulated << "-----BEGIN BITSHARES SIGNED MESSAGE-----\n"
+                << msg.message << '\n'
+                << "-----BEGIN META-----\n"
+                << "account=" << msg.meta.account << '\n'
+                << "memokey=" << std::string( msg.meta.memo_key ) << '\n'
+                << "block=" << msg.meta.block << '\n'
+                << "timestamp=" << msg.meta.time << '\n'
+                << "-----BEGIN SIGNATURE-----\n"
+                << fc::to_hex( (const char*)msg.signature->data(), msg.signature->size() ) << '\n'
+                << "-----END BITSHARES SIGNED MESSAGE-----";
+   return encapsulated.str();
+}
 
 /******
  * Check signing/verifying a message with a memo key
@@ -2428,18 +2443,4 @@ BOOST_FIXTURE_TEST_CASE(backing_asset_tests,cli_fixture)
       throw;
    }
 }
-static string encapsulate( const graphene::wallet::signed_message& msg )
-{
-   fc::stringstream encapsulated;
-   encapsulated << "-----BEGIN BITSHARES SIGNED MESSAGE-----\n"
-                << msg.message << '\n'
-                << "-----BEGIN META-----\n"
-                << "account=" << msg.meta.account << '\n'
-                << "memokey=" << std::string( msg.meta.memo_key ) << '\n'
-                << "block=" << msg.meta.block << '\n'
-                << "timestamp=" << msg.meta.time << '\n'
-                << "-----BEGIN SIGNATURE-----\n"
-                << fc::to_hex( (const char*)msg.signature->data(), msg.signature->size() ) << '\n'
-                << "-----END BITSHARES SIGNED MESSAGE-----";
-   return encapsulated.str();
-}
+

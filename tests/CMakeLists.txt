@@ -39,7 +39,7 @@ add_executable( cli_test ${CLI_SOURCES} )
 if(WIN32)
    list(APPEND PLATFORM_SPECIFIC_LIBS ws2_32)
 endif()
-target_link_libraries( cli_test graphene_wallet graphene_app graphene_egenesis_none
+target_link_libraries( cli_test graphene_wallet graphene_app graphene_witness graphene_account_history graphene_net graphene_chain graphene_egenesis_none
                        ${PLATFORM_SPECIFIC_LIBS} )
 if(MSVC)
   set_source_files_properties( cli/main.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )
