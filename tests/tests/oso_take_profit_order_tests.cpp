@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_hardfork_time_test )
       // Before the hard fork, unable to create a limit order with the "on_fill" extension
       // or create with proposals,
       // but can create without on_fill
-      create_take_profit_order_action tpa1 { asset_id_type(), 5, GRAPHENE_100_PERCENT, 3600, false };
+      create_take_profit_order_action tpa1 { asset_id_type(), 5, GRAPHENE_100_PERCENT, 3600, false, graphene::protocol::extensions_type{} };
       vector<limit_order_auto_action> on_fill { tpa1 };
 
       // With on_fill
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_setup_test )
       asset_id_type usd_id = usd.get_id();
 
       // Spread percentage should be positive
-      create_take_profit_order_action tpa1 { asset_id_type(), 0, GRAPHENE_100_PERCENT, 3600, false };
+      create_take_profit_order_action tpa1 { asset_id_type(), 0, GRAPHENE_100_PERCENT, 3600, false, graphene::protocol::extensions_type{} };
       vector<limit_order_auto_action> on_fill { tpa1 };
       BOOST_CHECK_THROW( create_sell_order( sam_id, asset(1), asset(1, usd_id),
                                             time_point_sec::maximum(), price::unit_price(), on_fill ),
@@ -254,7 +254,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_trigger_and_cancel_test )
 
       // Sam sells CORE for USD with on_fill
       //                                   fee_asset, spread,  size,   expiration, repeat
-      create_take_profit_order_action tpa1 { core_id,    100, 10000,         3600, false };
+      create_take_profit_order_action tpa1 { core_id,    100, 10000,         3600, false, graphene::protocol::extensions_type{} };
       vector<limit_order_auto_action> on_fill_1 { tpa1 };
 
       const limit_order_object* sell_order1 = create_sell_order( sam_id, asset(10000), asset(12345, usd_id),
@@ -325,7 +325,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_trigger_and_cancel_test )
 
       // Sam sells more CORE for USD with on_fill
       //                                   fee_asset, spread,  size,   expiration, repeat
-      create_take_profit_order_action tpa2 {  usd_id,     70,  9700, uint32_t(-1), true };
+      create_take_profit_order_action tpa2 {  usd_id,     70,  9700, uint32_t(-1), true, graphene::protocol::extensions_type{} };
       vector<limit_order_auto_action> on_fill_2 { tpa2 };
 
       const limit_order_object* sell_order2 = create_sell_order( sam_id, asset(10000), asset(13000, usd_id),
@@ -349,7 +349,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_trigger_and_cancel_test )
 
       // Sam sells yet more CORE for USD with on_fill
       //                                   fee_asset, spread,  size,   expiration, repeat
-      create_take_profit_order_action tpa3 {  usd_id,     70,  9970,         3600, true };
+      create_take_profit_order_action tpa3 {  usd_id,     70,  9970,         3600, true, graphene::protocol::extensions_type{} };
       vector<limit_order_auto_action> on_fill_3 { tpa3 };
 
       const limit_order_object* sell_order3 = create_sell_order( sam_id, asset(10000), asset(34000, usd_id),
@@ -376,7 +376,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_trigger_and_cancel_test )
 
       // Ted buys CORE with USD with on_fill, fills Sam's orders
       //                                   fee_asset, spread,  size,   expiration, repeat
-      create_take_profit_order_action tpa4 { core_id,      1,  9999, uint32_t(-1), true };
+      create_take_profit_order_action tpa4 { core_id,      1,  9999, uint32_t(-1), true, graphene::protocol::extensions_type{} };
       vector<limit_order_auto_action> on_fill_4 { tpa4 };
 
       const limit_order_object* buy_order3 = create_sell_order( ted_id, asset(30000, usd_id), asset(7000),
@@ -528,7 +528,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_trigger_and_cancel_test )
 
       // Ted sells CORE for USD with on_fill
       //                                   fee_asset, spread,  size,   expiration, repeat
-      create_take_profit_order_action tpa5 {  usd_id,  65535,     1,         8800, true };
+      create_take_profit_order_action tpa5 {  usd_id,  65535,     1,         8800, true, graphene::protocol::extensions_type{} };
       vector<limit_order_auto_action> on_fill_5 { tpa5 };
 
       const limit_order_object* sell_order5 = create_sell_order( ted_id, asset(1), asset(1, usd_id),
@@ -625,7 +625,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_trigger_and_cancel_test )
 
       // Sam places an order to buy CORE with USD with on_fill
       //                                   fee_asset, spread,  size,   expiration, repeat
-      create_take_profit_order_action tpa6 { core_id,     10, 10000, uint32_t(-1), true };
+      create_take_profit_order_action tpa6 { core_id,     10, 10000, uint32_t(-1), true, graphene::protocol::extensions_type{} };
       vector<limit_order_auto_action> on_fill_6 { tpa6 };
 
       const limit_order_object* buy_order7 = create_sell_order( sam_id, asset(338, usd_id), asset(100),
@@ -854,7 +854,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_fail_test_1 )
 
       // Ted buys CORE with USD with on_fill
       //                                   fee_asset, spread,  size,   expiration, repeat
-      create_take_profit_order_action tpa1 { core_id,    500, 10000,         3600, false };
+      create_take_profit_order_action tpa1 { core_id,    500, 10000,         3600, false, graphene::protocol::extensions_type{} };
       vector<limit_order_auto_action> on_fill_1 { tpa1 };
 
       const limit_order_object* sell_order1 = create_sell_order( ted_id, asset(GRAPHENE_MAX_SHARE_SUPPLY, usd_id),
@@ -954,7 +954,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_update_basic_test )
 
       // Sam sells CORE for USD with on_fill
       //                                   fee_asset, spread,  size,   expiration, repeat
-      create_take_profit_order_action tpa1 { core_id,    100, 10000,         3600, false };
+      create_take_profit_order_action tpa1 { core_id,    100, 10000,         3600, false, graphene::protocol::extensions_type{} };
       vector<limit_order_auto_action> on_fill_1 { tpa1 };
 
       const limit_order_object* sell_order1 = create_sell_order( sam_id, asset(10000), asset(12345, usd_id),
@@ -1070,7 +1070,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_update_test_1 )
 
       // Sam updates order with on_fill
       //                                   fee_asset, spread,  size,   expiration, repeat
-      create_take_profit_order_action tpa1 { core_id,    100, 10000,         3600, false };
+      create_take_profit_order_action tpa1 { core_id,    100, 10000,         3600, false, graphene::protocol::extensions_type{} };
       vector<limit_order_auto_action> on_fill_1 { tpa1 };
       update_limit_order( sell_order1_id, {}, {}, {}, price::unit_price(), on_fill_1 );
 
@@ -1098,7 +1098,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_update_test_1 )
 
       // Sam updates order with new on_fill
       //                                   fee_asset, spread,  size,   expiration, repeat
-      create_take_profit_order_action tpa2 { usd_id,      10,  1000,         3800, true };
+      create_take_profit_order_action tpa2 { usd_id,      10,  1000,         3800, true, graphene::protocol::extensions_type{} };
       vector<limit_order_auto_action> on_fill_2 { tpa2 };
       update_limit_order( sell_order1_id, {}, {}, {}, price::unit_price(), on_fill_2 );
 
@@ -1226,7 +1226,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_update_test_2 )
 
       // Sam sells CORE for USD with on_fill
       //                                   fee_asset, spread,  size,   expiration, repeat
-      create_take_profit_order_action tpa1 { core_id,    100, 10000,         3600, false };
+      create_take_profit_order_action tpa1 { core_id,    100, 10000,         3600, false, graphene::protocol::extensions_type{} };
       vector<limit_order_auto_action> on_fill_1 { tpa1 };
 
       const limit_order_object* sell_order1 = create_sell_order( sam_id, asset(10000), asset(12345, usd_id),

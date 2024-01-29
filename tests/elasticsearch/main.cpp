@@ -277,7 +277,7 @@ BOOST_AUTO_TEST_CASE(elasticsearch_objects) {
          BOOST_CHECK_EQUAL(bitasset_object_id, bitasset_data_id);
 
          //                                           fee_asset, spread,  size,   expiration, repeat
-         create_take_profit_order_action tpa1 { asset_id_type(),    300,  9900,        86400, true };
+         create_take_profit_order_action tpa1 { asset_id_type(),    300,  9900,        86400, true, graphene::protocol::extensions_type{} };
          vector<limit_order_auto_action> on_fill_1 { tpa1 };
          // create a limit order that expires at the next maintenance time
          create_sell_order( account_id_type(), asset(1), asset(1, usd_id),
@@ -686,7 +686,7 @@ BOOST_AUTO_TEST_CASE(elasticsearch_history_api) {
          // Prepare funds
          transfer( account_id_type()(db), alice_id(db), asset(100) );
          //                                           fee_asset, spread,  size,   expiration, repeat
-         create_take_profit_order_action tpa1 { asset_id_type(),    100, 10000,        86400, false };
+         create_take_profit_order_action tpa1 { asset_id_type(),    100, 10000,        86400, false, graphene::protocol::extensions_type{}  };
          vector<limit_order_auto_action> on_fill_1 { tpa1 };
          // Create a limit order that expires in 300 seconds
          create_sell_order( alice_id, asset(1), asset(1, asset_id_type(1)), db.head_block_time() + 300,
@@ -732,4 +732,4 @@ BOOST_AUTO_TEST_CASE(elasticsearch_history_api) {
       throw;
    }
 }
-
+BOOST_AUTO_TEST_SUITE_END()
