@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_setup_test )
       BOOST_CHECK_THROW( propose( cop1 ), fc::exception );
 
       // Size percentage should be positive
-      tpa1 = { asset_id_type(), 1, 0, 3600, false };
+      tpa1 = { asset_id_type(), 1, 0, 3600, false, graphene::protocol::extensions_type{} };
       on_fill = { tpa1 };
       BOOST_CHECK_THROW( create_sell_order( sam_id, asset(1), asset(1, usd_id),
                                             time_point_sec::maximum(), price::unit_price(), on_fill ),
@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_setup_test )
       BOOST_CHECK_THROW( propose( cop1 ), fc::exception );
 
       // Size percentage should not exceed 100%
-      tpa1 = { asset_id_type(), 1, GRAPHENE_100_PERCENT + 1, 3600, false };
+      tpa1 = { asset_id_type(), 1, GRAPHENE_100_PERCENT + 1, 3600, false, graphene::protocol::extensions_type{} };
       on_fill = { tpa1 };
       BOOST_CHECK_THROW( create_sell_order( sam_id, asset(1), asset(1, usd_id),
                                             time_point_sec::maximum(), price::unit_price(), on_fill ),
@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_setup_test )
       BOOST_CHECK_THROW( propose( cop1 ), fc::exception );
 
       // Expiration should be positive
-      tpa1 = { asset_id_type(), 1, GRAPHENE_100_PERCENT, 0, false };
+      tpa1 = { asset_id_type(), 1, GRAPHENE_100_PERCENT, 0, false, graphene::protocol::extensions_type{}  };
       on_fill = { tpa1 };
       BOOST_CHECK_THROW( create_sell_order( sam_id, asset(1), asset(1, usd_id),
                                             time_point_sec::maximum(), price::unit_price(), on_fill ),
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_setup_test )
       BOOST_CHECK_THROW( propose( cop1 ), fc::exception );
 
       // Fee asset should exist
-      tpa1 = { usd_id + 1, 1, GRAPHENE_100_PERCENT, 3600, false };
+      tpa1 = { usd_id + 1, 1, GRAPHENE_100_PERCENT, 3600, false, graphene::protocol::extensions_type{} };
       on_fill = { tpa1 };
       BOOST_CHECK_THROW( create_sell_order( sam_id, asset(1), asset(1, usd_id),
                                             time_point_sec::maximum(), price::unit_price(), on_fill ),
@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_setup_test )
       propose( cop1 );
 
       // on_fill must contain only 1 action
-      tpa1 = { asset_id_type(), 1, GRAPHENE_100_PERCENT, 3600, false };
+      tpa1 = { asset_id_type(), 1, GRAPHENE_100_PERCENT, 3600, false, graphene::protocol::extensions_type{} };
       // size == 0
       on_fill = {};
       BOOST_CHECK_THROW( create_sell_order( sam_id, asset(1), asset(1, usd_id),
@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_setup_test )
       propose( cop1 );
 
       // A valid operation with on_fill
-      tpa1 = { asset_id_type(), 1, GRAPHENE_100_PERCENT, 3600, false };
+      tpa1 = { asset_id_type(), 1, GRAPHENE_100_PERCENT, 3600, false, graphene::protocol::extensions_type{} };
       on_fill = { tpa1 };
       const limit_order_object* order1 = create_sell_order( sam_id, asset(1), asset(1, usd_id),
                                             time_point_sec::maximum(), price::unit_price(), on_fill );
@@ -854,7 +854,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_fail_test_1 )
 
       // Ted buys CORE with USD with on_fill
       //                                   fee_asset, spread,  size,   expiration, repeat
-      create_take_profit_order_action tpa1 { core_id,    500, 10000,         3600, false, graphene::protocol::extensions_type{} };
+      create_take_profit_order_action tpa1 { core_id,    500, 10000,         3600, false, graphene::protocol::extensions_type{}   };
       vector<limit_order_auto_action> on_fill_1 { tpa1 };
 
       const limit_order_object* sell_order1 = create_sell_order( ted_id, asset(GRAPHENE_MAX_SHARE_SUPPLY, usd_id),
@@ -966,7 +966,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_update_basic_test )
 
       // Spread percentage should be positive
       //     fee_asset, spread,  size,   expiration, repeat
-      tpa1 = { core_id,      0, 10000,         3600, false };
+      tpa1 = { core_id,      0, 10000,         3600, false, graphene::protocol::extensions_type{} };
       on_fill_1 = { tpa1 };
       BOOST_CHECK_THROW( update_limit_order( sell_order1_id, {}, {}, {}, price::unit_price(), on_fill_1 ),
                          fc::exception );
@@ -976,7 +976,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_update_basic_test )
 
       // Size percentage should be positive
       //     fee_asset, spread,  size,   expiration, repeat
-      tpa1 = { core_id,      1,     0,         3600, false };
+      tpa1 = { core_id,      1,     0,         3600, false, graphene::protocol::extensions_type{} };
       on_fill_1 = { tpa1 };
       BOOST_CHECK_THROW( update_limit_order( sell_order1_id, {}, {}, {}, price::unit_price(), on_fill_1 ),
                          fc::exception );
@@ -986,7 +986,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_update_basic_test )
 
       // Size percentage should not exceed 100%
       //     fee_asset, spread,  size,   expiration, repeat
-      tpa1 = { core_id,      1, 10001,         3600, false };
+      tpa1 = { core_id,      1, 10001,         3600, false, graphene::protocol::extensions_type{} };
       on_fill_1 = { tpa1 };
       BOOST_CHECK_THROW( update_limit_order( sell_order1_id, {}, {}, {}, price::unit_price(), on_fill_1 ),
                          fc::exception );
@@ -996,7 +996,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_update_basic_test )
 
       // Expiration should be positive
       //     fee_asset, spread,  size,   expiration, repeat
-      tpa1 = { core_id,      1, 10000,            0, false };
+      tpa1 = { core_id,      1, 10000,            0, false, graphene::protocol::extensions_type{} };
       on_fill_1 = { tpa1 };
       BOOST_CHECK_THROW( update_limit_order( sell_order1_id, {}, {}, {}, price::unit_price(), on_fill_1 ),
                          fc::exception );
@@ -1005,7 +1005,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_update_basic_test )
       BOOST_CHECK_THROW( propose( uop1 ), fc::exception );
 
       // Fee asset should exist
-      tpa1 = { usd_id + 1, 1, GRAPHENE_100_PERCENT, 3600, false };
+      tpa1 = { usd_id + 1, 1, GRAPHENE_100_PERCENT, 3600, false, graphene::protocol::extensions_type{} };
       on_fill_1 = { tpa1 };
       BOOST_CHECK_THROW( update_limit_order( sell_order1_id, {}, {}, {}, price::unit_price(), on_fill_1 ),
                          fc::exception );
@@ -1014,7 +1014,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_update_basic_test )
       propose( uop1 );
 
       // on_fill must contain 0 or 1 action
-      tpa1 = { core_id, 1, GRAPHENE_100_PERCENT, 3600, false };
+      tpa1 = { core_id, 1, GRAPHENE_100_PERCENT, 3600, false, graphene::protocol::extensions_type{} };
       on_fill_1 = { tpa1, tpa1 };
       BOOST_CHECK_THROW( update_limit_order( sell_order1_id, {}, {}, {}, price::unit_price(), on_fill_1 ),
                          fc::exception );
@@ -1359,7 +1359,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_update_test_2 )
          {
             // has on_fill, specify a new on_fill, but no update to spread_percent or repeat
             //     fee_asset, spread,  size,   expiration, repeat
-            tpa2 = {  usd_id,    100,  9000,         7200, false };
+            tpa2 = {  usd_id,    100,  9000,         7200, false, graphene::protocol::extensions_type{} };
             vector<limit_order_auto_action> on_fill_2 { tpa2 };
             update_limit_order( sell_order1_id, {}, {}, {}, price::unit_price(), on_fill_2 );
          }
@@ -1367,7 +1367,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_update_test_2 )
          {
             // has on_fill, specify a new on_fill, update spread_percent
             //     fee_asset, spread,  size,   expiration, repeat
-            tpa2 = { core_id,    101, 10000,         3600, false };
+            tpa2 = { core_id,    101, 10000,         3600, false, graphene::protocol::extensions_type{} };
             vector<limit_order_auto_action> on_fill_2 { tpa2 };
             update_limit_order( sell_order1_id, {}, {}, {}, price::unit_price(), on_fill_2 );
          }
@@ -1375,7 +1375,7 @@ BOOST_AUTO_TEST_CASE( oso_take_profit_order_update_test_2 )
          {
             // has on_fill, specify a new on_fill, update repeat
             //     fee_asset, spread,  size,   expiration, repeat
-            tpa2 = { core_id,    100, 10000,         3600, true  };
+            tpa2 = { core_id,    100, 10000,         3600, true, graphene::protocol::extensions_type{}  };
             vector<limit_order_auto_action> on_fill_2 { tpa2 };
             update_limit_order( sell_order1_id, {}, {}, {}, price::unit_price(), on_fill_2 );
          }
