@@ -493,12 +493,17 @@ bool database_api::is_property_exists(uint32_t property_id)const
 bool database_api_impl::is_property_exists(uint32_t property_id)const
 {
    const property_object *property = nullptr;
-      const auto &idx = _db.get_index_type<property_index>().indices().get<by_property_id>();
-      auto itr = idx.find(property_id);
+   const auto &idx = _db.get_index_type<property_index>().indices().get<by_property_id>();
+   property = get_property_from_id(property_id);
+   if(property != nullptr)
+   {
+      return true;
+   }
+      /*auto itr = idx.find<property_object>(property_id);
       if (itr != idx.end())
       return true;
-      else
-      return false;
+      else*/
+   return false;
 }
 
 optional<property_object> database_api::get_property_by_id(uint32_t id) const
@@ -509,9 +514,14 @@ optional<property_object> database_api::get_property_by_id(uint32_t id) const
 optional<property_object> database_api_impl::get_property_by_id(uint32_t id) const
 {
    const auto &idx = _db.get_index_type<property_index>().indices().get<by_property_id>();
-   auto itr = idx.find(id);
+   const property_object *property = get_property_from_id(id);
+   if(property != nullptr)
+   {
+      return *property;
+   }
+   /*auto itr = idx.find(id);
    if (itr != idx.end())
-      return *itr;
+      return *itr;*/
    return optional<property_object>();
 }
 
@@ -527,15 +537,30 @@ vector<optional<property_object>> database_api_impl::get_properties(const vector
    std::transform(properties_ids.begin(), properties_ids.end(), std::back_inserter(result),
                   [this](uint32_t id) -> optional<property_object> {
                      const property_object *property = get_property_from_id(id);
-                     property_id_type property_id = property->get_id();
-                     if (auto o = _db.find(property_id))
-                     {
-                        subscribe_to_item(property_id);
-                        return *o;
-                     }
-                     return {};
+                     //property_id_type property_id = property->get_id();
+                     if(property == nullptr)
+                        return {};
+                     subscribe_to_item(property->id);
+                     return *property;
                   });
    return result;
+   /*vector<optional<property_object>> result;
+   result.reserve(properties_ids.size());
+
+   const auto &idx = _db.get_index_type<property_index>().indices().get<by_property_id>();
+
+   for (auto itr = idx.begin(); itr != idx.end(); ++itr)
+   {
+      // Check if the id of the current property is in the vector of ids
+      if (std::find(properties_ids.begin(), properties_ids.end(), itr->id) != properties_ids.end())
+      {
+         const property_object *property = &*itr;
+         subscribe_to_item(property->id);
+         result.emplace_back(*property);
+      }
+   }
+
+   return result;*/
 }
 
 
@@ -606,8 +631,8 @@ optional<asset_limitation_object> database_api_impl::get_asset_limitaion_by_symb
 
    FC_ASSERT(asset_limitaion, "no such asset limitation");
 
-   asset_limitation_id_type asset_limitation_id = asset_limitaion->get_id();
-   subscribe_to_item(asset_limitation_id); 
+   //asset_limitation_id_type asset_limitation_id = asset_limitaion->get_id();
+   subscribe_to_item(asset_limitaion->id); 
    return *asset_limitaion;
 }
 
@@ -1201,6 +1226,20 @@ vector<optional<extended_asset_object>> database_api_impl::lookup_asset_symbols(
    return get_assets( symbols_or_ids, false );
 }
 
+price_ratio database_api::get_published_asset_price(const std::string &symbol) const {
+   return my->get_published_asset_price(symbol);
+}
+
+price_ratio database_api_impl::get_published_asset_price(const std::string &symbol) const {
+   const auto &idx = _db.get_index_type<asset_price_index>().indices().get<by_symbol>();
+   auto itr = idx.find(symbol);
+   FC_ASSERT(itr != idx.end());
+
+   asset_price price_of_symbol = *itr;
+   price_ratio pr = price_of_symbol.usd_price;
+
+   return pr;
+}
 //////////////////////////////////////////////////////////////////////
 //                                                                  //
 // Markets / feeds                                                  //
@@ -3246,6 +3285,26 @@ const asset_object* database_api_helper::get_asset_from_string( const std::strin
    if(throw_if_not_found)
       FC_ASSERT( asset_ptr, "no such asset" );
    return asset_ptr;
+}
+
+const asset_object* database_api_impl::get_asset_from_string( const std::string& symbol_or_id,
+                                                              bool throw_if_not_found ) const
+{
+   // TODO cache the result to avoid repeatly fetching from db
+   FC_ASSERT( symbol_or_id.size() > 0);
+   const asset_object* asset = nullptr;
+   if (std::isdigit(symbol_or_id[0]))
+      asset = _db.find(fc::variant(symbol_or_id, 1).as<asset_id_type>(1));
+   else
+   {
+      const auto& idx = _db.get_index_type<asset_index>().indices().get<by_symbol>();
+      auto itr = idx.find(symbol_or_id);
+      if (itr != idx.end())
+         asset = &*itr;
+   }
+   if(throw_if_not_found)
+      FC_ASSERT( asset, "no such asset" );
+   return asset;
 }
 
 // helper function

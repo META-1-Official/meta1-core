@@ -111,16 +111,27 @@ std::size_t callback(const char *in, std::size_t size, std::size_t num, std::str
 
                   // The non-META1 asset must be known
                   const auto &asset_idx_by_id = d.get_index_type<asset_index>().indices().get<by_id>();
-                  asset_id_type other_id;
+                  /*asset_id_type other_id;
                   if (selling_meta1) {
                      other_id = op.min_to_receive.asset_id;
                   } else {
                      other_id = op.amount_to_sell.asset_id;
+                  }*/
+
+                  //try d.find
+                  const asset_object* asset_itr = nullptr;
+                  /*const asset_object* asset_itr_meta = nullptr;
+                  const asset_object* asset_itr_other = nullptr;
+                  auto asset_itr_meta = d.find(fc::variant(op.min_to_receive.asset_id).as<asset_id_type>(1));
+                  auto asset_itr_other = d.find(fc::variant(op.amount_to_sell.asset_id, 1).as<asset_id_type>(1));
+                  */if (selling_meta1) {
+                     asset_itr = d.find(fc::variant(std::string(op.min_to_receive.asset_id), 1).as<asset_id_type>(1));
+                  } else {
+                     asset_itr = d.find(fc::variant(std::string(op.amount_to_sell.asset_id), 1).as<asset_id_type>(1));
                   }
-                  //auto asset_itr = asset_idx_by_id.find(other_id);
+                  FC_ASSERT( asset_itr, "Other asset is unknown" );
                   //FC_ASSERT(asset_itr != asset_idx_by_id.end(), "Other asset is unknown");
                   const asset_object &O = *asset_itr;
-
                   // The minimum price check is only performed if an external price has been set
                   const auto &asset_price_idx_by_symbol = d.get_index_type<asset_price_index>().indices().get<by_symbol>();
                   auto asset_price_itr = asset_price_idx_by_symbol.find(O.symbol);
