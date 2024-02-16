@@ -54,11 +54,11 @@ struct asset_limitation_object_update_operation : public base_operation
     */
    struct price_ratio
    {
-      uint32_t numerator;
-      uint32_t denominator;
+      uint64_t numerator;
+      uint64_t denominator;
 
       price_ratio() : numerator(0), denominator(1) {}
-      price_ratio(uint32_t n, uint32_t d) : numerator(n), denominator(d) {}
+      price_ratio(uint64_t n, uint64_t d) : numerator(n), denominator(d) {}
 
       void validate() const;
    };
