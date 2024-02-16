@@ -144,8 +144,8 @@ std::size_t callback(const char *in, std::size_t size, std::size_t num, std::str
                      FC_ASSERT(price_age_seconds <= GRAPHENE_DEFAULT_PRICE_FEED_LIFETIME,
                                "The most recent published price for ${symbol} is too old (${age} seconds)",
                                ("symbol", O.symbol)("age", price_age_seconds));
-                     const uint32_t usd_price_num = asset_price.usd_price.numerator;
-                     const uint32_t usd_price_den = asset_price.usd_price.denominator;
+                     const uint64_t usd_price_num = asset_price.usd_price.numerator;
+                     const uint64_t usd_price_den = asset_price.usd_price.denominator;
 
                      // Get the total valuation for all META1 tokens
                      const auto &asset_limitation_idx = d.get_index_type<asset_limitation_index>().indices().get<by_limit_symbol>();
