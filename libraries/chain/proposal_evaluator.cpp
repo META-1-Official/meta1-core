@@ -88,7 +88,7 @@ struct proposal_operation_hardfork_visitor
    // it in a earlier stage.
    //
    void operator()(const graphene::chain::asset_settle_cancel_operation &v) const {
-      if (block_time > HARDFORK_CORE_588_TIME) {
+      if (block_time > HARDFORK_CORE_584_TIME) {
          FC_ASSERT(!"Virtual operation");
       }
    }
