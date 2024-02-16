@@ -15,17 +15,14 @@ META1 Core
 * [License](#license)
 
 META1 Core is the META1 blockchain implementation and command-line interface.
-The web wallet is [META1 UI](https://github.com/META1CoinTrust/softlaunch-meta1-ui).
+The web wallet is [META1 UI](https://github.com/META-1-Official/soft-launch-meta1-ui).
 
-Visit [meta1.io](https://meta1.io/) to learn about META1 and join the community.
+Visit [meta1coin.vision](https://meta1coin.vision/) to learn about META1 and join the community.
 
 For security issues and bug bounty program please leave an issue on corresponding repo of Meta1 GitHub.
 
 Getting Started
 ---------------
-Build instructions and additional documentation are available in the
-[wiki](https://github.com/meta1cointrust/meta1-core/wiki).
-
 Meta1 Core software is guaranteed to work on Ubuntu 18.04 x64. 
 
 **Build Dependencies:**
