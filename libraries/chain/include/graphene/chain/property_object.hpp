@@ -12,7 +12,7 @@ namespace chain
 {
 using namespace graphene::db;
 
-class property_object : public graphene::db::abstract_object<property_object>
+class property_object : public graphene::db::abstract_object<property_object,protocol_ids, property_object_type>
 {
 public:
     static const uint8_t space_id = protocol_ids;
@@ -40,8 +40,6 @@ public:
 
     // Derived value for expediting frequent calculations
     time_point_sec next_allocation_date;
-
-    property_id_type get_id() const { return id; }
 
    /**
     * Get the allocation progress of this property as a rational fraction valued from [0,1]

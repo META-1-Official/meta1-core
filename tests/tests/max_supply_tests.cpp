@@ -43,7 +43,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
           * 1 LARGE = 1 satoshi LARGE (because precision = 0)
           */
          asset_id_type large_id = create_bitasset("LARGE", nathan_id, 100, charge_market_fee, 0U,
-                                                  asset_id_type{}, GRAPHENE_MAX_SHARE_SUPPLY).id;
+                                                  asset_id_type{}, GRAPHENE_MAX_SHARE_SUPPLY).get_id();
          BOOST_CHECK_EQUAL(0, large_id(db).dynamic_data(db).current_supply.value);
          BOOST_CHECK_EQUAL(GRAPHENE_MAX_SHARE_SUPPLY, large_id(db).options.max_supply.value);
 
@@ -67,8 +67,8 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
          generate_block();
          trx.clear();
          set_expiration(db, trx);
-         large_id = get_asset("LARGE").id;
-         asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).id;
+         large_id = get_asset("LARGE").get_id();
+         asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).get_id();
 
          /**
           * Publish a feed price
@@ -115,8 +115,8 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        */
       trx.clear();
       set_expiration(db, trx);
-      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).id;
-      asset_id_type large_id = get_asset("LARGE").id;
+      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).get_id();
+      asset_id_type large_id = get_asset("LARGE").get_id();
       GET_ACTOR(dan);
 
       const int64_t GRAPHENE_CORE_MAX_SHARE_SUPPLY= get_asset(GRAPHENE_SYMBOL).options.max_supply.value;
@@ -130,7 +130,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        */
       limit_order_object dan_sell_all
          = *create_sell_order(dan, large_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY), core_id(db).amount(1));
-      limit_order_id_type dan_sell_all_id = dan_sell_all.id;
+      limit_order_id_type dan_sell_all_id = dan_sell_all.get_id();
       // The order should remain on the books without being matched
       BOOST_REQUIRE_EQUAL(get_balance(dan, large_id(db)), 0); // Dan's balance should be zero
       BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
@@ -183,8 +183,8 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        */
       trx.clear();
       set_expiration(db, trx);
-      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).id;
-      asset_id_type large_id = get_asset("LARGE").id;
+      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).get_id();
+      asset_id_type large_id = get_asset("LARGE").get_id();
       GET_ACTOR(dan);
 
       const int64_t GRAPHENE_CORE_MAX_SHARE_SUPPLY= get_asset(GRAPHENE_SYMBOL).options.max_supply.value;
@@ -193,7 +193,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
                           GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
 
 
-      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement()); // No global settlement yet
+      BOOST_CHECK(!large_id(db).bitasset_data(db).is_globally_settled()); // No global settlement yet
 
 
       /**
@@ -219,7 +219,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        * Check the state
        */
       // A global settlement should have been triggered
-      BOOST_CHECK(large_id(db).bitasset_data(db).has_settlement());
+      BOOST_CHECK(large_id(db).bitasset_data(db).is_globally_settled());
    }
 
 
@@ -236,8 +236,8 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        */
       trx.clear();
       set_expiration(db, trx);
-      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).id;
-      asset_id_type large_id = get_asset("LARGE").id;
+      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).get_id();
+      asset_id_type large_id = get_asset("LARGE").get_id();
       GET_ACTOR(dan);
 
       const int64_t GRAPHENE_CORE_MAX_SHARE_SUPPLY= get_asset(GRAPHENE_SYMBOL).options.max_supply.value;
@@ -246,7 +246,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
                           GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
 
 
-      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement()); // No global settlement yet
+      BOOST_CHECK(!large_id(db).bitasset_data(db).is_globally_settled()); // No global settlement yet
 
 
       /**
@@ -260,7 +260,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
       limit_order_object dan_sell_order
          = *create_sell_order(dan, large_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY),
                               core_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 5));
-      limit_order_id_type dan_sell_order_id = dan_sell_order.id;
+      limit_order_id_type dan_sell_order_id = dan_sell_order.get_id();
 
 
       /**
@@ -286,7 +286,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        * Check the state
        */
       // A global settlement should have been triggered
-      BOOST_CHECK(large_id(db).bitasset_data(db).has_settlement());
+      BOOST_CHECK(large_id(db).bitasset_data(db).is_globally_settled());
    }
 
 
@@ -303,8 +303,8 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        */
       trx.clear();
       set_expiration(db, trx);
-      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).id;
-      asset_id_type large_id = get_asset("LARGE").id;
+      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).get_id();
+      asset_id_type large_id = get_asset("LARGE").get_id();
       GET_ACTOR(dan);
 
       const int64_t GRAPHENE_CORE_MAX_SHARE_SUPPLY= get_asset(GRAPHENE_SYMBOL).options.max_supply.value;
@@ -313,7 +313,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
                           GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
 
 
-      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement()); // No global settlement yet
+      BOOST_CHECK(!large_id(db).bitasset_data(db).is_globally_settled()); // No global settlement yet
 
 
       /**
@@ -327,7 +327,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
       limit_order_object dan_sell_order
          = *create_sell_order(dan, large_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY),
                               core_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 5));
-      limit_order_id_type dan_sell_order_id = dan_sell_order.id;
+      limit_order_id_type dan_sell_order_id = dan_sell_order.get_id();
 
 
       /**
@@ -359,7 +359,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        * Check the state
        */
       // A global settlement should have been triggered
-      BOOST_CHECK(large_id(db).bitasset_data(db).has_settlement());
+      BOOST_CHECK(large_id(db).bitasset_data(db).is_globally_settled());
    }
 
 
@@ -376,8 +376,8 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        */
       trx.clear();
       set_expiration(db, trx);
-      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).id;
-      asset_id_type large_id = get_asset("LARGE").id;
+      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).get_id();
+      asset_id_type large_id = get_asset("LARGE").get_id();
       GET_ACTOR(dan);
 
       const int64_t GRAPHENE_CORE_MAX_SHARE_SUPPLY= get_asset(GRAPHENE_SYMBOL).options.max_supply.value;
@@ -385,7 +385,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
       BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
                           GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
 
-      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement()); // No global settlement yet
+      BOOST_CHECK(!large_id(db).bitasset_data(db).is_globally_settled()); // No global settlement yet
 
 
       /**
@@ -399,7 +399,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
       limit_order_object dan_sell_order
          = *create_sell_order(dan, large_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY),
                               core_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 1));
-      limit_order_id_type dan_sell_order_id = dan_sell_order.id;
+      limit_order_id_type dan_sell_order_id = dan_sell_order.get_id();
 
 
       /**
@@ -424,7 +424,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        * Dan's margin call should be matched against his own limit order.
        */
       // A global settlement should have been triggered
-      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement());
+      BOOST_CHECK(!large_id(db).bitasset_data(db).is_globally_settled());
 
       // Confirm that the limit order no longer exists
       BOOST_CHECK(!db.find(dan_sell_order_id));
@@ -452,8 +452,8 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        */
       trx.clear();
       set_expiration(db, trx);
-      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).id;
-      asset_id_type large_id = get_asset("LARGE").id;
+      asset_id_type core_id = get_asset(GRAPHENE_SYMBOL).get_id();
+      asset_id_type large_id = get_asset("LARGE").get_id();
       GET_ACTOR(dan);
 
       const int64_t GRAPHENE_CORE_MAX_SHARE_SUPPLY= get_asset(GRAPHENE_SYMBOL).options.max_supply.value;
@@ -461,7 +461,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
       BOOST_REQUIRE_EQUAL(get_balance(dan, core_id(db)),
                           GRAPHENE_CORE_MAX_SHARE_SUPPLY / 3 - GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 2);
 
-      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement()); // No global settlement yet
+      BOOST_CHECK(!large_id(db).bitasset_data(db).is_globally_settled()); // No global settlement yet
 
 
       /**
@@ -475,7 +475,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
       limit_order_object dan_sell_order
          = *create_sell_order(dan, large_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY),
                               core_id(db).amount(GRAPHENE_MAX_SHARE_SUPPLY / 5000 * 1));
-      limit_order_id_type dan_sell_order_id = dan_sell_order.id;
+      limit_order_id_type dan_sell_order_id = dan_sell_order.get_id();
 
 
       /**
@@ -506,7 +506,7 @@ BOOST_FIXTURE_TEST_SUITE(max_supply_tests, meta1_fixture)
        * Dan's margin call should be matched against his own limit order.
        */
       // A global settlement should have been triggered
-      BOOST_CHECK(!large_id(db).bitasset_data(db).has_settlement());
+      BOOST_CHECK(!large_id(db).bitasset_data(db).is_globally_settled());
 
       // Confirm that the limit order no longer exists
       BOOST_CHECK(!db.find(dan_sell_order_id));

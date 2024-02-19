@@ -26,6 +26,7 @@
 #include <graphene/chain/types.hpp>
 #include <graphene/db/generic_index.hpp>
 #include <graphene/protocol/asset.hpp>
+#include <graphene/protocol/market.hpp>
 
 #include <boost/multi_index/composite_key.hpp>
 
@@ -34,25 +35,37 @@ namespace graphene { namespace chain {
 using namespace graphene::db;
 
 /**
- *  @brief an offer to sell a amount of a asset at a specified exchange rate by a certain time
+ *  @brief an offer to sell an amount of an asset at a specified exchange rate by a certain time
  *  @ingroup object
  *  @ingroup protocol
  *  @ingroup market
  *
- *  This limit_order_objects are indexed by @ref expiration and is automatically deleted on the first block after expiration.
+ *  The objects are indexed by @ref expiration and are automatically deleted on the first block after expiration.
  */
-class limit_order_object : public abstract_object<limit_order_object>
+class limit_order_object : public abstract_object<limit_order_object, protocol_ids, limit_order_object_type>
 {
    public:
-      static const uint8_t space_id = protocol_ids;
-      static const uint8_t type_id  = limit_order_object_type;
-
-      time_point_sec   expiration;
-      account_id_type  seller;
-      share_type       for_sale; ///< asset id is sell_price.base.asset_id
-      price            sell_price;
+      time_point_sec   expiration; ///< When this limit order will expire
+      account_id_type  seller; ///< Who is selling
+      share_type       for_sale; ///< The amount for sale, asset id is sell_price.base.asset_id
+      price            sell_price; ///< The seller's asking price
+      fc::uint128_t    filled_amount = 0; ///< The amount that has been sold, asset id is sell_price.base.asset_id
       share_type       deferred_fee; ///< fee converted to CORE
       asset            deferred_paid_fee; ///< originally paid fee
+      bool             is_settled_debt = false; ///< Whether this order is an individual settlement fund
+
+      /// Automatic actions when the limit order is filled or partially filled
+      vector< limit_order_auto_action > on_fill;
+
+      /// ID of the take profit limit order linked to this limit order
+      optional<limit_order_id_type> take_profit_order_id;
+
+      /// Returns the configured automatic action that will create a take profit order when this limit order is filled
+      const create_take_profit_order_action& get_take_profit_action() const
+      {
+         FC_ASSERT( !on_fill.empty() ); // Normally it should not fail // GCOVR_EXCL_LINE
+         return on_fill.front().get<create_take_profit_order_action>();
+      }
 
       pair<asset_id_type,asset_id_type> get_market()const
       {
@@ -71,6 +84,7 @@ struct by_price;
 struct by_expiration;
 struct by_account;
 struct by_account_price;
+struct by_is_settled_debt;
 typedef multi_index_container<
    limit_order_object,
    indexed_by<
@@ -87,6 +101,13 @@ typedef multi_index_container<
             member< object, object_id_type, &object::id>
          >,
          composite_key_compare< std::greater<price>, std::less<object_id_type> >
+      >,
+      ordered_unique< tag<by_is_settled_debt>,
+         composite_key< limit_order_object,
+            member< limit_order_object, bool, &limit_order_object::is_settled_debt >,
+            const_mem_fun< limit_order_object, asset_id_type, &limit_order_object::receive_asset_id >,
+            member< object, object_id_type, &object::id>
+         >
       >,
       // index used by APIs
       ordered_unique< tag<by_account>,
@@ -116,12 +137,9 @@ typedef generic_index<limit_order_object, limit_order_multi_index_type> limit_or
  * There should only be one call_order_object per asset pair per account and
  * they will all have the same call price.
  */
-class call_order_object : public abstract_object<call_order_object>
+class call_order_object : public abstract_object<call_order_object, protocol_ids,  call_order_object_type>
 {
    public:
-      static const uint8_t space_id = protocol_ids;
-      static const uint8_t type_id  = call_order_object_type;
-
       asset get_collateral()const { return asset( collateral, call_price.base.asset_id ); }
       asset get_debt()const { return asset( debt, debt_type() ); }
       asset amount_to_receive()const { return get_debt(); }
@@ -156,7 +174,8 @@ class call_order_object : public abstract_object<call_order_object>
       share_type get_max_debt_to_cover( price match_price,
                                         price feed_price,
                                         const uint16_t maintenance_collateral_ratio,
-                                        const optional<price>& maintenance_collateralization = optional<price>() )const;
+                                        const optional<price>& maintenance_collateralization = optional<price>()
+                                      )const;
 };
 
 /**
@@ -165,12 +184,10 @@ class call_order_object : public abstract_object<call_order_object>
  *  On the @ref settlement_date the @ref balance will be converted to the collateral asset
  *  and paid to @ref owner and then this object will be deleted.
  */
-class force_settlement_object : public abstract_object<force_settlement_object>
+class force_settlement_object : public abstract_object<force_settlement_object,
+                                          protocol_ids, force_settlement_object_type>
 {
    public:
-      static const uint8_t space_id = protocol_ids;
-      static const uint8_t type_id  = force_settlement_object_type;
-
       account_id_type   owner;
       asset             balance;
       time_point_sec    settlement_date;
@@ -186,12 +203,10 @@ class force_settlement_object : public abstract_object<force_settlement_object>
  * There should only be one collateral_bid_object per asset per account, and
  * only for smartcoin assets that have a global settlement_price.
  */
-class collateral_bid_object : public abstract_object<collateral_bid_object>
+class collateral_bid_object : public abstract_object<collateral_bid_object,
+                                        implementation_ids, impl_collateral_bid_object_type>
 {
    public:
-      static const uint8_t space_id = implementation_ids;
-      static const uint8_t type_id  = impl_collateral_bid_object_type;
-
       asset get_additional_collateral()const { return inv_swan_price.base; }
       asset get_debt_covered()const { return inv_swan_price.quote; }
       asset_id_type debt_type()const { return inv_swan_price.quote.asset_id; }

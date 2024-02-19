@@ -135,6 +135,59 @@ BOOST_AUTO_TEST_CASE( valid_symbol_test )
    BOOST_CHECK( is_valid_symbol( "AAA000AAA" ) );
 }
 
+BOOST_AUTO_TEST_CASE( object_id_test )
+{
+
+   uint64_t u56 = ((uint64_t)1)<<56;
+   BOOST_CHECK_THROW( object_id_type( 1, 0, u56 ), fc::exception );
+
+   object_id_type o102( 1, 0, 2 );
+   BOOST_CHECK_THROW( (object_id<1,1>( o102 )), fc::exception );
+   BOOST_CHECK_THROW( (object_id<2,1>( o102 )), fc::exception );
+   BOOST_CHECK_THROW( (object_id<2,0>( o102 )), fc::exception );
+
+   BOOST_CHECK_THROW( (object_id<1,0>( u56 )), fc::exception );
+
+   object_id_type o1;
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1") ), o1 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string(".1") ), o1 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1.1") ), o1 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1..1") ), o1 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1.1.") ), o1 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("256.1.1") ), o1 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1.256.1") ), o1 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("256.256.1") ), o1 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1.1.") + std::to_string(u56) ), o1 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1.1.a") ), o1 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1.a.1") ), o1 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("a.1.1") ), o1 ), fc::exception );
+
+   from_variant( fc::variant( std::string("1.1.1234567") ), o1 );
+   BOOST_CHECK( o1 == object_id_type( 1, 1, 1234567 ) );
+
+   object_id<1,1> o2;
+   BOOST_CHECK( o2 != o1 );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1") ), o2 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string(".1") ), o2 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1.1") ), o2 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1..1") ), o2 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1.1.") ), o2 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("2.1.1") ), o2 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1.2.1") ), o2 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("2.2.1") ), o2 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("256.1.1") ), o2 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1.256.1") ), o2 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("256.256.1") ), o2 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1.1.") + std::to_string(u56) ), o2 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1.1.a") ), o2 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("1.a.1") ), o2 ), fc::exception );
+   BOOST_CHECK_THROW( from_variant( fc::variant( std::string("a.1.1") ), o2 ), fc::exception );
+
+   from_variant( fc::variant( std::string("1.1.1234567") ), o2 );
+   BOOST_CHECK( o2 == o1 );
+
+}
+
 BOOST_AUTO_TEST_CASE( price_test )
 {
     auto price_max = []( uint32_t a, uint32_t b )
@@ -168,6 +221,33 @@ BOOST_AUTO_TEST_CASE( price_test )
     BOOST_CHECK(b > a);
     BOOST_CHECK(a == c);
     BOOST_CHECK(!(b == c));
+
+    BOOST_CHECK_THROW( price( asset(-1), asset(1, asset_id_type(1)) ).validate(), fc::exception );
+    BOOST_CHECK_THROW( price( asset(0), asset(1, asset_id_type(1)) ).validate(), fc::exception );
+    BOOST_CHECK_THROW( price( asset(1), asset(0, asset_id_type(1)) ).validate(), fc::exception );
+    BOOST_CHECK_THROW( price( asset(1), asset(-1, asset_id_type(1)) ).validate(), fc::exception );
+    BOOST_CHECK_THROW( price( asset(1), asset(1) ).validate(), fc::exception );
+    BOOST_CHECK_THROW( price( asset(1, asset_id_type(1)), asset(1, asset_id_type(1)) ).validate(), fc::exception );
+
+    constexpr int64_t max_amount = GRAPHENE_MAX_SHARE_SUPPLY;
+    constexpr int64_t too_big_amount = GRAPHENE_MAX_SHARE_SUPPLY + 1;
+
+    price( asset(1), asset(max_amount, asset_id_type(1)) ).validate();
+    price( asset(max_amount), asset(1, asset_id_type(1)) ).validate();
+    price( asset(max_amount), asset(max_amount, asset_id_type(1)) ).validate();
+    price( asset(1), asset(max_amount, asset_id_type(1)) ).validate(true);
+    price( asset(max_amount), asset(1, asset_id_type(1)) ).validate(true);
+    price( asset(max_amount), asset(max_amount, asset_id_type(1)) ).validate(true);
+
+    price( asset(1), asset(too_big_amount, asset_id_type(1)) ).validate();
+    price( asset(too_big_amount), asset(1, asset_id_type(1)) ).validate();
+    price( asset(too_big_amount), asset(too_big_amount, asset_id_type(1)) ).validate();
+    BOOST_CHECK_THROW( price( asset(1), asset(too_big_amount, asset_id_type(1)) ).validate(true),
+                       fc::exception );
+    BOOST_CHECK_THROW( price( asset(too_big_amount), asset(1, asset_id_type(1)) ).validate(true),
+                       fc::exception );
+    BOOST_CHECK_THROW( price( asset(too_big_amount), asset(too_big_amount, asset_id_type(1)) ).validate(true),
+                       fc::exception );
 
     GRAPHENE_REQUIRE_THROW( price(asset(1),  asset(1)) * ratio_type(1,1), fc::exception );
     GRAPHENE_REQUIRE_THROW( price(asset(0),  asset(1, asset_id_type(1))) * ratio_type(1,1), fc::exception );
@@ -324,7 +404,29 @@ BOOST_AUTO_TEST_CASE( price_test )
     dummy.maximum_short_squeeze_ratio = 1234;
     dummy.settlement_price = price(asset(1000), asset(2000, asset_id_type(1)));
     price_feed dummy2 = dummy;
-    BOOST_CHECK(dummy == dummy2);
+    price_feed dummy3 = dummy;
+    dummy3.core_exchange_rate = price( asset(11), asset(13, asset_id_type(1)) );
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy ) );
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy2 ) );
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy3 ) );
+    dummy.maximum_short_squeeze_ratio = 1235;
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy ) );
+    BOOST_CHECK( !dummy.margin_call_params_equal( dummy2 ) );
+    BOOST_CHECK( !dummy.margin_call_params_equal( dummy3 ) );
+    dummy2.maximum_short_squeeze_ratio = 1235;
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy ) );
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy2 ) );
+    BOOST_CHECK( !dummy.margin_call_params_equal( dummy3 ) );
+    dummy2.maintenance_collateral_ratio = 1003;
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy ) );
+    BOOST_CHECK( !dummy.margin_call_params_equal( dummy2 ) );
+    BOOST_CHECK( !dummy.margin_call_params_equal( dummy3 ) );
+    dummy3.maximum_short_squeeze_ratio = 1235;
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy3 ) );
+    dummy3.settlement_price = price( asset(1), asset(3, asset_id_type(1)) );
+    BOOST_CHECK( !dummy.margin_call_params_equal( dummy3 ) );
+    dummy3.settlement_price = price( asset(1), asset(2, asset_id_type(1)) );
+    BOOST_CHECK( dummy.margin_call_params_equal( dummy3 ) );
 }
 
 BOOST_AUTO_TEST_CASE( price_multiplication_test )
@@ -455,7 +557,7 @@ BOOST_AUTO_TEST_CASE( merkle_root )
 
    auto c = []( const digest_type& digest ) -> checksum_type
    {   return checksum_type::hash( digest );   };
-   
+
    auto d = []( const digest_type& left, const digest_type& right ) -> digest_type
    {   return digest_type::hash( std::make_pair( left, right ) );   };
 
@@ -470,7 +572,7 @@ BOOST_AUTO_TEST_CASE( merkle_root )
 
    /*
       A=d(0,1)
-         / \ 
+         / \
         0   1
    */
 
@@ -584,7 +686,7 @@ BOOST_AUTO_TEST_CASE( merkle_root )
 
    /*
                                 _____________O=d(M,N)______________
-                               /                                   \   
+                               /                                   \
                      __M=d(I,J)__                                  N=K
                     /            \                              /
             I=d(A,B)              J=d(C,D)                 K=E
@@ -605,7 +707,7 @@ BOOST_AUTO_TEST_CASE( merkle_root )
 
    /*
                                 _____________O=d(M,N)______________
-                               /                                   \   
+                               /                                   \
                      __M=d(I,J)__                                  N=K
                     /            \                              /
             I=d(A,B)              J=d(C,D)                 K=E

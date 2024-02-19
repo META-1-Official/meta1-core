@@ -29,7 +29,7 @@ struct property_options
 //backed asset create smart contract
 struct property_create_operation : public base_operation
 {
-    struct fee_parameters_type
+    struct fee_params_t
     {
         uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION;
     };
@@ -51,7 +51,7 @@ struct property_create_operation : public base_operation
 //backed asset update smart contract
 struct property_update_operation : public base_operation
 {
-    struct fee_parameters_type
+    struct fee_params_t
     {
         uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION;
     };
@@ -72,7 +72,7 @@ struct property_update_operation : public base_operation
 
    //  Backing asset approve smart contract
    struct property_approve_operation : public base_operation {
-      struct fee_parameters_type {
+      struct fee_params_t {
          uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION;
       };
 
@@ -92,7 +92,7 @@ struct property_update_operation : public base_operation
 
 struct property_delete_operation : public base_operation
 {
-    struct fee_parameters_type { uint64_t fee = 0; };
+    struct fee_params_t { uint64_t fee = 0; };
 
     asset fee;
     property_id_type property;
@@ -122,10 +122,10 @@ FC_REFLECT(graphene::protocol::property_options,
            )
 
 
-FC_REFLECT(graphene::protocol::property_create_operation::fee_parameters_type, (fee))
-FC_REFLECT(graphene::protocol::property_update_operation::fee_parameters_type, (fee))
-FC_REFLECT(graphene::protocol::property_approve_operation::fee_parameters_type, (fee))
-FC_REFLECT(graphene::protocol::property_delete_operation::fee_parameters_type, (fee))
+FC_REFLECT(graphene::protocol::property_create_operation::fee_params_t, (fee))
+FC_REFLECT(graphene::protocol::property_update_operation::fee_params_t, (fee))
+FC_REFLECT(graphene::protocol::property_approve_operation::fee_params_t, (fee))
+FC_REFLECT(graphene::protocol::property_delete_operation::fee_params_t, (fee))
 
 FC_REFLECT(graphene::protocol::property_create_operation,
            (fee)
@@ -161,10 +161,10 @@ FC_REFLECT(graphene::protocol::property_delete_operation,
             )
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_options )
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_update_operation::fee_parameters_type )
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_create_operation::fee_parameters_type )
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_approve_operation::fee_parameters_type )
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_delete_operation::fee_parameters_type )
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_update_operation::fee_params_t )
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_create_operation::fee_params_t )
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_approve_operation::fee_params_t )
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_delete_operation::fee_params_t )
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_create_operation )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::property_update_operation )

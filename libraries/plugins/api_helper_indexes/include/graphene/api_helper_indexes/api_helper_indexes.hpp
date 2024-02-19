@@ -38,10 +38,10 @@ using namespace chain;
 class amount_in_collateral_index : public secondary_index
 {
    public:
-      virtual void object_inserted( const object& obj ) override;
-      virtual void object_removed( const object& obj ) override;
-      virtual void about_to_modify( const object& before ) override;
-      virtual void object_modified( const object& after ) override;
+      void object_inserted( const object& obj ) override;
+      void object_removed( const object& obj ) override;
+      void about_to_modify( const object& before ) override;
+      void object_modified( const object& after ) override;
 
       share_type get_amount_in_collateral( const asset_id_type& asset )const;
       share_type get_backing_collateral( const asset_id_type& asset )const;
@@ -59,16 +59,31 @@ class amount_in_collateral_index : public secondary_index
 class asset_in_liquidity_pools_index: public secondary_index
 {
    public:
-      virtual void object_inserted( const object& obj ) override;
-      virtual void object_removed( const object& obj ) override;
-      virtual void about_to_modify( const object& before ) override;
-      virtual void object_modified( const object& after ) override;
+      void object_inserted( const object& obj ) override;
+      void object_removed( const object& obj ) override;
+      void about_to_modify( const object& before ) override;
+      void object_modified( const object& after ) override;
 
       const flat_set<liquidity_pool_id_type>& get_liquidity_pools_by_asset( const asset_id_type& a )const;
 
    private:
       flat_set<liquidity_pool_id_type> empty_set;
       flat_map<asset_id_type, flat_set<liquidity_pool_id_type>> asset_in_pools_map;
+};
+
+/**
+ *  @brief This secondary index tracks the next ID of all object types.
+ *  @note This is implemented with \c flat_map considering there aren't too many object types in the system thus
+ *        the performance would be acceptable.
+ */
+class next_object_ids_index : public secondary_index
+{
+   public:
+      object_id_type get_next_id( uint8_t space_id, uint8_t type_id ) const;
+
+   private:
+      friend class api_helper_indexes;
+      flat_map< std::pair<uint8_t,uint8_t>, object_id_type > _next_ids;
 };
 
 namespace detail
@@ -79,23 +94,27 @@ namespace detail
 class api_helper_indexes : public graphene::app::plugin
 {
    public:
-      api_helper_indexes();
-      virtual ~api_helper_indexes();
+      explicit api_helper_indexes(graphene::app::application& app);
+      ~api_helper_indexes() override;
 
       std::string plugin_name()const override;
       std::string plugin_description()const override;
-      virtual void plugin_set_program_options(
+      void plugin_set_program_options(
          boost::program_options::options_description& cli,
          boost::program_options::options_description& cfg) override;
-      virtual void plugin_initialize(const boost::program_options::variables_map& options) override;
-      virtual void plugin_startup() override;
+      void plugin_initialize(const boost::program_options::variables_map& options) override;
+      void plugin_startup() override;
 
       friend class detail::api_helper_indexes_impl;
-      std::unique_ptr<detail::api_helper_indexes_impl> my;
 
    private:
+      std::unique_ptr<detail::api_helper_indexes_impl> my;
       amount_in_collateral_index* amount_in_collateral_idx = nullptr;
       asset_in_liquidity_pools_index* asset_in_liquidity_pools_idx = nullptr;
+      next_object_ids_index* next_object_ids_idx = nullptr;
+
+      bool _next_ids_map_initialized = false;
+      void refresh_next_ids();
 };
 
 } } //graphene::template

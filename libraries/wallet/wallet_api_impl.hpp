@@ -126,10 +126,10 @@ public:
    bool is_locked()const;
 
    template<typename ID>
-   graphene::db::object_downcast_t<ID> get_object(ID id)const
+   graphene::db::object_downcast_t<const ID&> get_object(const ID& id)const
    {
-      auto ob = _remote_db->get_objects({id}, {}).front();
-      return ob.template as<graphene::db::object_downcast_t<ID>>( GRAPHENE_MAX_NESTED_OBJECTS );
+      auto ob = _remote_db->get_objects({object_id_type(id)}, {}).front();
+      return ob.template as<graphene::db::object_downcast_t<const ID&>>( GRAPHENE_MAX_NESTED_OBJECTS );
    }
 
    /***
@@ -137,7 +137,7 @@ public:
     * @param tx the transaction
     * @param s the fee schedule
     */
-   void set_operation_fees( signed_transaction& tx, const fee_schedule& s  );
+   void set_operation_fees( signed_transaction& tx, const fee_schedule& s  ) const;
 
    /***
     * @brief return basic info about the chain
@@ -167,9 +167,9 @@ public:
 
    extended_asset_object get_asset(string asset_symbol_or_id)const;
 
-   fc::optional<htlc_object> get_htlc(string htlc_id) const;
+   fc::optional<htlc_object> get_htlc(const htlc_id_type& htlc_id) const;
 
-   asset_id_type get_asset_id(string asset_symbol_or_id) const;
+   asset_id_type get_asset_id(const string& asset_symbol_or_id) const;
 
    string get_wallet_filename() const;
 
@@ -219,6 +219,8 @@ public:
    asset set_fees_on_builder_transaction(transaction_handle_type handle, string fee_asset = GRAPHENE_SYMBOL);
    transaction preview_builder_transaction(transaction_handle_type handle);
    signed_transaction sign_builder_transaction(transaction_handle_type transaction_handle, bool broadcast = true);
+   signed_transaction sign_builder_transaction2(transaction_handle_type transaction_handle,
+         const vector<public_key_type>& signing_keys = vector<public_key_type>(), bool broadcast = true);
 
    pair<transaction_id_type,signed_transaction> broadcast_transaction(signed_transaction tx);
 
@@ -295,13 +297,19 @@ public:
 
    signed_transaction update_worker_votes( string account, worker_vote_delta delta, bool broadcast );
 
-   signed_transaction htlc_create( string source, string destination, string amount, string asset_symbol,
-         string hash_algorithm, const std::string& preimage_hash, uint32_t preimage_size,
-         const uint32_t claim_period_seconds, bool broadcast = false );
+   signed_transaction htlc_create( const string& source, const string& destination,
+         const string& amount, const string& asset_symbol, const string& hash_algorithm,
+         const string& preimage_hash, uint32_t preimage_size,
+         uint32_t claim_period_seconds, const string& memo, bool broadcast = false);
 
-   signed_transaction htlc_redeem( string htlc_id, string issuer, const std::vector<char>& preimage, bool broadcast );
+   signed_transaction htlc_redeem( const htlc_id_type& htlc_id, const string& issuer,
+         const std::vector<char>& preimage, bool broadcast );
 
-   signed_transaction htlc_extend ( string htlc_id, string issuer, const uint32_t seconds_to_add, bool broadcast);
+   signed_transaction htlc_extend( const htlc_id_type& htlc_id, const string& issuer,
+         uint32_t seconds_to_add, bool broadcast);
+
+   signed_transaction account_store_map(string account, string catalog, bool remove,
+         flat_map<string, optional<string>> key_values, bool broadcast);
 
    vector< vesting_balance_object_with_info > get_vesting_balances( string account_name );
 
@@ -322,6 +330,9 @@ public:
          bool broadcast );
 
    signed_transaction sign_transaction(signed_transaction tx, bool broadcast = false);
+   signed_transaction sign_transaction2(signed_transaction tx,
+                                        const vector<public_key_type>& signing_keys = vector<public_key_type>(),
+                                        bool broadcast = false);
 
    flat_set<public_key_type> get_transaction_signers(const signed_transaction &tx) const;
 
@@ -333,8 +344,8 @@ public:
 
    signed_message sign_message(string signer, string message);
 
-   bool verify_message( const string& message, const string& account, int block, const string& time,
-         const compact_signature& sig );
+   bool verify_message( const string& message, const string& account, int32_t block, const string& msg_time,
+         const fc::ecc::compact_signature& sig );
 
    bool verify_signed_message( const signed_message& message );
 
@@ -351,7 +362,7 @@ public:
          string amount_of_collateral, call_order_update_operation::extensions_type extensions,
          bool broadcast = false);
 
-   signed_transaction cancel_order(limit_order_id_type order_id, bool broadcast = false);
+   signed_transaction cancel_order(const limit_order_id_type& order_id, bool broadcast = false);
 
    signed_transaction transfer(string from, string to, string amount,
          string asset_symbol, string memo, bool broadcast = false);
@@ -359,7 +370,8 @@ public:
    signed_transaction issue_asset(string to_account, string amount, string symbol,
          string memo, bool broadcast = false);
 
-   std::map<string,std::function<string(fc::variant,const fc::variants&)>> get_result_formatters() const;
+   std::map< string, std::function< string( const fc::variant&, const fc::variants& ) >, std::less<> >
+         get_result_formatters() const;
 
    signed_transaction propose_parameter_change( const string& proposing_account, fc::time_point_sec expiration_time,
          const variant_object& changed_values, bool broadcast = false);
@@ -447,6 +459,7 @@ public:
    fc::api<database_api>   _remote_db;
    fc::api<network_broadcast_api>   _remote_net_broadcast;
    fc::api<history_api>    _remote_hist;
+   fc::api<custom_operations_api>    _custom_operations;
    optional< fc::api<network_node_api> > _remote_net_node;
    optional< fc::api<graphene::debug_witness::debug_api> > _remote_debug;
 
@@ -455,8 +468,6 @@ public:
    static_variant_map _operation_which_map = create_static_variant_map< operation >();
 
 private:
-   std::string account_id_to_string(account_id_type id) const;
-
    static htlc_hash do_hash( const string& algorithm, const std::string& hash );
 
    void enable_umask_protection();

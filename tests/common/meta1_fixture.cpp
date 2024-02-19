@@ -163,7 +163,7 @@ namespace graphene {
           * Approve the asset by using the update operation
           */
          graphene::chain::property_object property = db.get_property(prop_op.property_id);
-         const property_id_type prop_id = property.id;
+         const auto prop_id = property.get_id();
          property_approve_operation aop;
          aop.issuer = authorizing_id;
          aop.property_to_approve = property.id;

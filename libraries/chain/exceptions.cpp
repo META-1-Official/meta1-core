@@ -84,6 +84,10 @@ namespace graphene { namespace chain {
    GRAPHENE_IMPLEMENT_OP_EVALUATE_EXCEPTION( insufficient_balance, limit_order_create, 6,
          "Insufficient balance" )
 
+   GRAPHENE_IMPLEMENT_OP_BASE_EXCEPTIONS( limit_order_update );
+   GRAPHENE_IMPLEMENT_OP_EVALUATE_EXCEPTION( nonexist_order, limit_order_update, 1, "Order does not exist" )
+   GRAPHENE_IMPLEMENT_OP_EVALUATE_EXCEPTION( owner_mismatch, limit_order_update, 2, "Order owned by someone else" )
+
    GRAPHENE_IMPLEMENT_OP_BASE_EXCEPTIONS( limit_order_cancel );
    GRAPHENE_IMPLEMENT_OP_EVALUATE_EXCEPTION( nonexist_order, limit_order_cancel, 1, "Order does not exist" )
    GRAPHENE_IMPLEMENT_OP_EVALUATE_EXCEPTION( owner_mismatch, limit_order_cancel, 2, "Order owned by someone else" )
@@ -163,6 +167,10 @@ namespace graphene { namespace chain {
    //GRAPHENE_IMPLEMENT_OP_BASE_EXCEPTIONS( htlc_create_operation )
    //GRAPHENE_IMPLEMENT_OP_BASE_EXCEPTIONS( htlc_redeem_operation )
    //GRAPHENE_IMPLEMENT_OP_BASE_EXCEPTIONS( htlc_extend_operation )
+
+   GRAPHENE_IMPLEMENT_OP_BASE_EXCEPTIONS( liquidity_pool_exchange );
+   GRAPHENE_IMPLEMENT_OP_EVALUATE_EXCEPTION( unfillable_price, liquidity_pool_exchange, 1,
+         "Unable to exchange at expected price" );
 
    #define GRAPHENE_RECODE_EXC( cause_type, effect_type ) \
       catch( const cause_type& e ) \

@@ -27,20 +27,22 @@
 
 namespace graphene { namespace wallet { namespace detail {
 
-std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_api_impl::get_result_formatters() const
+   std::map< string, std::function< string( const fc::variant&, const fc::variants& ) >, std::less<> >
+         wallet_api_impl::get_result_formatters() const
    {
-      std::map<string,std::function<string(fc::variant,const fc::variants&)> > m;
-      m["help"] = [](variant result, const fc::variants& a)
+      std::map< string, std::function< string( const fc::variant&, const fc::variants& ) >, std::less<> > m;
+
+      m["help"] = [](const variant& result, const fc::variants&)
       {
          return result.get_string();
       };
 
-      m["gethelp"] = [](variant result, const fc::variants& a)
+      m["gethelp"] = [](const variant& result, const fc::variants&)
       {
          return result.get_string();
       };
 
-      m["get_account_history"] = [this](variant result, const fc::variants& a)
+      auto format_account_history = [this](const variant& result, const fc::variants&)
       {
          auto r = result.as<vector<operation_detail>>( GRAPHENE_MAX_NESTED_OBJECTS );
          std::stringstream ss;
@@ -48,26 +50,9 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
          for( operation_detail& d : r )
          {
             operation_history_object& i = d.op;
-            auto b = _remote_db->get_block_header(i.block_num);
-            FC_ASSERT(b);
-            ss << b->timestamp.to_iso_string() << " ";
-            i.op.visit(operation_printer(ss, *this, i));
-            ss << " \n";
-         }
-
-         return ss.str();
-      };
-      m["get_relative_account_history"] = [this](variant result, const fc::variants& a)
-      {
-         auto r = result.as<vector<operation_detail>>( GRAPHENE_MAX_NESTED_OBJECTS );
-         std::stringstream ss;
-
-         for( operation_detail& d : r )
-         {
-            operation_history_object& i = d.op;
-            auto b = _remote_db->get_block_header(i.block_num);
-            FC_ASSERT(b);
-            ss << b->timestamp.to_iso_string() << " ";
+            ss << i.block_num << " ";
+            ss << i.block_time.to_iso_string() << " ";
+            ss << string(i.id) << " ";
             i.op.visit(operation_printer(ss, *this, i));
             ss << " \n";
          }
@@ -75,20 +60,19 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
          return ss.str();
       };
 
-      m["get_account_history_by_operations"] = [this](variant result, const fc::variants& a) {
+      m["get_account_history"] = format_account_history;
+      m["get_relative_account_history"] = format_account_history;
+
+      m["get_account_history_by_operations"] = [this](const variant& result, const fc::variants&) {
           auto r = result.as<account_history_operation_detail>( GRAPHENE_MAX_NESTED_OBJECTS );
           std::stringstream ss;
-          ss << "total_count : ";
-          ss << r.total_count;
-          ss << " \n";
-          ss << "result_count : ";
-          ss << r.result_count;
-          ss << " \n";
+          ss << "total_count : " << r.total_count << " \n";
+          ss << "result_count : " << r.result_count << " \n";
           for (operation_detail_ex& d : r.details) {
               operation_history_object& i = d.op;
-              auto b = _remote_db->get_block_header(i.block_num);
-              FC_ASSERT(b);
-              ss << b->timestamp.to_iso_string() << " ";
+              ss << i.block_num << " ";
+              ss << i.block_time.to_iso_string() << " ";
+              ss << string(i.id) << " ";
               i.op.visit(operation_printer(ss, *this, i));
               ss << " transaction_id : ";
               ss << d.transaction_id.str();
@@ -98,7 +82,7 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
           return ss.str();
       };
 
-      m["list_account_balances"] = [this](variant result, const fc::variants& a)
+      auto format_balances = [this](const variant& result, const fc::variants&)
       {
          auto r = result.as<vector<asset>>( GRAPHENE_MAX_NESTED_OBJECTS );
          vector<asset_object> asset_recs;
@@ -113,21 +97,10 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
          return ss.str();
       };
 
-      m["get_blind_balances"] = [this](variant result, const fc::variants& a)
-      {
-         auto r = result.as<vector<asset>>( GRAPHENE_MAX_NESTED_OBJECTS );
-         vector<asset_object> asset_recs;
-         std::transform(r.begin(), r.end(), std::back_inserter(asset_recs), [this](const asset& a) {
-            return get_asset(a.asset_id);
-         });
+      m["list_account_balances"] = format_balances;
+      m["get_blind_balances"] = format_balances;
 
-         std::stringstream ss;
-         for( unsigned i = 0; i < asset_recs.size(); ++i )
-            ss << asset_recs[i].amount_to_pretty_string(r[i]) << "\n";
-
-         return ss.str();
-      };
-      m["transfer_to_blind"] = [this](variant result, const fc::variants& a)
+      auto format_blind_transfers  = [this](const variant& result, const fc::variants&)
       {
          auto r = result.as<blind_confirmation>( GRAPHENE_MAX_NESTED_OBJECTS );
          std::stringstream ss;
@@ -135,36 +108,27 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
          ss << "\n";
          for( const auto& out : r.outputs )
          {
-            asset_object a = get_asset( out.decrypted_memo.amount.asset_id );
+            auto a = get_asset( out.decrypted_memo.amount.asset_id );
             ss << a.amount_to_pretty_string( out.decrypted_memo.amount ) << " to  " << out.label
                << "\n\t  receipt: " << out.confirmation_receipt << "\n\n";
          }
          return ss.str();
       };
-      m["blind_transfer"] = [this](variant result, const fc::variants& a)
-      {
-         auto r = result.as<blind_confirmation>( GRAPHENE_MAX_NESTED_OBJECTS );
-         std::stringstream ss;
-         r.trx.operations[0].visit( operation_printer( ss, *this, operation_history_object() ) );
-         ss << "\n";
-         for( const auto& out : r.outputs )
-         {
-            asset_object a = get_asset( out.decrypted_memo.amount.asset_id );
-            ss << a.amount_to_pretty_string( out.decrypted_memo.amount ) << " to  " << out.label
-               << "\n\t  receipt: " << out.confirmation_receipt << "\n\n";
-         }
-         return ss.str();
-      };
-      m["receive_blind_transfer"] = [this](variant result, const fc::variants& a)
+
+      m["transfer_to_blind"] = format_blind_transfers;
+      m["blind_transfer"] = format_blind_transfers;
+
+      m["receive_blind_transfer"] = [this](const variant& result, const fc::variants&)
       {
          auto r = result.as<blind_receipt>( GRAPHENE_MAX_NESTED_OBJECTS );
          std::stringstream ss;
-         asset_object as = get_asset( r.amount.asset_id );
+         auto as = get_asset( r.amount.asset_id );
          ss << as.amount_to_pretty_string( r.amount ) << "  " << r.from_label << "  =>  "
             << r.to_label  << "  " << r.memo <<"\n";
          return ss.str();
       };
-      m["blind_history"] = [this](variant result, const fc::variants& a)
+
+      m["blind_history"] = [this](const variant& result, const fc::variants&)
       {
          auto records = result.as<vector<blind_receipt>>( GRAPHENE_MAX_NESTED_OBJECTS );
          std::stringstream ss;
@@ -173,14 +137,15 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
          ss << "====================================================================================\n";
          for( auto& r : records )
          {
-            asset_object as = get_asset( r.amount.asset_id );
+            auto as = get_asset( r.amount.asset_id );
             ss << fc::get_approximate_relative_time_string( r.date )
                << "  " << as.amount_to_pretty_string( r.amount ) << "  " << r.from_label << "  =>  " << r.to_label
                << "  " << r.memo <<"\n";
          }
          return ss.str();
       };
-      m["get_order_book"] = [](variant result, const fc::variants& a)
+
+      m["get_order_book"] = [](const variant& result, const fc::variants&)
       {
          auto orders = result.as<order_book>( GRAPHENE_MAX_NESTED_OBJECTS );
          auto bids = orders.bids;
@@ -200,11 +165,11 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
             }
             else if (n - floor(n) < 0.000001)
             {
-               ss << std::setiosflags( std::ios::fixed ) << std::setprecision(10) << n;
+               ss << setiosflags( ios::fixed ) << setprecision(10) << n;
             }
             else
             {
-               ss << std::setiosflags( std::ios::fixed ) << std::setprecision(6) << n;
+               ss << setiosflags( ios::fixed ) << setprecision(6) << n;
             }
          };
          auto prettify_num_string = [&]( string& num_string )
@@ -213,13 +178,13 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
             prettify_num( n );
          };
 
-         ss << std::setprecision( 8 ) << std::setiosflags( std::ios::fixed ) << std::setiosflags( std::ios::left );
+         ss << setprecision( 8 ) << setiosflags( ios::fixed ) << setiosflags( ios::left );
 
-         ss << ' ' << std::setw( (spacing * 4) + 6 ) << "BUY ORDERS" << "SELL ORDERS\n"
-            << ' ' << std::setw( spacing + 1 ) << "Price" << std::setw( spacing ) << orders.quote << ' ' << std::setw( spacing )
-            << orders.base << ' ' << std::setw( spacing ) << sum_stream.str()
-            << "   " << std::setw( spacing + 1 ) << "Price" << std::setw( spacing ) << orders.quote << ' ' << std::setw( spacing )
-            << orders.base << ' ' << std::setw( spacing ) << sum_stream.str()
+         ss << ' ' << setw( (spacing * 4) + 6 ) << "BUY ORDERS" << "SELL ORDERS\n"
+            << ' ' << setw( spacing + 1 ) << "Price" << setw( spacing ) << orders.quote << ' ' << setw( spacing )
+            << orders.base << ' ' << setw( spacing ) << sum_stream.str()
+            << "   " << setw( spacing + 1 ) << "Price" << setw( spacing ) << orders.quote << ' ' << setw( spacing )
+            << orders.base << ' ' << setw( spacing ) << sum_stream.str()
             << "\n====================================================================================="
             << "|=====================================================================================\n";
 
@@ -228,19 +193,19 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
             if ( i < bids.size() )
             {
                 bid_sum += fc::to_double( bids[i].base );
-                ss << ' ' << std::setw( spacing );
+                ss << ' ' << setw( spacing );
                 prettify_num_string( bids[i].price );
-                ss << ' ' << std::setw( spacing );
+                ss << ' ' << setw( spacing );
                 prettify_num_string( bids[i].quote );
-                ss << ' ' << std::setw( spacing );
+                ss << ' ' << setw( spacing );
                 prettify_num_string( bids[i].base );
-                ss << ' ' << std::setw( spacing );
+                ss << ' ' << setw( spacing );
                 prettify_num( bid_sum );
                 ss << ' ';
             }
             else
             {
-                ss << std::setw( (spacing * 4) + 5 ) << ' ';
+                ss << setw( (spacing * 4) + 5 ) << ' ';
             }
 
             ss << '|';
@@ -248,27 +213,27 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
             if ( i < asks.size() )
             {
                ask_sum += fc::to_double( asks[i].base );
-               ss << ' ' << std::setw( spacing );
+               ss << ' ' << setw( spacing );
                prettify_num_string( asks[i].price );
-               ss << ' ' << std::setw( spacing );
+               ss << ' ' << setw( spacing );
                prettify_num_string( asks[i].quote );
-               ss << ' ' << std::setw( spacing );
+               ss << ' ' << setw( spacing );
                prettify_num_string( asks[i].base );
-               ss << ' ' << std::setw( spacing );
+               ss << ' ' << setw( spacing );
                prettify_num( ask_sum );
             }
 
             ss << '\n';
          }
 
-         ss << std::endl
-            << "Buy Total:  " << bid_sum << ' ' << orders.base << std::endl
-            << "Sell Total: " << ask_sum << ' ' << orders.base << std::endl;
+         ss << endl
+            << "Buy Total:  " << bid_sum << ' ' << orders.base << endl
+            << "Sell Total: " << ask_sum << ' ' << orders.base << endl;
 
          return ss.str();
       };
 
-      m["sign_message"] = [](variant result, const fc::variants& a)
+      m["sign_message"] = [](const variant& result, const fc::variants&)
       {
          auto r = result.as<signed_message>( GRAPHENE_MAX_NESTED_OBJECTS );
 

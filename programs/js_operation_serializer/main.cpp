@@ -39,10 +39,12 @@
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/worker_object.hpp>
 #include <graphene/chain/asset_limitation_object.hpp>
+#include <graphene/custom_operations/custom_operations_plugin.hpp>
 
 #include <iostream>
 
 using namespace graphene::chain;
+using namespace graphene::custom_operations;
 
 namespace detail_ns {
 
@@ -220,7 +222,7 @@ class serialize_member_visitor
 template<typename T>
 struct serializer<T,false>
 {
-   static_assert( fc::reflector<T>::is_defined::value == false, "invalid template arguments" );
+   static_assert( !fc::reflector<T>::is_defined::value, "invalid template arguments" );
    static void init()
    {}
 
@@ -341,7 +343,7 @@ class register_member_visitor
 template<typename T, bool reflected>
 struct serializer
 {
-   static_assert( fc::reflector<T>::is_defined::value == reflected, "invalid template arguments" );
+   static_assert( fc::reflector<T>::is_defined::value, "invalid template arguments" );
    static void init()
    {
       auto name = js_name<T>::name();
@@ -394,6 +396,8 @@ int main( int argc, char** argv )
     detail_ns::serializer<operation>::init();
     detail_ns::serializer<transaction>::init();
     detail_ns::serializer<signed_transaction>::init();
+    detail_ns::serializer<account_storage_map>::init();
+
     for( const auto& gen : detail_ns::serializers )
        gen();
 

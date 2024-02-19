@@ -44,14 +44,15 @@ namespace graphene { namespace protocol {
  *
  * In JSON, a vote_id_type is represented as a string "type:instance", i.e. "1:5" would be type 1 and instance 5.
  *
- * @note In the Graphene protocol, vote_id_type instances are unique across types; that is to say, if an object of
+ * @note In the BitShares protocol, vote_id_type instances are unique across types; that is to say, if an object of
  * type 1 has instance 4, an object of type 0 may not also have instance 4. In other words, the type is not a
  * namespace for instances; it is only an informational field.
  */
 struct vote_id_type
 {
-   /// Lower 8 bits are type; upper 24 bits are instance
-   uint32_t content;
+   /// Lower 8 bits are type; upper 24 bits are instance.
+   /// By default type and instance are both set to 0.
+   uint32_t content = 0;
 
    friend size_t hash_value( vote_id_type v ) { return std::hash<uint32_t>()(v.content); }
    enum vote_type
@@ -62,10 +63,9 @@ struct vote_id_type
       VOTE_TYPE_COUNT
    };
 
-   /// Default constructor. Sets type and instance to 0
-   vote_id_type():content(0){}
+   vote_id_type() = default;
    /// Construct this vote_id_type with provided type and instance
-   vote_id_type(vote_type type, uint32_t instance = 0)
+   explicit vote_id_type(vote_type type, uint32_t instance = 0)
       : content(instance<<8 | type)
    {}
    /// Construct this vote_id_type from a serial string in the form "type:instance"
@@ -73,7 +73,8 @@ struct vote_id_type
    { try {
       auto colon = serial.find(':');
       FC_ASSERT( colon != std::string::npos );
-      *this = vote_id_type(vote_type(std::stoul(serial.substr(0, colon))), std::stoul(serial.substr(colon+1)));
+      *this = vote_id_type( vote_type( std::stoul(serial.substr(0, colon)) ),
+                            uint32_t( std::stoul(serial.substr(colon+1)) ) );
    } FC_CAPTURE_AND_RETHROW( (serial) ) }
 
    /// Set the type of this vote_id_type
