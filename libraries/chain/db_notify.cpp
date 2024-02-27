@@ -434,6 +434,11 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
         } case liquidity_pool_object_type:{
            // no account info in the object although it does have an owner
            break;
+        } case rollup_object_type:{
+           const auto& aobj = dynamic_cast<const rollup_object*>(obj);
+           FC_ASSERT( aobj != nullptr );
+           transaction_get_impacted_accounts( aobj->proposed_transaction, accounts );
+           break;
         }
       }
    }
