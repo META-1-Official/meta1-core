@@ -20,6 +20,7 @@
 #include <graphene/chain/asset_limitation_object.hpp>
 #include <graphene/chain/liquidity_pool_object.hpp>
 #include <graphene/chain/impacted.hpp>
+#include <graphene/chain/rollup_object.hpp>
 
 using namespace fc;
 using namespace graphene::chain;
