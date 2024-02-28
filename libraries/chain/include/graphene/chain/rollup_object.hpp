@@ -49,7 +49,7 @@ public:
     time_point_sec                expiration_time; //expiration time of rollup call to put ops on chain
 };
 
-struct by_expiration{};
+struct by_expiration;
 typedef boost::multi_index_container<
     rollup_object,
     indexed_by<
