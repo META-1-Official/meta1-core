@@ -32,6 +32,7 @@ void_result rollup_create_evaluator::do_evaluate(const rollup_create_operation& 
 {
 try {
    const database& d = db();
+   const fc::time_point_sec block_time = d.head_block_time();
 
    const auto& global_parameters = d.get_global_properties().parameters;
 
