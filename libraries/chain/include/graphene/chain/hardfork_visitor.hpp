@@ -52,7 +52,6 @@ struct hardfork_visitor {
                                         liquidity_pool_withdraw_operation,
                                         liquidity_pool_exchange_operation >;
    using rollup_ops = TL::list< rollup_create_operation>;
-   using rollup_tag = rollup_create_operation;
    fc::time_point_sec now;
 
    hardfork_visitor(fc::time_point_sec now) : now(now) {}
@@ -67,9 +66,6 @@ struct hardfork_visitor {
    visit() { return HARDFORK_LIQUIDITY_POOL_PASSED(now); }
 
    //rollup
-   template<typename Op>
-   std::enable_if_t<operation::tag<Op>::value < operation::tag<rollup_tag>::value, bool>
-   visit() { return true; }
    template<typename Op>
    std::enable_if_t<TL::contains<rollup_ops, Op>(), bool>
    visit() { return true; }
