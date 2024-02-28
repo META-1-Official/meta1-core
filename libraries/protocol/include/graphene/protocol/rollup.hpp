@@ -41,9 +41,11 @@ namespace graphene { namespace protocol {
 
         asset              fee;
         account_id_type    fee_paying_account;
-        extensions_type    extensions;
+        time_point_sec     expiration_time;
 
         vector<op_wrapper> rollup_ops;
+
+        extensions_type    extensions;
 
        account_id_type fee_payer()const { return fee_paying_account; }
        void            validate()const;
@@ -54,7 +56,7 @@ namespace graphene { namespace protocol {
 FC_REFLECT( graphene::protocol::rollup_create_operation::fee_parameters_type, (fee)(price_per_kbyte) )
 
 FC_REFLECT( graphene::protocol::rollup_create_operation, (fee)(fee_paying_account)
-            (rollup_ops)(extensions) )
+            (expiration_time)(rollup_ops)(extensions) )
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::rollup_create_operation::fee_parameters_type )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::rollup_create_operation )
