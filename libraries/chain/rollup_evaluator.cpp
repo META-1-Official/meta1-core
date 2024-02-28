@@ -45,7 +45,7 @@ try {
 return void_result();
 } FC_CAPTURE_AND_RETHROW( (o) ) }
 
-object_id rollup_create_evaluator::do_apply(const rollup_create_operation& o)
+object_id_type rollup_create_evaluator::do_apply(const rollup_create_operation& o)
 {
     try
     {
