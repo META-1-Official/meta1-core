@@ -243,6 +243,7 @@ GRAPHENE_DEFINE_IDS(protocol, protocol_ids, /*protocol objects are not prefixed*
                     (property)
                     (asset_limitation)
                     (liquidity_pool)
+                    (rollup)
                    )
 
 FC_REFLECT(graphene::protocol::public_key_type, (key_data))

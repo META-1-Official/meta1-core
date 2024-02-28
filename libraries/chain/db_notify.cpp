@@ -328,6 +328,15 @@ struct get_impacted_account_visitor
    {
       _impacted.insert( op.fee_payer() ); // account
    }
+   void operator()( const rollup_create_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // fee_paying_account
+      vector<authority> other;
+      for( const auto& rollup_op : op.rollup_ops )
+         operation_get_required_authorities( rollup_op.op, _impacted, _impacted, other );
+      for( auto& o : other )
+         add_authority_accounts( _impacted, o );
+   }
 
 };
 
