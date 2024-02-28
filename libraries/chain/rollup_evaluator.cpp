@@ -37,7 +37,7 @@ try {
 
    FC_ASSERT( o.expiration_time > block_time, "Rollup has already expired on creation." );
 
-   for( const op_wrapper& op : o.proposed_ops )
+   for( const op_wrapper& op : o.rollup_ops )
       _proposed_trx.operations.push_back(op.op);
 
    _proposed_trx.validate();
