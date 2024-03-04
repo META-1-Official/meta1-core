@@ -89,8 +89,8 @@ typedef boost::multi_index_container<
          >
       >
    >
-> rollup_multi_index_container;
-typedef generic_index<rollup_transaction_object, rollup_multi_index_container> rollup_transaction_index;
+> rollup_transaction_multi_index_container;
+typedef generic_index<rollup_transaction_object, rollup_transaction_multi_index_container> rollup_transaction_index;
 }}
 
 MAP_OBJECT_ID_TO_TYPE(graphene::chain::rollup_object)
