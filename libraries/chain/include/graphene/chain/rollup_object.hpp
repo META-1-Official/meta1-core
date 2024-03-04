@@ -25,6 +25,7 @@
 #pragma once
 #include <graphene/chain/types.hpp>
 #include <graphene/protocol/transaction.hpp>
+#include <graphene/protocol/block.hpp>
 #include <graphene/db/generic_index.hpp>
 
 #include <boost/multi_index/composite_key.hpp>
@@ -49,6 +50,18 @@ public:
     time_point_sec                expiration_time; //expiration time of rollup call to put ops on chain
 };
 
+class rollup_transaction_object : public graphene::db::abstract_object<rollup_transaction_object>
+{
+public:
+   static const uint8_t space_id = protocol_ids;
+   static const uint8_t type_id = rollup_transaction_object_type;
+
+   signed_block proposed_block;
+   account_id_type               proposer;
+   std::string                   fail_reason;
+   time_point_sec                expiration_time;
+};
+
 struct by_expiration;
 typedef boost::multi_index_container<
     rollup_object,
@@ -62,12 +75,29 @@ typedef boost::multi_index_container<
       >
    >
 > rollup_multi_index_container;
-
 typedef generic_index<rollup_object, rollup_multi_index_container> rollup_index;
+
+
+typedef boost::multi_index_container<
+    rollup_transaction_object,
+    indexed_by<
+      ordered_unique< tag< by_id >, member< object, object_id_type, &object::id > >,
+      ordered_unique<tag<by_expiration>,
+         composite_key<rollup_transaction_object,
+         member<rollup_transaction_object, time_point_sec, &rollup_transaction_object::expiration_time>,
+            member< object, object_id_type, &object::id >
+         >
+      >
+   >
+> rollup_multi_index_container;
+typedef generic_index<rollup_transaction_object, rollup_multi_index_container> rollup_index;
 }}
 
 MAP_OBJECT_ID_TO_TYPE(graphene::chain::rollup_object)
+MAP_OBJECT_ID_TO_TYPE(graphene::chain::rollup_transaction_object)
 
 FC_REFLECT_TYPENAME( graphene::chain::rollup_object )
+FC_REFLECT_TYPENAME( graphene::chain::rollup_transaction_object )
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::rollup_object )
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::rollup_transaction_object )

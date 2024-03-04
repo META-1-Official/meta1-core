@@ -34,4 +34,8 @@ namespace graphene { namespace chain {
 FC_REFLECT_DERIVED_NO_TYPENAME( graphene::chain::rollup_object, (graphene::chain::object),
                     (proposed_transaction)(proposer)(fail_reason)(expiration_time) )
 
+FC_REFLECT_DERIVED_NO_TYPENAME( graphene::chain::rollup_transaction_object, (graphene::chain::object),
+                    (proposed_block)(proposer)(fail_reason)(expiration_time) )
+
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::rollup_object )
+GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::rollup_transaction_object )
