@@ -35,6 +35,7 @@
 #include <graphene/chain/withdraw_permission_object.hpp>
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/property_object.hpp>
+#include <graphene/chain/rollup_object.hpp>
 
 #include <graphene/protocol/fee_schedule.hpp>
 
@@ -599,6 +600,18 @@ void database::clear_expired_htlcs()
 
       // remove the db object
       remove( *htlc_idx.begin() );
+   }
+}
+
+void database::clear_expired_rollups()
+{
+   const auto& rollup_expiration_index = get_index_type<rollup_index>().indices().get<by_expiration>();
+   while( !rollup_expiration_index.empty() && rollup_expiration_index.begin()->expiration_time <= head_block_time() )
+   {
+      const rollup_object& rollup = *rollup_expiration_index.begin();
+      elog("Failed to apply rollup. On its expiration deleting it.\n${rollup}\n${error}",
+              ("rollup", rollup)("error", e.to_detail_string()));
+      remove(rollup);
    }
 }
 
