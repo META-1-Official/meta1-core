@@ -610,7 +610,7 @@ void database::clear_expired_rollups()
    {
       const rollup_object& rollup = *rollup_expiration_index.begin();
       elog("Failed to apply rollup. On its expiration deleting it.\n${rollup}\n${error}",
-              ("rollup", rollup)("error", e.to_detail_string()));
+              ("rollup", rollup));
       remove(rollup);
    }
 }
