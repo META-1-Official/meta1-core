@@ -449,6 +449,14 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
            FC_ASSERT( aobj != nullptr );
            transaction_get_impacted_accounts( aobj->proposed_transaction, accounts );
            break;
+        } case rollup_transaction_object_type:{
+           const auto& aobj = dynamic_cast<const rollup_transaction_object*>(obj);
+           FC_ASSERT( aobj != nullptr );
+           for( const auto& tx : aobj->proposed_block.transactions)
+           {
+               for( const auto& op : tx.operations)
+                  operation_get_impacted_accounts( op, accounts );
+           }               
         }
       }
    }
