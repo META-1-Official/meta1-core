@@ -33,10 +33,16 @@ namespace graphene { namespace wallet { namespace detail {
       return trx_handle;
    }
 
+
    void wallet_api_impl::add_operation_to_builder_transaction(transaction_handle_type transaction_handle, const operation& op)
    {
       FC_ASSERT(_builder_transactions.count(transaction_handle));
       _builder_transactions[transaction_handle].operations.emplace_back(op);
+   }
+
+   void wallet_api_impl::rollup_build(transaction_handle_type transaction_handle, const operation& op)
+   {
+      wallet_api_impl::add_operation_to_builder_transaction(transaction_handle, op);
    }
 
    void wallet_api_impl::replace_operation_in_builder_transaction(transaction_handle_type handle,
@@ -86,6 +92,20 @@ namespace graphene { namespace wallet { namespace detail {
 
       return _builder_transactions[transaction_handle] =
             sign_transaction(_builder_transactions[transaction_handle], broadcast);
+   }
+
+   signed_transaction wallet_api_impl::sign_rollup_w_ops(transaction_handle_type 
+         transaction_handle, time_point_sec expiration)
+   {
+      FC_ASSERT(_builder_transactions.count(transaction_handle));
+      rollup_create_operation op;
+      op.expiration_time = expiration;
+      signed_transaction& trx = _builder_transactions[transaction_handle];
+      std::transform(trx.operations.begin(), trx.operations.end(), std::back_inserter(op.rollup_ops),
+                     [](const operation& op) -> op_wrapper { return op; });
+      trx.operations = {op};
+      _remote_db->get_global_properties().parameters.get_current_fees().set_fee( trx.operations.front() );
+      return trx = sign_transaction(trx, true);
    }
 
    signed_transaction wallet_api_impl::propose_builder_transaction( transaction_handle_type handle,
