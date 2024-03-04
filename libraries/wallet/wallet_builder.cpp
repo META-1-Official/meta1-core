@@ -98,14 +98,32 @@ namespace graphene { namespace wallet { namespace detail {
          transaction_handle, time_point_sec expiration)
    {
       FC_ASSERT(_builder_transactions.count(transaction_handle));
+
+      //build rollup op
       rollup_create_operation op;
       op.expiration_time = expiration;
       signed_transaction& trx = _builder_transactions[transaction_handle];
       std::transform(trx.operations.begin(), trx.operations.end(), std::back_inserter(op.rollup_ops),
                      [](const operation& op) -> op_wrapper { return op; });
       trx.operations = {op};
+
+      //set fee
       _remote_db->get_global_properties().parameters.get_current_fees().set_fee( trx.operations.front() );
-      return trx = sign_transaction(trx, true);
+
+      //sign transaction
+      trx = sign_rollup_transaction(trx);
+
+      //broadcast signed transaction
+      try
+         {
+            _remote_net_broadcast->broadcast_transaction( trx );
+         }
+         catch (const fc::exception& e)
+         {
+            elog("Caught exception while broadcasting tx ${id}:  ${e}",
+                 ("id", trx.id().str())("e", e.to_detail_string()) );
+            throw;
+         }
    }
 
    signed_transaction wallet_api_impl::propose_builder_transaction( transaction_handle_type handle,

@@ -487,4 +487,45 @@ namespace graphene { namespace wallet { namespace detail {
       return sign_transaction(tx, broadcast);
    }
 
+   signed_transaction wallet_api_impl::sign_rollup_transaction(signed_transaction tx)
+   {
+      set<public_key_type> approving_key_set = get_owned_required_keys(tx);
+
+      auto dyn_props = get_dynamic_global_properties();
+      tx.set_reference_block( dyn_props.head_block_id );
+
+      fc::time_point_sec oldest_transaction_ids_to_track(dyn_props.time - fc::minutes(2));
+      auto oldest_transaction_record_iter =
+            _recently_generated_transactions.get<timestamp_index>().lower_bound(oldest_transaction_ids_to_track);
+      auto begin_iter = _recently_generated_transactions.get<timestamp_index>().begin();
+      _recently_generated_transactions.get<timestamp_index>().erase(begin_iter, oldest_transaction_record_iter);
+
+      uint32_t expiration_time_offset = 0;
+      for (;;)
+      {
+         tx.set_expiration( dyn_props.time + fc::seconds(30 + expiration_time_offset) );
+         tx.clear_signatures();
+
+         for( const public_key_type& key : approving_key_set )
+            tx.sign( get_private_key(key), _chain_id );
+
+         graphene::chain::transaction_id_type this_transaction_id = tx.id();
+         auto iter = _recently_generated_transactions.find(this_transaction_id);
+         if (iter == _recently_generated_transactions.end())
+         {
+            // transaction hasn't generated before
+            recently_generated_transaction_record this_transaction_record;
+            this_transaction_record.generation_time = dyn_props.time;
+            this_transaction_record.transaction_id = this_transaction_id;
+            _recently_generated_transactions.insert(this_transaction_record);
+            break;
+         }
+
+         // else increment expiration time and re-sign it
+         ++expiration_time_offset;
+      }
+
+      return tx;
+   }
+
 }}} // namespace graphene::wallet::detail
