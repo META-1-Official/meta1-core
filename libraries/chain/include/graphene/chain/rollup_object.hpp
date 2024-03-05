@@ -56,7 +56,7 @@ public:
    static const uint8_t space_id = protocol_ids;
    static const uint8_t type_id = rollup_transaction_object_type;
 
-   signed_block proposed_block;
+   signed_block                  proposed_block;
    account_id_type               proposer;
    std::string                   fail_reason;
    time_point_sec                expiration_time;

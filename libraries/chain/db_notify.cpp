@@ -456,7 +456,8 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
            {
                for( const auto& op : tx.operations)
                   operation_get_impacted_accounts( op, accounts );
-           }               
+           }
+           break;               
         }
       }
    }
