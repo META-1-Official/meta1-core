@@ -396,7 +396,7 @@ class wallet_api
       signed_transaction sign_builder_transaction(transaction_handle_type transaction_handle, bool broadcast = true);
 
       void rollup_build(transaction_handle_type transaction_handle, const operation& op);
-      signed_transaction sign_rollup_w_ops(transaction_handle_type transaction_handle, time_point_sec expiration);
+      signed_transaction sign_rollup_w_ops(transaction_handle_type transaction_handle, time_point_sec expiration, string fee_asset);
       /** Broadcast signed transaction
        * @param tx signed transaction
        * @returns the transaction ID along with the signed transaction.

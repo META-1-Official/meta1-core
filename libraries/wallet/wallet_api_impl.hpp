@@ -221,7 +221,7 @@ public:
    signed_transaction sign_builder_transaction(transaction_handle_type transaction_handle, bool broadcast = true);
 
    void rollup_build(transaction_handle_type transaction_handle, const operation& op);
-   signed_transaction sign_rollup_w_ops(transaction_handle_type transaction_handle, time_point_sec expiration);
+   signed_transaction sign_rollup_w_ops(transaction_handle_type transaction_handle, time_point_sec expiration, string fee_asset);
    signed_transaction sign_rollup_transaction(signed_transaction tx);
 
    pair<transaction_id_type,signed_transaction> broadcast_transaction(signed_transaction tx);

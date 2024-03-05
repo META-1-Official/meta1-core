@@ -95,7 +95,7 @@ namespace graphene { namespace wallet { namespace detail {
    }
 
    signed_transaction wallet_api_impl::sign_rollup_w_ops(transaction_handle_type 
-         transaction_handle, time_point_sec expiration)
+         transaction_handle, time_point_sec expiration, string fee_asset)
    {
       FC_ASSERT(_builder_transactions.count(transaction_handle));
 
@@ -108,8 +108,18 @@ namespace graphene { namespace wallet { namespace detail {
       trx.operations = {op};
 
       //set fee
-      _remote_db->get_global_properties().parameters.get_current_fees().set_fee( trx.operations.front() );
+      auto fee_asset_obj = get_asset(fee_asset);
+      if( fee_asset_obj.get_id() != asset_id_type() )
+      {
+         _remote_db->get_global_properties().parameters.get_current_fees().set_fee( 
+            trx.operations.front(), fee_asset_obj.options.core_exchange_rate );
+      }
+      else
+      {
+         _remote_db->get_global_properties().parameters.get_current_fees().set_fee( trx.operations.front() );
+      }
 
+      
       //sign transaction
       trx = sign_rollup_transaction(trx);
 
