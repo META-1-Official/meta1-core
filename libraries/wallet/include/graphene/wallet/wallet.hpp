@@ -394,9 +394,6 @@ class wallet_api
        * @return a signed transaction
        */
       signed_transaction sign_builder_transaction(transaction_handle_type transaction_handle, bool broadcast = true);
-
-      void rollup_build(transaction_handle_type transaction_handle, const operation& op);
-      signed_transaction sign_rollup_w_ops(transaction_handle_type transaction_handle, time_point_sec expiration, string fee_asset);
       /** Broadcast signed transaction
        * @param tx signed transaction
        * @returns the transaction ID along with the signed transaction.
@@ -462,6 +459,35 @@ class wallet_api
        * @return true if the wallet is new
        * @ingroup Wallet Management
        */
+
+       /**
+       * @ingroup Rollup API
+       *
+       * Add operation to rollup operation transaction
+       * @param transaction_handle of the transaction builder
+       * @param op operation to add
+      */
+       void rollup_build(transaction_handle_type transaction_handle, const operation& op);
+
+       /**
+       * @ingroup Rollup API
+       *
+       * Make a transaction, sign it, pay fee, and broadcast it
+       * @param transaction_handle of the transaction builders
+       * @param expiration when rollup will expire
+       * @param fee_asset asset with which the fee will be paid
+       */
+      signed_transaction sign_rollup_w_ops(transaction_handle_type transaction_handle, time_point_sec expiration, string fee_asset);
+
+      /**
+       * @ingroup Rollup API
+       *
+       * Make a transaction, sign it, pay fee, and broadcast it
+       * @param trxs vector of transactions to be computed and broadcasted
+       * @param expiration when rollup transactions will expire
+       */
+      signed_transaction rollup_transactions_push(vector<signed_transaction> trxs, time_point_sec expiration); //is compact signature needed?
+
       bool    is_new()const;
 
       /** Checks whether the wallet is locked (is unable to use its private keys).
@@ -1950,4 +1976,5 @@ FC_API( graphene::wallet::wallet_api,
         (quit)
         (rollup_build)
         (sign_rollup_w_ops)
+        (rollup_transactions_push)
       )

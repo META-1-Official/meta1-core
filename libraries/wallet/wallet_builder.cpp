@@ -38,12 +38,7 @@ namespace graphene { namespace wallet { namespace detail {
    {
       FC_ASSERT(_builder_transactions.count(transaction_handle));
       _builder_transactions[transaction_handle].operations.emplace_back(op);
-   }
-
-   void wallet_api_impl::rollup_build(transaction_handle_type transaction_handle, const operation& op)
-   {
-      wallet_api_impl::add_operation_to_builder_transaction(transaction_handle, op);
-   }
+   }   
 
    void wallet_api_impl::replace_operation_in_builder_transaction(transaction_handle_type handle,
          uint32_t operation_index, const operation& new_op)
@@ -94,47 +89,7 @@ namespace graphene { namespace wallet { namespace detail {
             sign_transaction(_builder_transactions[transaction_handle], broadcast);
    }
 
-   signed_transaction wallet_api_impl::sign_rollup_w_ops(transaction_handle_type 
-         transaction_handle, time_point_sec expiration, string fee_asset)
-   {
-      FC_ASSERT(_builder_transactions.count(transaction_handle));
-
-      //build rollup op
-      rollup_create_operation op;
-      op.expiration_time = expiration;
-      signed_transaction& trx = _builder_transactions[transaction_handle];
-      std::transform(trx.operations.begin(), trx.operations.end(), std::back_inserter(op.rollup_ops),
-                     [](const operation& op) -> op_wrapper { return op; });
-      trx.operations = {op};
-
-      //set fee
-      auto fee_asset_obj = get_asset(fee_asset);
-      if( fee_asset_obj.get_id() != asset_id_type() )
-      {
-         _remote_db->get_global_properties().parameters.get_current_fees().set_fee( 
-            trx.operations.front(), fee_asset_obj.options.core_exchange_rate );
-      }
-      else
-      {
-         _remote_db->get_global_properties().parameters.get_current_fees().set_fee( trx.operations.front() );
-      }
-
-      
-      //sign transaction
-      trx = sign_rollup_transaction(trx);
-
-      //broadcast signed transaction
-      try
-         {
-            _remote_net_broadcast->broadcast_transaction( trx );
-         }
-         catch (const fc::exception& e)
-         {
-            elog("Caught exception while broadcasting tx ${id}:  ${e}",
-                 ("id", trx.id().str())("e", e.to_detail_string()) );
-            throw;
-         }
-   }
+   
 
    signed_transaction wallet_api_impl::propose_builder_transaction( transaction_handle_type handle,
          time_point_sec expiration, uint32_t review_period_seconds, bool broadcast)

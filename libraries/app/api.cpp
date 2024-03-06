@@ -50,6 +50,7 @@ template class fc::api<graphene::app::asset_api>;
 template class fc::api<graphene::app::orders_api>;
 template class fc::api<graphene::debug_witness::debug_api>;
 template class fc::api<graphene::app::login_api>;
+template class fc::api<graphene::app::rollup_api>;
 
 
 namespace graphene { namespace app {
@@ -124,6 +125,10 @@ namespace graphene { namespace app {
           // can only enable this API if the plugin was loaded
           if( _app.get_plugin( "debug_witness" ) )
              _debug_api = std::make_shared< graphene::debug_witness::debug_api >( std::ref(_app) );
+       }
+       else if( api_name == "rollup_api" )
+       {
+          _rollup_api = std::make_shared< rollup_api >( std::ref( _app ) );
        }
        return;
     }
@@ -793,6 +798,28 @@ namespace graphene { namespace app {
          ++itr;
       }
       return result;
+   }
+
+   rollup_api::rollup_api(application &a) : _app(a)
+   {
+
+   }
+
+   rollup_api::~rollup()
+   {
+
+   }
+
+   rollup_api::rollup_transactions_handle(vector<precomputable_transaction> trxs)
+   {
+      for(auto& trx : trxs)
+      {
+         FC_ASSERT( trx.operations.front().is_type<rollup_create_operation>(), "Transaction op is not rollup op." );
+         _app.chain_database()->precompute_parallel( trx ).wait();
+         _app.chain_database()->push_transaction(trx);
+         if( _app.p2p_node() != nullptr )
+            _app.p2p_node()->broadcast_transaction(trx);
+      }
    }
 
 } } // graphene::app
