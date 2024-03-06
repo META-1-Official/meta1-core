@@ -316,7 +316,7 @@ namespace graphene { namespace app {
           * @brief Handle rollup transactions
           * @param trxs Vector of transactions from L2
       */
-      void rollup_transactions_handle(const vector<precomputable_transaction>& trxs);
+      void rollup_transactions_handle(const vector<signed_transaction>& trxs);
    
    private:
       application&                                   _app;
