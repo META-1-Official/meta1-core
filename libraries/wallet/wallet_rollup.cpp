@@ -72,7 +72,7 @@ namespace graphene { namespace wallet { namespace detail {
          }
    }
 
-    wallet_api_impl::signed_transaction rollup_transactions_push(vector<signed_transaction> trxs, time_point_sec expiration)
+    signed_transaction wallet_api_impl::rollup_transactions_push(vector<signed_transaction> trxs, time_point_sec expiration)
     {
         _rollup_handler->rollup_transactions_handle(trxs);
     }
