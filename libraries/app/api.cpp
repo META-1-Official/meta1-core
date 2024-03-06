@@ -810,7 +810,7 @@ namespace graphene { namespace app {
 
    }
 
-   rollup_api::rollup_transactions_handle(vector<precomputable_transaction> trxs)
+   void rollup_api::rollup_transactions_handle(vector<precomputable_transaction> trxs)
    {
       for(auto& trx : trxs)
       {
