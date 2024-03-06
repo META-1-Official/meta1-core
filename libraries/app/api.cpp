@@ -809,9 +809,9 @@ namespace graphene { namespace app {
    {
       
    }
-   void rollup_api::rollup_transactions_handle(vector<precomputable_transaction> trxs)
+   void rollup_api::rollup_transactions_handle(const vector<precomputable_transaction>& trxs)
    {
-      for(auto& trx : trxs)
+      for(const auto& trx : trxs)
       {
          FC_ASSERT( trx.operations.front().is_type<rollup_create_operation>(), "Transaction op is not rollup op." );
          _app.chain_database()->precompute_parallel( trx ).wait();
