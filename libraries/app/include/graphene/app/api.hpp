@@ -744,6 +744,7 @@ FC_API(graphene::app::login_api,
        (asset)
        (orders)
        (debug)
+       (rollup)
      )
 FC_API(graphene::app::rollup_api,
       (rollup_transactions_handle)
