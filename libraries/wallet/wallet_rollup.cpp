@@ -31,7 +31,7 @@ namespace graphene { namespace wallet { namespace detail {
    }
 
     signed_transaction wallet_api_impl::sign_rollup_w_ops(transaction_handle_type 
-         transaction_handle, time_point_sec expiration, string fee_asset)
+         transaction_handle, time_point_sec expiration, string fee_asset, bool broadcast)
    {
       FC_ASSERT(_builder_transactions.count(transaction_handle));
 
@@ -60,16 +60,20 @@ namespace graphene { namespace wallet { namespace detail {
       trx = sign_rollup_transaction(trx);
 
       //broadcast signed transaction
-      try
-         {
-            _remote_net_broadcast->broadcast_transaction( trx );
-         }
-         catch (const fc::exception& e)
-         {
-            elog("Caught exception while broadcasting tx ${id}:  ${e}",
-                 ("id", trx.id().str())("e", e.to_detail_string()) );
-            throw;
-         }
+      if(broadcast)
+      {
+         try
+            {
+               _remote_net_broadcast->broadcast_transaction( trx );
+            }
+            catch (const fc::exception& e)
+            {
+               elog("Caught exception while broadcasting tx ${id}:  ${e}",
+                  ("id", trx.id().str())("e", e.to_detail_string()) );
+               throw;
+            }
+      }
+      return trx;
    }
 
     signed_transaction wallet_api_impl::rollup_transactions_push(vector<signed_transaction> trxs, time_point_sec expiration)
@@ -77,3 +81,7 @@ namespace graphene { namespace wallet { namespace detail {
         _rollup_handler->rollup_transactions_handle(trxs);
     }
 }}} // namespace graphene::wallet::detail
+
+
+
+//{"ref_block_num": 1356,"ref_block_prefix": 1425121125,"expiration": "2024-03-08T09:05:28","operations": [[0,{"fee": {"amount": 2000000,"asset_id": "1.3.0"},"from": "1.2.6","to": "1.2.9","amount": {"amount": 10,"asset_id": "1.3.0"},"extensions": []}],[0,{"fee": {"amount": 2000000,"asset_id": "1.3.0"},"from": "1.2.6","to": "1.2.9","amount": {"amount": 10,"asset_id": "1.3.0"},"extensions": []}]],"extensions": [],"signatures": ["20664771d8f408d20f41a965128ddf298509d1b8d301df5eaad840d8bb2fff359531711e6a2e5e1cb49f0dfa35ecad603a8ee4b2cc301ba3e5e5f8a8e71e9b74db"]}

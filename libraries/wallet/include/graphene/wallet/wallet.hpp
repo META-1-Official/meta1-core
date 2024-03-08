@@ -477,7 +477,7 @@ class wallet_api
        * @param expiration when rollup will expire
        * @param fee_asset asset with which the fee will be paid
        */
-      signed_transaction sign_rollup_w_ops(transaction_handle_type transaction_handle, time_point_sec expiration, string fee_asset);
+      signed_transaction sign_rollup_w_ops(transaction_handle_type transaction_handle, time_point_sec expiration, string fee_asset, bool broadcast);
 
       /**
        * @ingroup Rollup API
