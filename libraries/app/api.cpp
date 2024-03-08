@@ -178,6 +178,7 @@ namespace graphene { namespace app {
 
     void network_broadcast_api::broadcast_transaction(const precomputable_transaction& trx)
     {
+      ilog("broadcasting transaction");
        _app.chain_database()->precompute_parallel( trx ).wait();
        _app.chain_database()->push_transaction(trx);
        if( _app.p2p_node() != nullptr )
@@ -301,6 +302,11 @@ namespace graphene { namespace app {
        return *_debug_api;
     }
 
+    fc::api<rollup_api> login_api::rollup()const
+    {
+       FC_ASSERT(_rollup_api);
+       return *_rollup_api;
+    }
     vector<order_history_object> history_api::get_fill_order_history( std::string asset_a, std::string asset_b, uint32_t limit  )const
     {
        FC_ASSERT(_app.chain_database());
@@ -811,6 +817,7 @@ namespace graphene { namespace app {
    }
    void rollup_api::rollup_transactions_handle(const vector<signed_transaction>& trxs)
    {
+      ilog("api func called");
       for(const auto& trx : trxs)
       {
          FC_ASSERT( trx.operations.front().is_type<rollup_create_operation>(), "Transaction op is not rollup op." );
