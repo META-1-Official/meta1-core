@@ -487,7 +487,7 @@ namespace graphene { namespace wallet { namespace detail {
       return sign_transaction(tx, broadcast);
    }
 
-   signed_transaction wallet_api_impl::sign_rollup_transaction(signed_transaction tx)
+   signed_transaction wallet_api_impl::sign_rollup_transaction(signed_transaction tx, bool broadcast, time_point_sec expiration)
    {
       set<public_key_type> approving_key_set = get_owned_required_keys(tx);
 
@@ -503,7 +503,7 @@ namespace graphene { namespace wallet { namespace detail {
       uint32_t expiration_time_offset = 0;
       for (;;)
       {
-         tx.set_expiration( dyn_props.time + fc::seconds(30 + expiration_time_offset) );
+         tx.set_expiration( expiration + fc::seconds(30 + expiration_time_offset) );
          tx.clear_signatures();
 
          for( const public_key_type& key : approving_key_set )
@@ -513,7 +513,6 @@ namespace graphene { namespace wallet { namespace detail {
          auto iter = _recently_generated_transactions.find(this_transaction_id);
          if (iter == _recently_generated_transactions.end())
          {
-            // transaction hasn't generated before
             recently_generated_transaction_record this_transaction_record;
             this_transaction_record.generation_time = dyn_props.time;
             this_transaction_record.transaction_id = this_transaction_id;
@@ -521,8 +520,21 @@ namespace graphene { namespace wallet { namespace detail {
             break;
          }
 
-         // else increment expiration time and re-sign it
          ++expiration_time_offset;
+      }
+
+      if( broadcast )
+      {
+         try
+         {
+            _remote_net_broadcast->broadcast_transaction( tx );
+         }
+         catch (const fc::exception& e)
+         {
+            elog("Caught exception while broadcasting tx ${id}:  ${e}",
+                 ("id", tx.id().str())("e", e.to_detail_string()) );
+            throw;
+         }
       }
 
       return tx;

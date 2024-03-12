@@ -820,7 +820,7 @@ namespace graphene { namespace app {
       ilog("api func called");
       for(const auto& trx : trxs)
       {
-         FC_ASSERT( trx.operations.front().is_type<rollup_create_operation>(), "Transaction op is not rollup op." );
+         //FC_ASSERT( trx.operations.front().is_type<rollup_create_operation>(), "Transaction op is not rollup op." );
          _app.chain_database()->precompute_parallel( trx ).wait();
          _app.chain_database()->push_transaction(trx);
          if( _app.p2p_node() != nullptr )

@@ -57,7 +57,8 @@ namespace graphene { namespace wallet { namespace detail {
 
       
       //sign transaction
-      trx = sign_rollup_transaction(trx);
+      trx = sign_builder_transaction(transaction_handle, broadcast);
+      //trx = sign_rollup_transaction(trx);
 
       //broadcast signed transaction
       if(broadcast)
@@ -76,12 +77,23 @@ namespace graphene { namespace wallet { namespace detail {
       return trx;
    }
 
-    signed_transaction wallet_api_impl::rollup_transactions_push(vector<signed_transaction> trxs, time_point_sec expiration)
+    vector<signed_transaction> wallet_api_impl::rollup_transactions_push(vector<signed_transaction> trxs, time_point_sec expiration)
     {
-        _rollup_handler->rollup_transactions_handle(trxs);
+      vector<signed_transaction> resigned_new_exp_vec;
+      for(auto trx : trxs)
+      {
+         trx.set_expiration(expiration);
+         resigned_new_exp_vec.push_back(sign_transaction(trx, false));
+      }
+      try{
+         _remote_rollup_handler->rollup_transactions_handle(resigned_new_exp_vec);
+         return resigned_new_exp_vec;
+      }
+      catch (const fc::exception& e)
+      {
+         elog("Caught exception while broadcasting trxs  ${e}",
+         ("e", e.to_detail_string()) );
+         throw;
+      }
     }
 }}} // namespace graphene::wallet::detail
-
-
-
-//{"ref_block_num": 1356,"ref_block_prefix": 1425121125,"expiration": "2024-03-08T09:05:28","operations": [[0,{"fee": {"amount": 2000000,"asset_id": "1.3.0"},"from": "1.2.6","to": "1.2.9","amount": {"amount": 10,"asset_id": "1.3.0"},"extensions": []}],[0,{"fee": {"amount": 2000000,"asset_id": "1.3.0"},"from": "1.2.6","to": "1.2.9","amount": {"amount": 10,"asset_id": "1.3.0"},"extensions": []}]],"extensions": [],"signatures": ["20664771d8f408d20f41a965128ddf298509d1b8d301df5eaad840d8bb2fff359531711e6a2e5e1cb49f0dfa35ecad603a8ee4b2cc301ba3e5e5f8a8e71e9b74db"]}

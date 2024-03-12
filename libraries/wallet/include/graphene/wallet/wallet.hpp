@@ -486,7 +486,7 @@ class wallet_api
        * @param trxs vector of transactions to be computed and broadcasted
        * @param expiration when rollup transactions will expire
        */
-      signed_transaction rollup_transactions_push(vector<signed_transaction> trxs, time_point_sec expiration); //is compact signature needed?
+      vector<signed_transaction> rollup_transactions_push(vector<signed_transaction> trxs, time_point_sec expiration); //is compact signature needed?
 
       bool    is_new()const;
 
