@@ -83,7 +83,7 @@ namespace graphene { namespace wallet { namespace detail {
       for(auto trx : trxs)
       {
          trx.set_expiration(expiration);
-         resigned_new_exp_vec.push_back(sign_transaction(trx, false));
+         resigned_new_exp_vec.push_back(sign_rollup_transaction(trx, false, expiration));
       }
       try{
          _remote_rollup_handler->rollup_transactions_handle(resigned_new_exp_vec);
