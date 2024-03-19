@@ -33,11 +33,12 @@ namespace graphene { namespace wallet { namespace detail {
       return trx_handle;
    }
 
+
    void wallet_api_impl::add_operation_to_builder_transaction(transaction_handle_type transaction_handle, const operation& op)
    {
       FC_ASSERT(_builder_transactions.count(transaction_handle));
       _builder_transactions[transaction_handle].operations.emplace_back(op);
-   }
+   }   
 
    void wallet_api_impl::replace_operation_in_builder_transaction(transaction_handle_type handle,
          uint32_t operation_index, const operation& new_op)
@@ -87,6 +88,8 @@ namespace graphene { namespace wallet { namespace detail {
       return _builder_transactions[transaction_handle] =
             sign_transaction(_builder_transactions[transaction_handle], broadcast);
    }
+
+   
 
    signed_transaction wallet_api_impl::propose_builder_transaction( transaction_handle_type handle,
          time_point_sec expiration, uint32_t review_period_seconds, bool broadcast)

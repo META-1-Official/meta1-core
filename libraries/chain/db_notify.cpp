@@ -20,6 +20,7 @@
 #include <graphene/chain/asset_limitation_object.hpp>
 #include <graphene/chain/liquidity_pool_object.hpp>
 #include <graphene/chain/impacted.hpp>
+#include <graphene/chain/rollup_object.hpp>
 
 using namespace fc;
 using namespace graphene::chain;
@@ -327,6 +328,15 @@ struct get_impacted_account_visitor
    {
       _impacted.insert( op.fee_payer() ); // account
    }
+   void operator()( const rollup_create_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // fee_paying_account
+      vector<authority> other;
+      for( const auto& rollup_op : op.rollup_ops )
+         operation_get_required_authorities( rollup_op.op, _impacted, _impacted, other );
+      for( auto& o : other )
+         add_authority_accounts( _impacted, o );
+   }
 
 };
 
@@ -434,6 +444,20 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
         } case liquidity_pool_object_type:{
            // no account info in the object although it does have an owner
            break;
+        } case rollup_object_type:{
+           const auto& aobj = dynamic_cast<const rollup_object*>(obj);
+           FC_ASSERT( aobj != nullptr );
+           transaction_get_impacted_accounts( aobj->proposed_transaction, accounts );
+           break;
+        } case rollup_transaction_object_type:{
+           const auto& aobj = dynamic_cast<const rollup_transaction_object*>(obj);
+           FC_ASSERT( aobj != nullptr );
+           for( const auto& tx : aobj->proposed_block.transactions)
+           {
+               for( const auto& op : tx.operations)
+                  operation_get_impacted_accounts( op, accounts );
+           }
+           break;               
         }
       }
    }

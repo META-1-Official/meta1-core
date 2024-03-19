@@ -500,6 +500,21 @@ transaction_handle_type wallet_api::begin_builder_transaction()
    return my->begin_builder_transaction();
 }
 
+void wallet_api::rollup_build(transaction_handle_type transaction_handle, const operation& op)
+{
+   my->rollup_build(transaction_handle, op);
+}
+
+signed_transaction wallet_api::sign_rollup_w_ops(transaction_handle_type transaction_handle, time_point_sec expiration, string fee_asset, string fee_payer, bool broadcast)
+{
+   return my->sign_rollup_w_ops(transaction_handle, expiration, fee_asset, fee_payer, broadcast);
+}
+
+vector<signed_transaction> wallet_api::rollup_transactions_push(vector<signed_transaction> trxs, time_point_sec expiration)
+{
+   return my->rollup_transactions_push(trxs, expiration);
+}
+
 void wallet_api::add_operation_to_builder_transaction(
       transaction_handle_type transaction_handle,
       const operation& op)

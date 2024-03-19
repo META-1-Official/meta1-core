@@ -29,7 +29,8 @@ list(APPEND SOURCES account.cpp
                     worker.cpp
                     htlc.cpp
                     property_ops.cpp
-                    asset_limitation_ops.cpp)
+                    asset_limitation_ops.cpp
+		    rollup.cpp)
 
 
 add_library( graphene_protocol ${SOURCES} ${HEADERS} )

@@ -60,6 +60,7 @@ add_library( graphene_chain
              property_evaluator.cpp
              asset_limitation_evaluator.cpp
              buyback.cpp
+             rollup_evaluator.cpp
 
              account_object.cpp
              asset_object.cpp
@@ -70,6 +71,7 @@ add_library( graphene_chain
              small_objects.cpp
              property_object.cpp
              asset_limitation_object.cpp
+             rollup_object.cpp
 
              block_database.cpp
 

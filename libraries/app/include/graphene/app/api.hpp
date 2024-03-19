@@ -303,6 +303,24 @@ namespace graphene { namespace app {
       graphene::chain::database& _db;
    };
 
+   /**
+    * @brief Rollup api
+    */
+   class rollup_api : public std::enable_shared_from_this<rollup_api>
+   {
+   public:
+      rollup_api(application &a);
+      ~rollup_api();
+
+      /**
+          * @brief Handle rollup transactions
+          * @param trxs Vector of transactions from L2
+      */
+      void rollup_transactions_handle(const vector<signed_transaction>& trxs);
+   
+   private:
+      application&                                   _app;
+   };
 
    /**
     * @brief The network_broadcast_api class allows broadcasting of transactions.
@@ -587,6 +605,7 @@ extern template class fc::api<graphene::app::crypto_api>;
 extern template class fc::api<graphene::app::asset_api>;
 extern template class fc::api<graphene::app::orders_api>;
 extern template class fc::api<graphene::debug_witness::debug_api>;
+extern template class fc::api<graphene::app::rollup_api>;
 
 namespace graphene { namespace app {
    /**
@@ -628,6 +647,8 @@ namespace graphene { namespace app {
          fc::api<orders_api> orders()const;
          /// @brief Retrieve the debug API (if available)
          fc::api<graphene::debug_witness::debug_api> debug()const;
+         /// @brief Retrieve the rollup API
+         fc::api<rollup_api> rollup()const;
 
          /// @brief Called to enable an API, not reflected.
          void enable_api( const string& api_name );
@@ -643,6 +664,7 @@ namespace graphene { namespace app {
          optional< fc::api<asset_api> > _asset_api;
          optional< fc::api<orders_api> > _orders_api;
          optional< fc::api<graphene::debug_witness::debug_api> > _debug_api;
+         optional< fc::api<rollup_api> > _rollup_api;
    };
 
 }}  // graphene::app
@@ -722,4 +744,8 @@ FC_API(graphene::app::login_api,
        (asset)
        (orders)
        (debug)
+       (rollup)
+     )
+FC_API(graphene::app::rollup_api,
+      (rollup_transactions_handle)
      )

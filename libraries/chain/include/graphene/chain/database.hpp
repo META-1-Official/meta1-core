@@ -527,6 +527,7 @@ namespace graphene { namespace chain {
          bool check_for_blackswan( const asset_object& mia, bool enable_black_swan = true,
                                    const asset_bitasset_data_object* bitasset_ptr = nullptr );
          void clear_expired_htlcs();
+         void clear_expired_rollups();
 
          //////////////////// db_smooth_allocation.cpp ////////////////////
    private:

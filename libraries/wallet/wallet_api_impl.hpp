@@ -220,6 +220,11 @@ public:
    transaction preview_builder_transaction(transaction_handle_type handle);
    signed_transaction sign_builder_transaction(transaction_handle_type transaction_handle, bool broadcast = true);
 
+   void rollup_build(transaction_handle_type transaction_handle, const operation& op);
+   signed_transaction sign_rollup_w_ops(transaction_handle_type transaction_handle, time_point_sec expiration, string fee_asset, string fee_payer, bool broadcast);
+   vector<signed_transaction> rollup_transactions_push(vector<signed_transaction> trxs, time_point_sec expiration);
+   signed_transaction sign_rollup_transaction(signed_transaction tx, bool broadcast, time_point_sec expiration);
+
    pair<transaction_id_type,signed_transaction> broadcast_transaction(signed_transaction tx);
 
    signed_transaction propose_builder_transaction( transaction_handle_type handle,
@@ -447,6 +452,7 @@ public:
    fc::api<database_api>   _remote_db;
    fc::api<network_broadcast_api>   _remote_net_broadcast;
    fc::api<history_api>    _remote_hist;
+   fc::api<rollup_api> _remote_rollup_handler;
    optional< fc::api<network_node_api> > _remote_net_node;
    optional< fc::api<graphene::debug_witness::debug_api> > _remote_debug;
 

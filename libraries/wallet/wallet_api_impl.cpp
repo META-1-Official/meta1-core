@@ -56,7 +56,8 @@ namespace graphene { namespace wallet { namespace detail {
         _remote_api(rapi),
         _remote_db(rapi->database()),
         _remote_net_broadcast(rapi->network_broadcast()),
-        _remote_hist(rapi->history())
+        _remote_hist(rapi->history()),
+        _remote_rollup_handler(rapi->rollup())
    {
       chain_id_type remote_chain_id = _remote_db->get_chain_id();
       if( remote_chain_id != _chain_id )

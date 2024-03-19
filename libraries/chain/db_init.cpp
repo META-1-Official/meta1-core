@@ -50,6 +50,7 @@
 #include <graphene/chain/htlc_object.hpp>
 #include <graphene/chain/property_object.hpp>
 #include <graphene/chain/asset_limitation_object.hpp>
+#include <graphene/chain/rollup_object.hpp>
 
 #include <graphene/chain/account_evaluator.hpp>
 #include <graphene/chain/asset_evaluator.hpp>
@@ -69,6 +70,7 @@
 #include <graphene/chain/htlc_evaluator.hpp>
 #include <graphene/chain/property_evaluator.hpp>
 #include <graphene/chain/asset_limitation_evaluator.hpp>
+#include <graphene/chain/rollup_evaluator.hpp>
 
 #include <fc/crypto/digest.hpp>
 
@@ -139,6 +141,9 @@ const uint8_t property_object::type_id;
 const uint8_t asset_limitation_object::space_id;
 const uint8_t asset_limitation_object::type_id;
 
+const uint8_t rollup_object::space_id;
+const uint8_t rollup_object::type_id;
+
 
 void database::initialize_evaluators()
 {
@@ -200,6 +205,7 @@ void database::initialize_evaluators()
    register_evaluator<liquidity_pool_deposit_evaluator>();
    register_evaluator<liquidity_pool_withdraw_evaluator>();
    register_evaluator<liquidity_pool_exchange_evaluator>();
+   register_evaluator<rollup_create_evaluator>();
 }
 
 void database::initialize_indexes()
@@ -227,6 +233,7 @@ void database::initialize_indexes()
    add_index< primary_index<asset_limitation_index> >();
    add_index< primary_index<asset_price_index> >();
    add_index< primary_index<liquidity_pool_index> >();
+   add_index< primary_index<rollup_index > >();
 
    //Implementation object indexes
    add_index< primary_index<transaction_index                             > >();

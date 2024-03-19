@@ -42,6 +42,7 @@
 #include <graphene/protocol/htlc.hpp>
 #include <graphene/protocol/property_ops.hpp>
 #include <graphene/protocol/asset_limitation_ops.hpp>
+#include <graphene/protocol/rollup.hpp>
 
 namespace graphene { namespace protocol {
 
@@ -114,7 +115,8 @@ namespace graphene { namespace protocol {
             liquidity_pool_delete_operation,
             liquidity_pool_deposit_operation,
             liquidity_pool_withdraw_operation,
-            liquidity_pool_exchange_operation
+            liquidity_pool_exchange_operation,
+            rollup_create_operation
          > operation;
 
    /// @} // operations group
