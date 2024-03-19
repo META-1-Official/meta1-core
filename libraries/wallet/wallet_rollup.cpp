@@ -31,13 +31,14 @@ namespace graphene { namespace wallet { namespace detail {
    }
 
     signed_transaction wallet_api_impl::sign_rollup_w_ops(transaction_handle_type 
-         transaction_handle, time_point_sec expiration, string fee_asset, bool broadcast)
+         transaction_handle, time_point_sec expiration, string fee_asset, string fee_payer, bool broadcast)
    {
       FC_ASSERT(_builder_transactions.count(transaction_handle));
 
       //build rollup op
       rollup_create_operation op;
       op.expiration_time = expiration;
+      op.fee_paying_account = get_account(fee_payer).get_id();
       signed_transaction& trx = _builder_transactions[transaction_handle];
       std::transform(trx.operations.begin(), trx.operations.end(), std::back_inserter(op.rollup_ops),
                      [](const operation& op) -> op_wrapper { return op; });
@@ -57,11 +58,11 @@ namespace graphene { namespace wallet { namespace detail {
 
       
       //sign transaction
-      trx = sign_builder_transaction(transaction_handle, broadcast);
+      return trx = sign_rollup_transaction(trx, broadcast, expiration);
       //trx = sign_rollup_transaction(trx);
 
       //broadcast signed transaction
-      if(broadcast)
+      /*if(broadcast)
       {
          try
             {
@@ -74,7 +75,7 @@ namespace graphene { namespace wallet { namespace detail {
                throw;
             }
       }
-      return trx;
+      return trx;*/
    }
 
     vector<signed_transaction> wallet_api_impl::rollup_transactions_push(vector<signed_transaction> trxs, time_point_sec expiration)

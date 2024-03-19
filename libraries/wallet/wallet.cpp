@@ -505,9 +505,9 @@ void wallet_api::rollup_build(transaction_handle_type transaction_handle, const 
    my->rollup_build(transaction_handle, op);
 }
 
-signed_transaction wallet_api::sign_rollup_w_ops(transaction_handle_type transaction_handle, time_point_sec expiration, string fee_asset, bool broadcast)
+signed_transaction wallet_api::sign_rollup_w_ops(transaction_handle_type transaction_handle, time_point_sec expiration, string fee_asset, string fee_payer, bool broadcast)
 {
-   return my->sign_rollup_w_ops(transaction_handle, expiration, fee_asset, broadcast);
+   return my->sign_rollup_w_ops(transaction_handle, expiration, fee_asset, fee_payer, broadcast);
 }
 
 vector<signed_transaction> wallet_api::rollup_transactions_push(vector<signed_transaction> trxs, time_point_sec expiration)
